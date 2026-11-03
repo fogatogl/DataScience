@@ -339,6 +339,111 @@ def _courbe_tranches(communes: pd.DataFrame) -> pd.DataFrame:
     )
 
 
+def _libelle_cellule(bas_km: float, haut_km: float, rayon_km: int) -> str:
+    """Nomme une cellule d'anneaux par ses bornes et son rayon : « 20-30 km, rayon 5 km »."""
+    bornes = (
+        f"{bas_km:.0f} km et plus" if haut_km == float("inf") else f"{bas_km:.0f}-{haut_km:.0f} km"
+    )
+    return f"{bornes}, rayon {rayon_km} km"
+
+
+def fig4(
+    principale: pd.DataFrame, secondaire: pd.DataFrame, anneaux: pd.DataFrame, titre: str
+) -> Figure:
+    """Fig. 4 : estimations de H1 par aire, en points avec leurs intervalles à 95 % (§5.2).
+
+    Trois panneaux à axes propres, les aires sur la même ligne de l'un à l'autre (H2, §5.4) :
+    pente principale et pente secondaire des paires (`analyse.pentes_paires_par_aire`), écarts
+    des cellules estimables à 5 et à 10 km (`analyse.ecarts_anneaux`), chacune nommée par ses
+    bornes. Les cellules non estimables sont nommées en note. `titre` est le message de la
+    figure, écrit par le groupe (PLAN §6).
+    """
+    aires = _aires_ordonnees(principale.index)
+    assert set(secondaire.index) == set(aires), "Les deux pentes n'ont pas les mêmes aires."
+    texte = config.COULEUR_TEXTE
+    # La première aire en haut
+    rang = {aire: len(aires) - 1 - k for k, aire in enumerate(aires)}
+    estimables = anneaux[anneaux["estimable"]]
+    marqueurs = {5: "o", 10: "s"}
+
+    fig, axes = plt.subplots(1, 3, figsize=(14, 1.6 + 1.2 * len(aires)), sharey=True)
+    panneaux = [
+        (axes[0], "Pente principale", "points par km de distance au lycée privé le plus proche"),
+        (axes[1], "Pente secondaire", "points par lycée privé de plus à 5 km"),
+        (axes[2], "Écarts des cellules d'anneaux", "points, communes avec moins sans lycée privé"),
+    ]
+    for ax, pentes in ((axes[0], principale), (axes[1], secondaire)):
+        for aire in aires:
+            ligne = pentes.loc[aire]
+            couleur = config.COULEURS_AIRES[aire]
+            ax.hlines(rang[aire], ligne["ic_bas"] * 100, ligne["ic_haut"] * 100, color=couleur)
+            ax.scatter(ligne["pente"] * 100, rang[aire], s=45, color=couleur, zorder=3)
+    ax = axes[2]
+    for aire in aires:
+        cellules = estimables[estimables["aire"] == aire].reset_index(drop=True)
+        couleur = config.COULEURS_AIRES[aire]
+        for k, cellule in cellules.iterrows():
+            # Les cellules d'une aire sont réparties autour de sa ligne, sans se recouvrir
+            y = rang[aire] + 0.18 * ((len(cellules) - 1) / 2 - k)
+            ax.hlines(y, cellule["ic_bas"] * 100, cellule["ic_haut"] * 100, color=couleur)
+            ax.scatter(
+                cellule["ecart"] * 100,
+                y,
+                s=40,
+                marker=marqueurs[cellule["rayon_km"]],
+                color=couleur,
+                zorder=3,
+            )
+            ax.annotate(
+                _libelle_cellule(cellule["bas_km"], cellule["haut_km"], cellule["rayon_km"]),
+                (cellule["ic_haut"] * 100, y),
+                xytext=(4, 0),
+                textcoords="offset points",
+                va="center",
+                fontsize=7.5,
+                color=texte,
+            )
+    for ax, nom, unite in panneaux:
+        ax.axvline(0, color=config.COULEUR_LIAISON, linewidth=1, zorder=0)
+        ax.set_title(nom, loc="left", fontsize=11, color=texte)
+        ax.set_xlabel(unite, color=texte, fontsize=9)
+        ax.spines[["top", "right", "left"]].set_visible(False)
+        ax.tick_params(colors=texte)
+        ax.tick_params(axis="y", length=0)
+        ax.grid(axis="x", color=config.COULEUR_GRILLE, linewidth=0.8)
+        ax.set_axisbelow(True)
+    axes[0].set_yticks([rang[aire] for aire in aires])
+    axes[0].set_yticklabels(aires, color=texte)
+    axes[0].set_ylim(-0.6, len(aires) - 0.4)
+    # Place à droite pour les noms des cellules
+    gauche, droite = axes[2].get_xlim()
+    axes[2].set_xlim(gauche, droite + 0.6 * (droite - gauche))
+
+    non_estimables = anneaux[~anneaux["estimable"]]
+    noms = [
+        f"{ligne.aire} ({_libelle_cellule(ligne.bas_km, ligne.haut_km, ligne.rayon_km)})"
+        for ligne in non_estimables.itertuples()
+    ]
+    fig.suptitle(titre, fontsize=13, x=0.01, ha="left")
+    fig.text(
+        0.01,
+        0.01,
+        "Sens de H1 : pente principale négative, pente secondaire et écarts positifs. Pentes des "
+        "paires de communes contiguës sans constante, à écarts de distance au centre et de "
+        "log-densité donnés ;\nécarts des cellules : régression pondérée par les actifs, à "
+        "distance au centre et log-densité données (rond : rayon de 5 km, carré : 10 km). "
+        f"Intervalles à 95 % par bootstrap ({config.NB_TIRAGES_BOOTSTRAP} tirages).\n"
+        f"Cellules non estimables : {', '.join(noms)}.\nSources : Insee, recensement 2022, "
+        f"« Évolution et structure de la population » ; annuaire de l'éducation "
+        f"({config.DATE_ANNUAIRE}) ; IGN.",
+        fontsize=8,
+        color=texte,
+    )
+    fig.tight_layout(rect=(0, 0.16, 1, 0.95))
+    plt.close(fig)
+    return fig
+
+
 def fig5(paires: pd.DataFrame, pentes: pd.DataFrame, titre: str) -> Figure:
     """Fig. 5 : écart de part de cadres et écart de distance au lycée privé dans les paires.
 

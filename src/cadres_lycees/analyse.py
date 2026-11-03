@@ -401,3 +401,125 @@ def resume_acces(base: pd.DataFrame) -> pd.DataFrame:
         part_exposees=(f"expose_lyc_prive_{rayon}km", "mean"),
     )
     return effectifs.join(par_aire[mesures].median())
+
+
+def ecart_cellule(cellule: pd.DataFrame, colonne_exposition: str, poids: pd.Series) -> float:
+    """Renvoie l'écart de part de cadres entre communes exposées et non exposées d'une cellule.
+
+    Coefficient de `colonne_exposition` (0/1) dans la régression de `part_cadres_2022` sur
+    l'exposition, `dist_centre_km` et `log_densite` avec constante, pondérée par `poids` (§5.2,
+    A6). Dans une cellule, la constante est sans danger : il n'y a pas de sens i − j.
+    """
+    colonnes = [colonne_exposition, "dist_centre_km", "log_densite"]
+    x = np.column_stack([np.ones(len(cellule)), cellule[colonnes].to_numpy(dtype=float)])
+    y = cellule["part_cadres_2022"].to_numpy(dtype=float)
+    w = poids.loc[cellule.index].to_numpy(dtype=float)
+    assert not (np.isnan(x).any() or np.isnan(y).any()), "Valeur manquante dans la cellule."
+    # Moindres carrés pondérés par les lignes multipliées par √w, comme dans `pente_paires`
+    racine = np.sqrt(w)
+    coefficients, _, rang, _ = np.linalg.lstsq(x * racine[:, None], y * racine, rcond=None)
+    assert rang == x.shape[1], f"Régresseurs colinéaires dans la cellule (rang {rang})."
+    return float(coefficients[1])
+
+
+def ecarts_anneaux(base: pd.DataFrame) -> pd.DataFrame:
+    """Renvoie l'écart avec/sans lycée privé de chaque cellule d'anneaux, à 5 et 10 km (§5.2).
+
+    Cellules de `cellules_anneaux`, les mêmes que celles du tableau de support. Dans chaque
+    cellule estimable : `ecart`, l'écart à contrôles donnés pondéré par `actifs_2022`
+    (`ecart_cellule`), son intervalle à 95 % (`ic_bas`, `ic_haut`) par `config.
+    NB_TIRAGES_BOOTSTRAP` tirages avec remise des communes dans chacun des deux groupes, et
+    `ecart_brut`, l'écart des parts moyennes pondérées. Une commune sans actif en 2022 (A17)
+    compte dans la cellule mais n'a pas de part : elle sort de l'estimation (`n_sans_part`). Les
+    écarts sont en fraction ; une cellule non estimable a des valeurs manquantes.
+    """
+    generateur = np.random.default_rng(config.GRAINE_BOOTSTRAP)
+    lignes = []
+    for rayon in config.RAYONS_SUPPORT_KM:
+        colonne_exposition = f"expose_lyc_prive_{rayon}km"
+        cellules = cellules_anneaux(base, rayon)
+        for cellule in cellules.itertuples(index=False):
+            ligne = {"rayon_km": rayon, **cellule._asdict()}
+            dans_la_cellule = (base["aire"] == cellule.aire) & base["dist_centre_km"].between(
+                cellule.bas_km, cellule.haut_km, inclusive="left"
+            )
+            communes = base[dans_la_cellule]
+            ligne["n_sans_part"] = int(communes["part_cadres_2022"].isna().sum())
+            if cellule.estimable:
+                avec_part = communes[communes["part_cadres_2022"].notna()]
+                exposee = avec_part[colonne_exposition] == 1
+                actifs = avec_part["actifs_2022"]
+                ecarts = []
+                for _ in range(config.NB_TIRAGES_BOOTSTRAP):
+                    # Tirage dans chaque groupe : les deux effectifs restent ceux de la cellule
+                    tirees = np.concatenate(
+                        [
+                            generateur.choice(groupe.index, size=len(groupe), replace=True)
+                            for groupe in (avec_part[exposee], avec_part[~exposee])
+                        ]
+                    )
+                    tirage = pd.Series(tirees).value_counts().reindex(avec_part.index, fill_value=0)
+                    ecarts.append(ecart_cellule(avec_part, colonne_exposition, actifs * tirage))
+                parts_moyennes = [
+                    np.average(groupe["part_cadres_2022"], weights=groupe["actifs_2022"])
+                    for groupe in (avec_part[exposee], avec_part[~exposee])
+                ]
+                ligne |= {
+                    "ecart": ecart_cellule(avec_part, colonne_exposition, actifs),
+                    "ic_bas": np.percentile(ecarts, 2.5),
+                    "ic_haut": np.percentile(ecarts, 97.5),
+                    "ecart_brut": parts_moyennes[0] - parts_moyennes[1],
+                }
+            lignes.append(ligne)
+    return pd.DataFrame(lignes)
+
+
+def _concordent(a: pd.Series, b: pd.Series) -> bool:
+    """Dit si deux estimations concordent : même signe et intervalles qui se recoupent (§5.3)."""
+    meme_signe = np.sign(a["ecart"]) == np.sign(b["ecart"])
+    return bool(meme_signe and a["ic_bas"] <= b["ic_haut"] and b["ic_bas"] <= a["ic_haut"])
+
+
+def verdict_h1(
+    principale: pd.DataFrame, secondaire: pd.DataFrame, anneaux: pd.DataFrame
+) -> pd.DataFrame:
+    """Renvoie le verdict de H1 dans chaque aire, par les règles du §5.3 (A4, A13).
+
+    `principale` et `secondaire` viennent de `pentes_paires_par_aire` sur `d_dist_lyc_prive_min`
+    et `d_n_lyc_prive_5km`, `anneaux` de `ecarts_anneaux`. Sens de H1 : pente principale
+    négative (plus proche d'un lycée privé, plus de cadres), pente secondaire et écarts des
+    cellules positifs. Un anneau comparé est un anneau d'origine couvert par une cellule
+    estimable à chacun des deux rayons ; ses deux estimations doivent concorder. Toute cellule
+    estimable peut contredire : son intervalle sous zéro fait d'une confirmation une nuance, au
+    dessus de zéro il empêche d'établir un résultat nul. Colonnes : `verdict`, `mention`
+    (« paires seules » pour une confirmation sans anneau comparé), `anneaux_compares`.
+    """
+    anneaux_origine = list(itertools.pairwise([*config.ANNEAUX_KM, float("inf")]))
+    lignes = {}
+    for aire in principale.index:
+        pente = principale.loc[aire]
+        cellules = anneaux[(anneaux["aire"] == aire) & anneaux["estimable"]]
+        contredit = bool((cellules["ic_haut"] < 0).any())
+        dans_le_sens = bool((cellules["ic_bas"] > 0).any())
+        compares = 0
+        concordants = True
+        for bas, haut in anneaux_origine:
+            couvrantes = cellules[(cellules["bas_km"] <= bas) & (cellules["haut_km"] >= haut)]
+            par_rayon = [couvrantes[couvrantes["rayon_km"] == r] for r in config.RAYONS_SUPPORT_KM]
+            if all(len(c) == 1 for c in par_rayon):
+                compares += 1
+                concordants &= _concordent(par_rayon[0].iloc[0], par_rayon[1].iloc[0])
+
+        if pente["ic_haut"] < 0:
+            confirmee = secondaire.loc[aire, "pente"] > 0 and concordants and not contredit
+            verdict = "confirmée" if confirmee else "nuancée"
+        elif pente["ic_bas"] > 0:
+            verdict = "infirmée"
+        elif compares > 0 and concordants and not dans_le_sens:
+            # Résultat nul établi
+            verdict = "infirmée"
+        else:
+            verdict = "non concluante"
+        mention = "paires seules" if verdict == "confirmée" and compares == 0 else ""
+        lignes[aire] = {"verdict": verdict, "mention": mention, "anneaux_compares": compares}
+    return pd.DataFrame.from_dict(lignes, orient="index").rename_axis("aire")
