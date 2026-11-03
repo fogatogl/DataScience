@@ -26,6 +26,9 @@ Communes des aires demandées, au COG 2025, avec les arrondissements municipaux 
 | `densite` | `pop_2022` divisée par la superficie de l'Insee (`SUPERF`) | habitants par km² | idem |
 | `log_densite` | Logarithme népérien de `densite`, forme du contrôle de densité (A7) | — | `nettoyage.population` |
 | `expose_lyc_prive_<r>km` | 1 si au moins un lycée privé sous contrat est à r km ou moins, sinon 0 | 0 ou 1 | `pipeline.construire_base` |
+| `n_gare_<r>km` | Nombre de gares de voyageurs à r km ou moins du centroïde (r = 3, 5, 10), bord compris (H4) | nombre | SNCF Gares & Connexions, gares de voyageurs, copie du 03/11/2026, `accessibilite.indicateurs` |
+| `dist_gare_min` | Distance à la gare de voyageurs la plus proche, parmi toutes celles de France métropolitaine continentale (H4) | km | idem |
+| `apl_mg` | Accessibilité potentielle localisée aux médecins généralistes, tous âges, millésime 2024 (H4) | consultations par an et par habitant standardisé | DREES, copie du 03/11/2026, `collecte.apl_medecins` |
 | `part_cadres_2011`, `part_cadres_2022` | Cadres et professions intellectuelles supérieures (groupe 3) parmi les actifs de 25 à 54 ans, occupés ou chômeurs ayant déjà travaillé (somme des 6 groupes), au recensement 2011 ou 2022 | fraction de 0 à 1 | Insee, « Évolution et structure de la population » 2022 (`C11_POP2554_CS3`, `C22_POP2554_STAT_GSEC13_23`), `nettoyage.part_cadres` |
 | `evol_cadres_pts` | `part_cadres_2022` moins `part_cadres_2011` | points de pourcentage | `nettoyage.part_cadres` |
 | `actifs_2011`, `actifs_2022` | Actifs de 25 à 54 ans en 2011 ou 2022, dénominateurs des parts de cadres ; `actifs_2022` est le poids des moyennes, et le plus petit des deux sert au seuil de 200 actifs de H3 (§3.2, A17) ; effectifs décimaux (exploitation complémentaire) | personnes | idem |
@@ -54,6 +57,6 @@ Paires de communes d'une même aire qui se touchent, par un bord ou par un seul 
 |---|---|
 | `code_commune_i`, `code_commune_j` | Codes des deux communes, avec `code_commune_i` < `code_commune_j` dans l'ordre des codes |
 | `aire` | Aire des deux communes |
-| `d_<v>` | Valeur de i moins valeur de j pour chaque variable de `config.VARIABLES_PAIRES` : `part_cadres_2022`, `dist_lyc_prive_min`, `n_lyc_prive_5km`, `dist_centre_km`, `log_densite`, `expose_lyc_prive_5km`, `expose_lyc_prive_10km` ; manquant si l'une des deux valeurs manque |
+| `d_<v>` | Valeur de i moins valeur de j pour chaque variable de `config.VARIABLES_PAIRES` : `part_cadres_2022`, `dist_lyc_prive_min`, `n_lyc_prive_5km`, `dist_centre_km`, `log_densite`, `expose_lyc_prive_5km`, `expose_lyc_prive_10km`, `dist_gare_min`, `apl_mg` ; manquant si l'une des deux valeurs manque |
 
 Le sens i − j suit l'ordre des codes : il est arbitraire. Une paire est « de statut différent » à 5 ou 10 km quand `d_expose_lyc_prive_5km` ou `d_expose_lyc_prive_10km` vaut 1 ou −1.

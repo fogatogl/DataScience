@@ -46,6 +46,8 @@ Les sources qui changent sans prévenir sont lues dans une copie datée, jamais 
 | Copie | Date | Origine | `sha256` |
 |---|---|---|---|
 | `annuaire_education_20261013.parquet` | 13/10/2026 | https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/exports/parquet | `2c493f152bc8fc682aa8b1f063392015941bcff36bae2ae59a4d1a1e6334e94a` |
+| `gares_voyageurs_20261103.parquet` | 03/11/2026 | https://ressources.data.sncf.com/api/explore/v2.1/catalog/datasets/gares-de-voyageurs/exports/parquet | `61ccf3392b01cb6785268be7152337f1a95dda93fa9eadf9134901b5f366bc44` |
+| `apl_medecins_generalistes_20261103.xlsx` | 03/11/2026 | https://data.drees.solidarites-sante.gouv.fr/api/explore/v2.1/catalog/datasets/530_l-accessibilite-potentielle-localisee-apl/attachments/indicateur_d_apl_aux_medecins_generalistes_xlsx | `21c73deff57dc7a83a3cd6fcfd5b5ceb8c7a40e98590a50b5b1194f2dd4d75a2` |
 | `ips_lycees_20261013.csv` | 13/10/2026 | https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-ips-lycees-ap2023/exports/csv | `31b2aafd8fb4597608c55f8f78f7144444a350df795111a651fb5222ee9c8aa7` |
 | `ival_lycees_gt_20261020.csv` | 20/10/2026 | https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-indicateurs-de-resultat-des-lycees-gt_v2/exports/csv | `6ab77b391e3405f5157bb942d4548d5f1cfbacd94e76dd52b93db9b370de8658` |
 | `contours_departements_20261020.parquet` | 20/10/2026 | `cartiflette==0.4.0`, départements de France entière, COG 2025, sans simplification | `a6e4d3b3a7657f61b8fe9b710efa5f50c0cab76cde0d522f4cfd4adfdbe405ca` |

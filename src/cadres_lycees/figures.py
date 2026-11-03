@@ -565,3 +565,70 @@ def fig3(communes: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame, titre: str) -> fo
     )
     carte.get_root().html.add_child(folium.Element(entete))
     return carte
+
+
+def fig7(pentes: pd.DataFrame, titre: str) -> Figure:
+    """Fig. 7 : association de la part de cadres avec l'accès à chaque infrastructure (H4).
+
+    Une ligne par mesure d'accès, de la plus forte à la plus faible association (moyenne des
+    pentes des aires), un point par aire avec son intervalle à 95 %. `pentes` vient de
+    `analyse.pentes_h4` ; `titre` est le message de la figure, écrit par le groupe (PLAN §6).
+    """
+    aires = [
+        aire for aire in config.COULEURS_AIRES if aire in set(pentes.index.get_level_values("aire"))
+    ]
+    ordre = pentes["pente"].groupby(level="mesure").mean().sort_values().index
+    texte = config.COULEUR_TEXTE
+    # Les aires sont décalées verticalement dans chaque ligne, pour que leurs intervalles ne se
+    # recouvrent pas ; la première en haut, comme dans la légende
+    decalages = {aire: -0.22 * (k - (len(aires) - 1) / 2) for k, aire in enumerate(aires)}
+
+    fig, ax = plt.subplots(figsize=(11, 1.4 + 1.3 * len(ordre)))
+    ax.axvline(0, color=config.COULEUR_LIAISON, linewidth=1, zorder=0)
+    for position, mesure in enumerate(ordre):
+        for aire in aires:
+            ligne = pentes.loc[(mesure, aire)]
+            y = position + decalages[aire]
+            couleur = config.COULEURS_AIRES[aire]
+            ax.hlines(y, ligne["ic_bas"] * 100, ligne["ic_haut"] * 100, color=couleur, linewidth=2)
+            ax.scatter(
+                ligne["pente"] * 100,
+                y,
+                s=45,
+                color=couleur,
+                edgecolor="white",
+                zorder=3,
+                label=aire if position == 0 else None,
+            )
+    ax.set_yticks(range(len(ordre)))
+    ax.set_yticklabels(ordre, color=texte)
+    ax.set_xlabel(
+        "Écart de part de cadres en 2022 entre deux communes voisines pour un écart-type d'accès "
+        "en plus (points)",
+        color=texte,
+    )
+    ax.spines[["top", "right", "left"]].set_visible(False)
+    ax.tick_params(colors=texte)
+    ax.tick_params(axis="y", length=0)
+    ax.grid(axis="x", color=config.COULEUR_GRILLE, linewidth=0.8)
+    ax.set_axisbelow(True)
+    # Légende dans l'ordre des aires de la charte, en dehors des points
+    ax.legend(frameon=False, loc="upper left", bbox_to_anchor=(1.0, 1.0))
+
+    fig.suptitle(titre, fontsize=13, x=0.01, ha="left")
+    fig.text(
+        0.01,
+        0.01,
+        "Pente des paires de communes contiguës, sans constante, à écarts de distance au centre et "
+        "de log-densité donnés ; mesures d'accès centrées réduites dans chaque aire et orientées\n"
+        "pour qu'une valeur positive dise « plus d'accès, plus de cadres » (distances retournées). "
+        f"Intervalles à 95 % par bootstrap des communes ({config.NB_TIRAGES_BOOTSTRAP} tirages, "
+        "les mêmes pour toutes les mesures).\nSources : Insee, recensement 2022 ; annuaire de "
+        f"l'éducation ({config.DATE_ANNUAIRE}) ; SNCF Gares & Connexions (03/11/2026) ; DREES, "
+        "APL 2024 ; IGN.",
+        fontsize=8,
+        color=texte,
+    )
+    fig.tight_layout(rect=(0, 0.12, 1, 0.94))
+    plt.close(fig)
+    return fig

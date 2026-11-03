@@ -353,3 +353,26 @@ def nuage_paires(paires: pd.DataFrame, acces: str) -> pd.DataFrame:
         )
         .rename_axis("classe")
     )
+
+
+def pentes_h4(base: pd.DataFrame, paires: pd.DataFrame) -> pd.DataFrame:
+    """Renvoie, pour chaque mesure d'accès de H4 et chaque aire, la pente des paires (§5.7).
+
+    Chaque mesure de `config.MESURES_H4` est centrée réduite dans chaque aire (moyenne et
+    écart-type simples des communes de `base`), puis orientée par son sens : la pente se lit en
+    points de part de cadres pour un écart-type d'accès en plus. Dans une paire, la moyenne
+    s'annule : seul l'écart-type compte. Pente, contrôles et intervalle sont ceux de
+    `pentes_paires_par_aire` (sans constante, bootstrap par commune), avec les mêmes tirages pour
+    toutes les mesures. Index (`mesure`, `aire`) ; colonnes de `pentes_paires_par_aire`.
+    """
+    resultats = []
+    for mesure, (variable, sens) in config.MESURES_H4.items():
+        ecart_type = base.groupby("aire")[variable].std()
+        assert (ecart_type > 0).all(), f"{variable} ne varie pas dans une aire."
+        colonne = f"d_{variable}_reduit"
+        reduites = paires.assign(
+            **{colonne: sens * paires[f"d_{variable}"] / paires["aire"].map(ecart_type)}
+        )
+        pentes = pentes_paires_par_aire(reduites, colonne)
+        resultats.append(pentes.assign(mesure=mesure).set_index("mesure", append=True))
+    return pd.concat(resultats).reorder_levels(["mesure", "aire"])

@@ -345,3 +345,20 @@ Aucune valeur de cadres des 3 aires retenues n'a été lue : seulement des compt
   - `ANEMR = 00` ne veut pas dire « arrivé l'an dernier » (24 % sont dans le même logement un an avant).
 - **LOGEMT 2022** a l'IRIS et l'année d'emménagement détaillée mais aucune CSP. **INDCVI 2011** existe (texte, virgule décimale, `CS1`, `ANEMR`, sans `IRAN` ni `STAT_GSEC`).
 - **Rien de plus fin que l'IRIS** sur la CSP n'est diffusé (secret statistique, arrêté du 19 juillet 2007) : aucune carte « à la rue » ou « par ménage » n'est possible avec des données publiques.
+
+## 15. Gares de voyageurs, SNCF Gares & Connexions (source 12, explorée le 03/11)
+
+- Export Opendatasoft `gares-de-voyageurs` (Parquet ou CSV `;` avec BOM), licence ODbL. data.gouv.fr ne fait que pointer vers ces exports. Retraité chaque jour (`update_frequency` DAILY), sans date ni version : copie gelée du 03/11/2026 (`raw/gares_voyageurs_20261103.parquet`, sha256 dans `config.py`).
+- 2 792 lignes, 7 colonnes texte, aucune valeur manquante : `nom`, `libellecourt` (trigramme), `segment_drg`, `position_geographique`, `codeinsee`, `codes_uic`, `id`. Une ligne par gare au sens de G&C ; `id`, `nom`, trigramme et `codes_uic` uniques. 11 gares portent plusieurs codes UIC séparés par `;` (2 805 UIC une fois éclatés, sans doublon).
+- Position : WGS84, en WKB dans le Parquet (x = longitude), « lat, lon » dans le CSV. Aucune gare sans position, aucune hors métropole. **Corse : 0 gare** (réseau CFC hors G&C) ; sans effet sur les 3 aires.
+- Pas de type TGV / TER. `segment_drg` : A nationale (128), B régionale (1 075), C locale (1 579), combinaisons pour 10 gares multi-UIC. Fréquentation dans le jeu `frequentation-gares` (une ligne par UIC, `total_voyageurs_AAAA` de 2015 à 2024, sans coordonnées, jointure par UIC éclaté : 2 790 gares sur 2 792), non utilisée.
+- Aucune colonne de statut : une gare fermée aux voyageurs ne peut pas être repérée dans ce fichier. Pas de halte routière évidente.
+- Ordres de grandeur : 58 gares en Loire-Atlantique, 61 dans le Rhône, 94 dans le Bas-Rhin.
+
+## 16. APL aux médecins généralistes, DREES (source 13, explorée le 03/11)
+
+- La page de l'Observatoire des territoires n'offre pas de fichier ; la source est la pièce jointe « Indicateur d'APL aux médecins généralistes.xlsx » du jeu DREES `530_l-accessibilite-potentielle-localisee-apl` (URL dans `config.py`). Le même fichier change à chaque mise à jour annuelle (millésimes ajoutés, anciens archivés à part) : copie gelée du 03/11/2026 (`raw/apl_medecins_generalistes_20261103.xlsx`).
+- Feuilles `Paramètres`, `APL 2022`, `APL 2023`, `APL 2024` ; 2024 est le dernier millésime. Titre et notes sur les lignes 0 à 6, en-tête ligne 8, unités ligne 9 (à sauter). Colonnes de 2024 : code et nom de la commune, APL tous âges, APL aux médecins de 65, 62 et 60 ans ou moins (noms finis par une espace en 2024, « et moins » en 2022-2023), population standardisée et population totale 2022 (flottants imprécis).
+- Unité : consultations ou visites accessibles par an et par habitant standardisé. Aucune valeur manquante ; 523 zéros en France en 2024, aucun dans le 44, le 67 et le 69.
+- Géographie de la feuille 2024 : fusions de 2024 et 2025 appliquées, arrondissements de Paris, Lyon et Marseille à la place de la commune parente, donc le grain du projet ; les 207 communes du 44, les 514 du 67 et les 265 du 69 plus 9 arrondissements y sont. Écarts au COG 2025 hors des aires : scission de 15141 non appliquée, 6 communes « mortes pour la France » de la Meuse et Mayotte absentes. Les feuilles 2022 et 2023 sont en COG antérieur (69152 et 69159 encore présents).
+- Variante retenue : APL tous âges de la feuille 2024 (choix du 03/11, à valider par le groupe).

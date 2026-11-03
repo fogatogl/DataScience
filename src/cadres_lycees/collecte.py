@@ -23,13 +23,43 @@ def geler_annuaire(chemin: str) -> str:
     Produit une copie gelée : celle du 13/10/2026 vient de là. Le rapport ne l'appelle pas, il
     lit la copie gelée (`annuaire_education`). Mode d'emploi dans le README.
     """
+    return _geler_export_parquet(config.URL_ANNUAIRE, chemin)
+
+
+def geler_gares(chemin: str) -> str:
+    """Écrit à `chemin` l'export complet des gares de voyageurs et renvoie son sha256.
+
+    Produit la copie gelée du 03/11/2026 ; le rapport lit cette copie (`gares`). Mode d'emploi
+    dans le README.
+    """
+    return _geler_export_parquet(config.URL_GARES, chemin)
+
+
+def geler_apl(chemin: str) -> str:
+    """Écrit à `chemin` le fichier de l'APL aux médecins généralistes et renvoie son sha256.
+
+    Produit la copie gelée du 03/11/2026 ; le rapport lit cette copie (`apl_medecins`).
+    """
+    assert not stockage.existe(chemin), f"{chemin} existe déjà : choisir un autre chemin daté."
+    reponse = requests.get(config.URL_APL, timeout=config.DELAI_TELECHARGEMENT_S)
+    reponse.raise_for_status()
+    # Un xlsx est une archive zip : testzip relit chaque fichier et échoue si l'archive est tronquée
+    assert zipfile.ZipFile(io.BytesIO(reponse.content)).testzip() is None, (
+        "Le fichier de l'APL est abîmé : rien n'a été enregistré."
+    )
+    stockage.ecrire_octets(reponse.content, chemin)
+    return hashlib.sha256(reponse.content).hexdigest()
+
+
+def _geler_export_parquet(url: str, chemin: str) -> str:
+    """Écrit à `chemin` l'export Parquet téléchargé à `url` et renvoie son sha256."""
     # Un chemin daté déjà pris est une copie gelée, peut-être publique : on ne l'écrase jamais
     assert not stockage.existe(chemin), f"{chemin} existe déjà : choisir un autre chemin daté."
-    reponse = requests.get(config.URL_ANNUAIRE, timeout=config.DELAI_TELECHARGEMENT_S)
+    reponse = requests.get(url, timeout=config.DELAI_TELECHARGEMENT_S)
     reponse.raise_for_status()
     # Une réponse 200 peut être tronquée ; "PAR1" ouvre et ferme tout fichier Parquet
     assert reponse.content.startswith(b"PAR1") and reponse.content.endswith(b"PAR1"), (
-        "L'export de l'annuaire n'est pas un fichier Parquet complet : rien n'a été enregistré."
+        f"L'export de {url} n'est pas un fichier Parquet complet : rien n'a été enregistré."
     )
     stockage.ecrire_octets(reponse.content, chemin)
     return hashlib.sha256(reponse.content).hexdigest()
@@ -246,3 +276,59 @@ def ips_lycees() -> pd.DataFrame:
     )
     assert not ips.duplicated(["uai", "rentree_scolaire"]).any(), "Lycée en double dans l'IPS."
     return ips
+
+
+def gares() -> gpd.GeoDataFrame:
+    """Renvoie les gares de voyageurs de SNCF Gares & Connexions, en Lambert 93 (H4, §5.7).
+
+    Une ligne par gare (`id_gare`), avec `nom_gare`, `code_commune` et `segment_drg` (A nationale,
+    B régionale, C locale ; plusieurs lettres pour une gare à plusieurs codes UIC). Toutes les
+    gares sont gardées, comme les lycées : la gare la plus proche d'une commune du bord peut être
+    hors de l'aire. Le fichier ne dit pas si une gare est fermée aux voyageurs. Lu dans la copie
+    gelée du 03/11/2026.
+    """
+    contenu = stockage.copie_controlee(
+        _copies_publiques(config.CHEMIN_RAW_GARES), config.CHEMIN_RAW_GARES, config.SHA256_GARES
+    )
+    brut = pd.read_parquet(io.BytesIO(contenu))
+    # L'export Opendatasoft donne la position en WKB, longitude et latitude en WGS84
+    position = gpd.GeoSeries.from_wkb(brut["position_geographique"], crs=4326)
+    liste = gpd.GeoDataFrame(
+        {
+            "id_gare": brut["id"],
+            "nom_gare": brut["nom"],
+            "code_commune": brut["codeinsee"],
+            "segment_drg": brut["segment_drg"],
+        },
+        geometry=position.to_numpy(),
+        crs=4326,
+    ).to_crs(config.CRS_CALCUL)
+    assert liste["id_gare"].is_unique, "Identifiant de gare en double."
+    assert not (liste.geometry.is_empty | liste.geometry.isna()).any(), "Gare sans position."
+    outre_mer = liste["code_commune"].str.startswith("97")
+    assert not outre_mer.any(), f"Gares hors métropole : {list(liste.loc[outre_mer, 'nom_gare'])}."
+    return liste
+
+
+def apl_medecins() -> pd.Series:
+    """Renvoie l'APL 2024 aux médecins généralistes, tous âges, par commune (H4, §5.7).
+
+    Index `code_commune`, arrondissements municipaux à la place de leur commune parente, comme
+    dans le référentiel. Indicateur déjà calculé par la DREES, utilisé tel quel (§5.7). Lu dans la
+    copie gelée du 03/11/2026.
+    """
+    contenu = stockage.copie_controlee(
+        _copies_publiques(config.CHEMIN_RAW_APL), config.CHEMIN_RAW_APL, config.SHA256_APL
+    )
+    feuille = pd.read_excel(
+        io.BytesIO(contenu),
+        sheet_name=config.FEUILLE_APL,
+        header=config.LIGNE_ENTETE_APL,
+        skiprows=[config.LIGNE_ENTETE_APL + 1],
+        dtype={config.COLONNE_CODE_APL: str},
+        engine="calamine",
+    )
+    apl = feuille.set_index(config.COLONNE_CODE_APL)[config.COLONNE_APL].rename("apl_mg")
+    assert apl.index.is_unique, "Code commune en double dans l'APL."
+    assert apl.notna().all() and (apl >= 0).all(), "APL manquante ou négative."
+    return apl.rename_axis("code_commune")

@@ -29,6 +29,16 @@ GRAINE_BOOTSTRAP = 20261021
 # 301 paires, 602 symétrisées)
 NB_CLASSES_FIG5 = 20
 
+# H4 (§5.7) : mesures d'accès comparées, avec leur sens. Le sens -1 retourne les distances pour
+# que, pour toutes les mesures, une pente positive dise « plus d'accès, plus de cadres » : être
+# plus près d'une gare, c'est avoir un meilleur accès, comme avoir une APL plus haute. Le lycée
+# privé y entre par la mesure principale de H1, pour être comparé aux autres sur la même échelle
+MESURES_H4 = {
+    "Lycée privé sous contrat": ("dist_lyc_prive_min", -1),
+    "Gare de voyageurs": ("dist_gare_min", -1),
+    "Médecins généralistes (APL)": ("apl_mg", 1),
+}
+
 # Sorties de `pipeline.construire_base` (PLAN §4, étape G)
 CHEMIN_BASE = "final/base_communale.parquet"
 CHEMIN_PAIRES = "final/paires.parquet"
@@ -44,8 +54,9 @@ AIRES_OUEST = ("Nantes", "Rennes")
 AIRES_FRONTALIERES = ("Lille", "Strasbourg")
 DIST_FRONTIERE_KM = 10
 # Écarts calculés dans les paires de communes contiguës : accès principal et secondaire (§5.3),
-# contrôles (§2.5, A7) et exposition 0/1 pour compter les paires de statut différent (§5.2, A6).
-# Le tableau de support s'en tient à ceux-là, sans la part de cadres (A3)
+# contrôles (§2.5, A7), exposition 0/1 pour compter les paires de statut différent (§5.2, A6) et
+# accès aux autres infrastructures (H4, §5.7). Le tableau de support n'utilise que les six
+# premiers, sans la part de cadres (A3)
 VARIABLES_PAIRES_SANS_CADRES = (
     "dist_lyc_prive_min",
     "n_lyc_prive_5km",
@@ -53,6 +64,8 @@ VARIABLES_PAIRES_SANS_CADRES = (
     "log_densite",
     "expose_lyc_prive_5km",
     "expose_lyc_prive_10km",
+    "dist_gare_min",
+    "apl_mg",
 )
 VARIABLES_PAIRES = ("part_cadres_2022", *VARIABLES_PAIRES_SANS_CADRES)
 
@@ -95,6 +108,33 @@ URL_ANNUAIRE = (
 )
 CHEMIN_RAW_ANNUAIRE = "raw/annuaire_education_20261013.parquet"
 SHA256_ANNUAIRE = "2c493f152bc8fc682aa8b1f063392015941bcff36bae2ae59a4d1a1e6334e94a"
+
+# Gares de voyageurs (source 12, H4) : export complet de SNCF Gares & Connexions, gelé le
+# 03/11/2026, car il est retraité chaque jour. Une ligne par gare (2 792), métropole continentale
+# seulement : la Corse n'a aucune gare dans ce fichier, ce qui est sans effet sur les 3 aires
+URL_GARES = (
+    "https://ressources.data.sncf.com/api/explore/v2.1/catalog/datasets/"
+    "gares-de-voyageurs/exports/parquet"
+)
+CHEMIN_RAW_GARES = "raw/gares_voyageurs_20261103.parquet"
+SHA256_GARES = "61ccf3392b01cb6785268be7152337f1a95dda93fa9eadf9134901b5f366bc44"
+
+# APL aux médecins généralistes (source 13, H4), DREES : un xlsx dont chaque mise à jour annuelle
+# ajoute une feuille et retire des millésimes, gelé le 03/11/2026. Feuille du millésime 2024, le
+# dernier, déjà au grain du projet (arrondissements de Lyon, fusions de 2024 et 2025 appliquées) ;
+# en-tête à la ligne 8 (base 0), ligne des unités juste dessous. APL tous âges de médecins, en
+# consultations accessibles par an et par habitant standardisé
+URL_APL = (
+    "https://data.drees.solidarites-sante.gouv.fr/api/explore/v2.1/catalog/datasets/"
+    "530_l-accessibilite-potentielle-localisee-apl/attachments/"
+    "indicateur_d_apl_aux_medecins_generalistes_xlsx"
+)
+CHEMIN_RAW_APL = "raw/apl_medecins_generalistes_20261103.xlsx"
+SHA256_APL = "21c73deff57dc7a83a3cd6fcfd5b5ceb8c7a40e98590a50b5b1194f2dd4d75a2"
+FEUILLE_APL = "APL 2024"
+LIGNE_ENTETE_APL = 8
+COLONNE_CODE_APL = "Code commune INSEE"
+COLONNE_APL = "APL aux médecins généralistes"
 # Délai d'attente de `requests` par lecture, pas durée totale (le téléchargement dure ~12 s)
 DELAI_TELECHARGEMENT_S = 120
 # Zonage en aires d'attraction des villes 2020 (source 8), géographie au 01/01/2025. Le zip de

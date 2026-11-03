@@ -51,7 +51,8 @@ def _base_sans_cadres(referentiel: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame) -
     """Renvoie la base communale sans la part de cadres.
 
     Une ligne par commune du référentiel : accès aux lycées privés et publics (§2.4), nombre de
-    lycées et IVAL moyenne dans chaque rayon, population, densité et exposition 0/1. Le tableau
+    lycées et IVAL moyenne dans chaque rayon, population, densité, exposition 0/1, accès aux
+    gares et APL aux médecins généralistes (H4). Le tableau
     de support n'utilise que cette partie : il ne lit aucune donnée sur les cadres (A3).
     """
     acces_tous_lycees = accessibilite.indicateurs(
@@ -64,6 +65,10 @@ def _base_sans_cadres(referentiel: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame) -
         # au plus proche, tous secteurs confondus, n'entre dans aucune analyse du plan
         acces_tous_lycees.drop(columns="dist_lyc_min"),
         nettoyage.population(collecte.serie_historique_rp2022(), referentiel),
+        # H4 (§5.7) : la même fonction d'accès pour les gares ; l'APL est déjà un indicateur
+        # d'accès, calculé par la DREES, et entre telle quelle
+        accessibilite.indicateurs(referentiel, collecte.gares(), "gare"),
+        collecte.apl_medecins().to_frame(),
     ]
     base = referentiel
     for bloc in blocs:
