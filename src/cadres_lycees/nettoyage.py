@@ -198,8 +198,7 @@ def part_cadres(effectifs: pd.DataFrame, referentiel: gpd.GeoDataFrame) -> pd.Da
     arrondissements, comme dans `population`. Une commune sans actif à une date n'a pas de part à
     cette date : A17 veut ces communes nommées dans `config`, mais aucune des aires retenues
     n'est dans ce cas (voir `config.ACTIFS_2554_2011`) ; une commune sans actif fait donc
-    échouer. Le résultat se joint
-    par `code_commune`.
+    échouer. Le résultat se joint par `code_commune`.
     """
     colonnes = [
         *config.ACTIFS_2554_2011,

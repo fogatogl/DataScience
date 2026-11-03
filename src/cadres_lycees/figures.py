@@ -694,9 +694,10 @@ def fig6(terciles: pd.DataFrame, titre: str) -> Figure:
     """Fig. 6 : évolution de la part de cadres par tiers d'IVAL de chaque aire (H3, §5.5).
 
     Un point par aire et par catégorie (`config.CATEGORIES_FIG6`), avec son intervalle à 95 %
-    par le bootstrap par grappes de l'estimation ; la catégorie « sans IVAL » est à part.
-    `terciles` vient de `analyse.terciles_h3` ; `titre` est le message de la figure, écrit par
-    le groupe (PLAN §6). Elle décrit : le verdict de H3 se lit sur β_q et β_n.
+    par bootstrap des grappes ; la catégorie « sans IVAL » est à part. `terciles` vient de
+    `analyse.terciles_h3`, dont les tirages écartés sont nommés en note ; `titre` est le message
+    de la figure, écrit par le groupe (PLAN §6). Elle décrit : le verdict de H3 se lit sur β_q
+    et β_n.
     """
     aires = _aires_ordonnees(terciles.index.get_level_values("aire"))
     texte = config.COULEUR_TEXTE
@@ -740,6 +741,11 @@ def fig6(terciles: pd.DataFrame, titre: str) -> Figure:
     ax.set_axisbelow(True)
     ax.legend(frameon=False, loc="upper left", bbox_to_anchor=(1.0, 1.0))
 
+    ecartes = terciles[terciles["tirages_ecartes"] > 0]
+    noms_ecartes = ", ".join(
+        f"{aire} {categorie} {int(ligne['tirages_ecartes'])}"
+        for (aire, categorie), ligne in ecartes.iterrows()
+    )
     fig.suptitle(titre, fontsize=13, x=0.01, ha="left")
     fig.text(
         0.01,
@@ -747,14 +753,15 @@ def fig6(terciles: pd.DataFrame, titre: str) -> Figure:
         "Communes ayant au moins un lycée retenu à 5 km ; « sans IVAL » : aucun de ces lycées n'a "
         "d'IVAL. Moyennes simples ; sous chaque point, le nombre de communes.\nIntervalles à 95 % "
         "par bootstrap des grappes « lycée avec IVAL le plus proche », tirées dans chaque aire "
-        f"({config.NB_TIRAGES_BOOTSTRAP} tirages).\nIVAL : valeur ajoutée du taux d'accès de la "
+        f"({config.NB_TIRAGES_BOOTSTRAP} tirages) ;\ntirages sans commune de la catégorie, écartés "
+        f"pour elle : {noms_ecartes or 'aucun'}.\nIVAL : valeur ajoutée du taux d'accès de la "
         "seconde au bac, moyenne des sessions 2012 à 2022 (règle A1).\nSources : Insee, "
         "recensements 2011 et 2022, « Évolution et structure de la population » ; DEPP, IVAL ; "
         f"annuaire de l'éducation ({config.DATE_ANNUAIRE}) ; IGN.",
         fontsize=8,
         color=texte,
     )
-    fig.tight_layout(rect=(0, 0.14, 1, 0.95))
+    fig.tight_layout(rect=(0, 0.17, 1, 0.95))
     plt.close(fig)
     return fig
 
@@ -938,8 +945,9 @@ def tableau_robustesse(robustesse: pd.DataFrame) -> pd.DataFrame:
     """Met en forme le tableau de robustesse de H1 : une ligne par variante, une aire par colonne.
 
     Chaque case donne la pente en points, par km (ou par lycée pour les pentes secondaires), et
-    son intervalle à 95 %. « — » : la variante ne concerne pas l'aire ; intervalle non rapporté
-    au-delà de `config.MAX_TIRAGES_ECARTES` tirages écartés. `robustesse` vient de
+    son intervalle à 95 %, avec le nombre de tirages écartés s'il y en a. « — » : la variante ne
+    concerne pas l'aire ; intervalle non rapporté au-delà de `config.MAX_TIRAGES_ECARTES`
+    tirages écartés. `robustesse` vient de
     `analyse.robustesse_h1`.
     """
 
@@ -947,9 +955,13 @@ def tableau_robustesse(robustesse: pd.DataFrame) -> pd.DataFrame:
         return f"{valeur * 100:+.2f}".replace(".", ",").replace("-", "−")
 
     def case(ligne: pd.Series) -> str:
+        ecartes = int(ligne["tirages_ecartes"])
         if pd.isna(ligne["ic_bas"]):
-            return f"{nombre(ligne['pente'])} (intervalle non rapporté)"
-        return f"{nombre(ligne['pente'])} [{nombre(ligne['ic_bas'])} ; {nombre(ligne['ic_haut'])}]"
+            return f"{nombre(ligne['pente'])} (intervalle non rapporté, {ecartes} tirages écartés)"
+        intervalle = f"[{nombre(ligne['ic_bas'])} ; {nombre(ligne['ic_haut'])}]"
+        if ecartes:
+            intervalle += f" ({ecartes} tirages écartés)"
+        return f"{nombre(ligne['pente'])} {intervalle}"
 
     cases = robustesse.apply(case, axis=1).unstack("aire")
     aires = _aires_ordonnees(cases.columns)

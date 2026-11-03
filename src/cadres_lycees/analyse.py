@@ -80,8 +80,8 @@ def fiabilite_ival(
         retenus[moitie] = retenus["uai"].map(ival["ival"])
     retenus = retenus.dropna(subset=moities)
 
-    population_h3 = communes[communes[f"n_lyc_{rayon}km"] > 0]
-    par_commune = population_h3[["aire"]].copy()
+    communes_h3 = communes[communes[f"n_lyc_{rayon}km"] > 0]
+    par_commune = communes_h3[["aire"]].copy()
     for moitie in moities:
         acces = accessibilite.indicateurs(
             base, retenus, "lyc", rayons=(rayon,), attribut=moitie, poids="poids_ival"
@@ -112,7 +112,7 @@ def fiabilite_ival(
     for nom, groupe in groupes.items():
         assert len(groupe) >= 3, f"Trop peu de communes pour une corrélation ({nom})."
         r = groupe[moities[0]].corr(groupe[moities[1]])
-        h3 = population_h3 if nom == "ensemble" else population_h3[population_h3["aire"] == nom]
+        h3 = communes_h3 if nom == "ensemble" else communes_h3[communes_h3["aire"] == nom]
         lignes[nom] = {
             "r": r,
             # La formule suppose une fiabilité positive : pour r < 0, elle n'a pas de sens
@@ -444,56 +444,68 @@ def ecart_cellule(cellule: pd.DataFrame, colonne_exposition: str, poids: pd.Seri
     return float(coefficients[1])
 
 
+def _ic_ecart_cellule(
+    communes: pd.DataFrame, colonne_exposition: str, generateur: np.random.Generator
+) -> tuple[float, float]:
+    """Renvoie l'intervalle à 95 % de `ecart_cellule` par bootstrap dans chaque groupe (§5.2).
+
+    `config.NB_TIRAGES_BOOTSTRAP` tirages avec remise des communes exposées parmi les exposées,
+    et des non exposées parmi les non exposées : les deux effectifs restent ceux de la cellule.
+    Une commune tirée k fois compte k fois ses actifs.
+    """
+    exposee = communes[colonne_exposition] == 1
+    groupes = (communes[exposee], communes[~exposee])
+    ecarts = []
+    for _ in range(config.NB_TIRAGES_BOOTSTRAP):
+        tirees = np.concatenate(
+            [generateur.choice(groupe.index, size=len(groupe), replace=True) for groupe in groupes]
+        )
+        tirage = pd.Series(tirees).value_counts().reindex(communes.index, fill_value=0)
+        poids = communes["actifs_2022"] * tirage
+        ecarts.append(ecart_cellule(communes, colonne_exposition, poids))
+    return float(np.percentile(ecarts, 2.5)), float(np.percentile(ecarts, 97.5))
+
+
 def ecarts_anneaux(base: pd.DataFrame) -> pd.DataFrame:
     """Renvoie l'écart avec/sans lycée privé de chaque cellule d'anneaux, à 5 et 10 km (§5.2).
 
     Cellules de `cellules_anneaux`, les mêmes que celles du tableau de support. Dans chaque
     cellule estimable : `ecart`, l'écart à contrôles donnés pondéré par `actifs_2022`
-    (`ecart_cellule`), son intervalle à 95 % (`ic_bas`, `ic_haut`) par `config.
-    NB_TIRAGES_BOOTSTRAP` tirages avec remise des communes dans chacun des deux groupes, et
-    `ecart_brut`, l'écart des parts moyennes pondérées. Une commune sans actif en 2022 (A17)
-    compte dans la cellule mais n'a pas de part : elle sort de l'estimation (`n_sans_part`). Les
-    écarts sont en fraction ; une cellule non estimable a des valeurs manquantes.
+    (`ecart_cellule`), son intervalle à 95 % (`_ic_ecart_cellule`) et `ecart_brut`, l'écart des
+    parts moyennes pondérées. Les écarts sont en fraction ; une cellule non estimable a des
+    valeurs manquantes.
     """
     generateur = np.random.default_rng(config.GRAINE_BOOTSTRAP)
     lignes = []
     for rayon in config.RAYONS_SUPPORT_KM:
         colonne_exposition = f"expose_lyc_prive_{rayon}km"
-        cellules = cellules_anneaux(base, rayon)
-        for cellule in cellules.itertuples(index=False):
+        for cellule in cellules_anneaux(base, rayon).itertuples(index=False):
             ligne = {"rayon_km": rayon, **cellule._asdict()}
-            dans_la_cellule = (base["aire"] == cellule.aire) & base["dist_centre_km"].between(
-                cellule.bas_km, cellule.haut_km, inclusive="left"
-            )
-            communes = base[dans_la_cellule]
-            ligne["n_sans_part"] = int(communes["part_cadres_2022"].isna().sum())
             if cellule.estimable:
-                avec_part = communes[communes["part_cadres_2022"].notna()]
-                exposee = avec_part[colonne_exposition] == 1
-                actifs = avec_part["actifs_2022"]
-                ecarts = []
-                for _ in range(config.NB_TIRAGES_BOOTSTRAP):
-                    # Tirage dans chaque groupe : les deux effectifs restent ceux de la cellule
-                    tirees = np.concatenate(
-                        [
-                            generateur.choice(groupe.index, size=len(groupe), replace=True)
-                            for groupe in (avec_part[exposee], avec_part[~exposee])
-                        ]
-                    )
-                    tirage = pd.Series(tirees).value_counts().reindex(avec_part.index, fill_value=0)
-                    ecarts.append(ecart_cellule(avec_part, colonne_exposition, actifs * tirage))
+                dans_la_cellule = (base["aire"] == cellule.aire) & base["dist_centre_km"].between(
+                    cellule.bas_km, cellule.haut_km, inclusive="left"
+                )
+                communes = base[dans_la_cellule]
+                exposee = communes[colonne_exposition] == 1
                 parts_moyennes = [
                     np.average(groupe["part_cadres_2022"], weights=groupe["actifs_2022"])
-                    for groupe in (avec_part[exposee], avec_part[~exposee])
+                    for groupe in (communes[exposee], communes[~exposee])
                 ]
+                ic_bas, ic_haut = _ic_ecart_cellule(communes, colonne_exposition, generateur)
                 ligne |= {
-                    "ecart": ecart_cellule(avec_part, colonne_exposition, actifs),
-                    "ic_bas": np.percentile(ecarts, 2.5),
-                    "ic_haut": np.percentile(ecarts, 97.5),
+                    "ecart": ecart_cellule(communes, colonne_exposition, communes["actifs_2022"]),
+                    "ic_bas": ic_bas,
+                    "ic_haut": ic_haut,
                     "ecart_brut": parts_moyennes[0] - parts_moyennes[1],
                 }
             lignes.append(ligne)
     return pd.DataFrame(lignes)
+
+
+def _anneau(dist_centre_km: pd.Series) -> pd.Series:
+    """Renvoie l'anneau du §5.2, sans fusion, de chaque distance au centre, en texte."""
+    bornes = [*config.ANNEAUX_KM, float("inf")]
+    return pd.cut(dist_centre_km, bornes, right=False).astype(str)
 
 
 def _concordent(a: pd.Series, b: pd.Series) -> bool:
@@ -514,12 +526,15 @@ def verdict_h1(
     estimable à chacun des deux rayons ; ses deux estimations doivent concorder. Toute cellule
     estimable peut contredire : son intervalle sous zéro fait d'une confirmation une nuance, au
     dessus de zéro il empêche d'établir un résultat nul. Colonnes : `verdict`, `mention`
-    (« paires seules » pour une confirmation sans anneau comparé), `anneaux_compares`.
+    (« paires seules » pour une confirmation sans anneau comparé, « résultat nul établi » pour
+    une infirmation dont l'intervalle contient zéro), `anneaux_compares`.
     """
     anneaux_origine = list(itertools.pairwise([*config.ANNEAUX_KM, float("inf")]))
     lignes = {}
     for aire in principale.index:
         pente = principale.loc[aire]
+        # Un intervalle non rapporté fausserait toutes les comparaisons qui suivent
+        assert pente[["ic_bas", "ic_haut"]].notna().all(), f"Intervalle manquant à {aire}."
         cellules = anneaux[(anneaux["aire"] == aire) & anneaux["estimable"]]
         contredit = bool((cellules["ic_haut"] < 0).any())
         dans_le_sens = bool((cellules["ic_bas"] > 0).any())
@@ -532,17 +547,18 @@ def verdict_h1(
                 compares += 1
                 concordants &= _concordent(par_rayon[0].iloc[0], par_rayon[1].iloc[0])
 
+        mention = ""
         if pente["ic_haut"] < 0:
             confirmee = secondaire.loc[aire, "pente"] > 0 and concordants and not contredit
             verdict = "confirmée" if confirmee else "nuancée"
+            if confirmee and compares == 0:
+                mention = "paires seules"
         elif pente["ic_bas"] > 0:
             verdict = "infirmée"
         elif compares > 0 and concordants and not dans_le_sens:
-            # Résultat nul établi
-            verdict = "infirmée"
+            verdict, mention = "infirmée", "résultat nul établi"
         else:
             verdict = "non concluante"
-        mention = "paires seules" if verdict == "confirmée" and compares == 0 else ""
         lignes[aire] = {"verdict": verdict, "mention": mention, "anneaux_compares": compares}
     return pd.DataFrame.from_dict(lignes, orient="index").rename_axis("aire")
 
@@ -578,9 +594,7 @@ def population_h3(base: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame) -> pd.DataFr
     assert (nombre[resultat["avec_ival"]] >= 1).all(), "Commune avec IVAL sans lycée à IVAL."
     # Le logarithme n'est pris que là où il y a au moins un lycée à IVAL : la population estimée
     resultat["log_n_lyc_ival_5km"] = np.log(nombre.where(resultat["avec_ival"]))
-    resultat["anneau"] = pd.cut(
-        resultat["dist_centre_km"], [*config.ANNEAUX_KM, float("inf")], right=False
-    ).astype(str)
+    resultat["anneau"] = _anneau(resultat["dist_centre_km"])
     resultat["grappe"] = grappes.reindex(resultat.index)
     assert resultat["grappe"].notna().all(), "Commune sans lycée avec IVAL le plus proche."
 
@@ -596,18 +610,18 @@ def population_h3(base: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame) -> pd.DataFr
     return resultat
 
 
-def _tirages_grappes(population: pd.DataFrame) -> list[pd.Series]:
+def _tirages_grappes(communes_h3: pd.DataFrame) -> list[pd.Series]:
     """Renvoie les poids des communes dans chaque tirage du bootstrap par grappes de H3 (A16).
 
-    Dans chaque aire, les grappes sont tirées avec remise, autant que l'aire en compte ; une
-    commune pèse le nombre de fois que sa grappe est tirée. La graine est remise à chaque appel :
-    l'estimation et la Fig. 6 voient les mêmes tirages.
+    Dans chaque aire, les grappes de `communes_h3` sont tirées avec remise, autant que l'aire en
+    compte ; une commune pèse le nombre de fois que sa grappe est tirée. La graine est remise à
+    chaque appel : deux appels sur les mêmes communes voient les mêmes tirages.
     """
     generateur = np.random.default_rng(config.GRAINE_BOOTSTRAP)
     tirages = []
     for _ in range(config.NB_TIRAGES_BOOTSTRAP):
         poids = []
-        for _aire, communes in population.groupby("aire"):
+        for _aire, communes in communes_h3.groupby("aire"):
             grappes = communes["grappe"].unique()
             tirees = generateur.choice(grappes, size=len(grappes), replace=True)
             poids.append(communes["grappe"].map(pd.Series(tirees).value_counts()).fillna(0))
@@ -639,38 +653,40 @@ def _coefficients_h3(echantillon: pd.DataFrame, poids: pd.Series) -> np.ndarray 
 def estimation_h3(population: pd.DataFrame) -> pd.DataFrame:
     """Renvoie β_q, β_n et β_q − β_n de H3 avec leurs intervalles (§5.5, A16).
 
-    `population` vient de `population_h3`. Estimation sur les communes avec IVAL (et une part de
-    cadres aux deux dates), les 3 aires ensemble puis chaque aire (descriptif), sur les mêmes
-    tirages de `_tirages_grappes`, sans refaire la standardisation. Un tirage de rang incomplet
+    `population` vient de `population_h3`. Estimation sur les communes avec IVAL, les 3 aires
+    ensemble puis chaque aire (descriptif), sur les mêmes tirages des grappes de ces communes
+    (`_tirages_grappes`), sans refaire la standardisation. Un tirage de rang incomplet
     est écarté et compté (`tirages_ecartes`) ; au-delà de `config.MAX_TIRAGES_ECARTES`,
     l'intervalle n'est pas rapporté. En points de part de cadres pour un écart-type. Index
     (`portee`, `coefficient`) ; colonnes `estimation`, `ic_bas`, `ic_haut`, `n_communes`,
     `n_grappes`, `tirages_ecartes`.
     """
-    estimees = population[population["avec_ival"] & population["evol_cadres_pts"].notna()]
-    tirages = _tirages_grappes(population)
-    portees = {"ensemble": estimees} | dict(tuple(estimees.groupby("aire")))
+    estimees = population[population["avec_ival"]]
+    tirages = _tirages_grappes(estimees)
+    portees = {"ensemble": estimees}
+    for aire, communes_aire in estimees.groupby("aire"):
+        portees[aire] = communes_aire
     lignes = []
     for portee, echantillon in portees.items():
         point = _coefficients_h3(echantillon, pd.Series(1.0, index=echantillon.index))
         assert point is not None, f"Régresseurs colinéaires dans l'estimation de H3 ({portee})."
-        valides = [_coefficients_h3(echantillon, poids) for poids in tirages]
-        ecartes = sum(coefficients is None for coefficients in valides)
-        valides = np.array([coefficients for coefficients in valides if coefficients is not None])
+        tires = [_coefficients_h3(echantillon, poids) for poids in tirages]
+        valides = np.array([coefficients for coefficients in tires if coefficients is not None])
+        ecartes = len(tires) - len(valides)
         estimations = {
             "β_q": (point[0], valides[:, 0]),
             "β_n": (point[1], valides[:, 1]),
             "β_q − β_n": (point[0] - point[1], valides[:, 0] - valides[:, 1]),
         }
         rapporte = ecartes <= config.MAX_TIRAGES_ECARTES
-        for coefficient, (valeur, tires) in estimations.items():
+        for coefficient, (valeur, distribution) in estimations.items():
             lignes.append(
                 {
                     "portee": portee,
                     "coefficient": coefficient,
                     "estimation": valeur,
-                    "ic_bas": np.percentile(tires, 2.5) if rapporte else np.nan,
-                    "ic_haut": np.percentile(tires, 97.5) if rapporte else np.nan,
+                    "ic_bas": np.percentile(distribution, 2.5) if rapporte else np.nan,
+                    "ic_haut": np.percentile(distribution, 97.5) if rapporte else np.nan,
                     "n_communes": len(echantillon),
                     "n_grappes": echantillon["grappe"].nunique(),
                     "tirages_ecartes": ecartes,
@@ -679,37 +695,43 @@ def estimation_h3(population: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(lignes).set_index(["portee", "coefficient"])
 
 
-def verdict_h3(estimation: pd.DataFrame, fiabilite: float) -> str:
+def verdict_h3(estimation: pd.DataFrame, fiabilite: float) -> pd.DataFrame:
     """Renvoie le verdict de H3, toutes aires ensemble, par les règles du §5.5 (A1, A7, A16).
 
     `estimation` vient de `estimation_h3`, `fiabilite` est la valeur après Spearman-Brown de la
-    ligne « ensemble » de `fiabilite_ival`. Première règle vérifiée, dans l'ordre du plan.
+    ligne « ensemble » de `fiabilite_ival`. Première règle vérifiée, dans l'ordre du plan. Une
+    ligne, `ensemble`, avec `verdict` et `fiabilite`, pour s'afficher comme `verdict_h1`.
     """
-    if fiabilite < config.SEUIL_FIABILITE_IVAL:
-        return "non testable avec cette mesure"
     ensemble = estimation.loc["ensemble"]
-    if ensemble["ic_bas"].isna().any():
-        # Trop de tirages écartés : l'intervalle n'est pas rapporté
-        return "non concluante"
     qualite, ecart = ensemble.loc["β_q"], ensemble.loc["β_q − β_n"]
-    if qualite["ic_haut"] < 0 or ecart["ic_haut"] < 0:
-        return "infirmée"
-    if qualite["ic_bas"] > 0 and ecart["ic_bas"] > 0:
-        return "confirmée"
-    if qualite["ic_bas"] > 0:
-        return "nuancée"
-    return "non concluante"
+    if fiabilite < config.SEUIL_FIABILITE_IVAL:
+        verdict = "non testable avec cette mesure"
+    elif ensemble["ic_bas"].isna().any():
+        # Trop de tirages écartés : l'intervalle n'est pas rapporté
+        verdict = "non concluante"
+    elif qualite["ic_haut"] < 0 or ecart["ic_haut"] < 0:
+        verdict = "infirmée"
+    elif qualite["ic_bas"] > 0 and ecart["ic_bas"] > 0:
+        verdict = "confirmée"
+    elif qualite["ic_bas"] > 0:
+        verdict = "nuancée"
+    else:
+        verdict = "non concluante"
+    return pd.DataFrame({"verdict": [verdict], "fiabilite": [fiabilite]}, index=["ensemble"])
 
 
 def terciles_h3(population: pd.DataFrame) -> pd.DataFrame:
     """Renvoie la moyenne de `evol_cadres_pts` par tiers d'IVAL de chaque aire (Fig. 6, §5.5).
 
     Tiers de `ival_moy_5km` calculés dans chaque aire sur les communes avec IVAL, plus la
-    catégorie « sans IVAL ». Moyennes simples, intervalles à 95 % par les tirages de
-    `_tirages_grappes`, les mêmes que l'estimation. Elles décrivent : le verdict se lit sur β_q
-    et β_n. Index (`aire`, `categorie`) ; colonnes `moyenne`, `ic_bas`, `ic_haut`, `n_communes`.
+    catégorie « sans IVAL ». Moyennes simples, intervalles à 95 % par `_tirages_grappes` sur
+    toute la population : la catégorie « sans IVAL » a besoin des grappes de ses communes, que
+    l'estimation ne tire pas. Un tirage sans aucune commune de la catégorie est écarté pour elle
+    et compté (`tirages_ecartes`). Elles décrivent : le verdict se lit sur β_q et β_n. Index
+    (`aire`, `categorie`) ; colonnes `moyenne`, `ic_bas`, `ic_haut`, `n_communes`,
+    `tirages_ecartes`.
     """
-    communes = population[population["evol_cadres_pts"].notna()].copy()
+    communes = population.copy()
     tiers = (
         communes[communes["avec_ival"]]
         .groupby("aire")["ival_moy_5km"]
@@ -726,6 +748,7 @@ def terciles_h3(population: pd.DataFrame) -> pd.DataFrame:
             for poids in tirages
             if poids.loc[groupe.index].sum() > 0
         ]
+        ecartes = len(tirages) - len(moyennes)
         lignes.append(
             {
                 "aire": aire,
@@ -734,6 +757,7 @@ def terciles_h3(population: pd.DataFrame) -> pd.DataFrame:
                 "ic_bas": np.percentile(moyennes, 2.5),
                 "ic_haut": np.percentile(moyennes, 97.5),
                 "n_communes": len(groupe),
+                "tirages_ecartes": ecartes,
             }
         )
     return pd.DataFrame(lignes).set_index(["aire", "categorie"])
@@ -745,13 +769,22 @@ def _ecart_paires(paires: pd.DataFrame, base: pd.DataFrame, variable: str) -> pd
     return paires["code_commune_i"].map(valeurs) - paires["code_commune_j"].map(valeurs)
 
 
-def _communes_centres(base: pd.DataFrame) -> pd.Index:
+def _communes_centres(base: pd.DataFrame) -> pd.Series:
     """Renvoie les codes des communes-centres : la plus proche du centre de chaque aire.
 
     À Lyon, la commune-centre est Lyon entière : tous les arrondissements de même `code_parent`.
     """
     plus_proches = base.loc[base.groupby("aire")["dist_centre_km"].idxmin(), "code_parent"]
-    return pd.Index(base.loc[base["code_parent"].isin(plus_proches), "code_commune"])
+    return base.loc[base["code_parent"].isin(plus_proches), "code_commune"]
+
+
+def _paires_sans(paires: pd.DataFrame, communes: pd.Series) -> pd.DataFrame:
+    """Renvoie les paires qui ne touchent aucune des `communes` (codes communes).
+
+    Retirer une commune retire toutes ses paires.
+    """
+    touchees = paires["code_commune_i"].isin(communes) | paires["code_commune_j"].isin(communes)
+    return paires[~touchees]
 
 
 def robustesse_h1(
@@ -759,92 +792,85 @@ def robustesse_h1(
 ) -> pd.DataFrame:
     """Renvoie les pentes de H1 dans chaque variante de robustesse du §5.6, aire par aire.
 
-    Pente principale, puis : pente secondaire à 3 et 10 km (le rayon de 5 km est la
-    secondaire) ; sans la commune-centre ; sans les communes de moins de
-    `config.ACTIFS_MIN_ROBUSTESSE` actifs en 2022 ; sans les communes à moins de
-    `config.DIST_FRONTIERE_KM` km du contour national (aires frontalières seulement) ; avec la
-    part de cadres parmi les 15 ans ou plus en 2022 ; avec la distance au lycée privé le plus
-    proche parmi `prives_elargis` (`pipeline.lycees_prives_robustesse`, professionnels et hors
-    contrat inclus) ; sans contrôle de densité. Retirer une
-    commune retire toutes ses paires. Même estimation et même bootstrap que
-    `pentes_paires_par_aire`. Index (`variante`, `aire`) ; colonnes de
-    `pentes_paires_par_aire`, en fraction par km ou par lycée.
+    Dans l'ordre du §5.6, après la spécification principale : pente secondaire à 3 et 10 km (le
+    rayon de 5 km est la secondaire) ; part de cadres parmi les 15 ans ou plus en 2022 ; distance
+    au lycée privé le plus proche parmi `prives_elargis` (`pipeline.lycees_prives_robustesse`,
+    professionnels et hors contrat inclus) ; sans la commune-centre ; sans les communes de moins
+    de `config.ACTIFS_MIN_ROBUSTESSE` actifs en 2022 ; sans les communes à moins de
+    `config.DIST_FRONTIERE_KM` km du contour national, dans les aires frontalières seulement ;
+    sans contrôle de densité. Même estimation et même bootstrap que `pentes_paires_par_aire`.
+    Index (`variante`, `aire`) ; colonnes de `pentes_paires_par_aire`, en fraction par km ou
+    par lycée.
     """
     principale = "d_dist_lyc_prive_min"
-    petites = base.loc[base["actifs_2022"] < config.ACTIFS_MIN_ROBUSTESSE, "code_commune"]
-    distance_frontiere = geo.distance_contour_national_km(base)
-    pres_frontiere = base.loc[
-        base["aire"].isin(config.AIRES_FRONTALIERES)
-        & (base["code_commune"].map(distance_frontiere) < config.DIST_FRONTIERE_KM),
-        "code_commune",
-    ]
+    variantes = {"Spécification principale": pentes_paires_par_aire(paires, principale)}
 
-    # Seule la distance change : le reste de la paire (contrôles, part de cadres) est le même
+    for rayon in [r for r in config.RAYONS_KM if r != config.RAYON_PRINCIPAL_KM]:
+        colonne = f"d_n_lyc_prive_{rayon}km"
+        ecart = _ecart_paires(paires, base, f"n_lyc_prive_{rayon}km")
+        variantes[f"Pente secondaire à {rayon} km"] = pentes_paires_par_aire(
+            paires.assign(**{colonne: ecart}), colonne
+        )
+
+    # La part de cadres des 15 ans ou plus prend la place de la variable à expliquer
+    ecart_15p = _ecart_paires(paires, base, "part_cadres_15p_2022")
+    variantes["Cadres parmi les 15 ans ou plus"] = pentes_paires_par_aire(
+        paires.assign(d_part_cadres_2022=ecart_15p), principale
+    )
+
+    # Seule la distance au lycée privé change : contrôles et part de cadres restent les mêmes
     acces_elargi = accessibilite.indicateurs(base, prives_elargis, "lyc_prive", rayons=())
     ecart_elargi = _ecart_paires(paires, acces_elargi.reset_index(), "dist_lyc_prive_min")
+    variantes["Lycées professionnels et privé hors contrat inclus"] = pentes_paires_par_aire(
+        paires.assign(d_dist_lyc_prive_min=ecart_elargi), principale
+    )
 
-    def sans(communes: pd.Index | pd.Series) -> pd.DataFrame:
-        touchees = paires["code_commune_i"].isin(communes) | paires["code_commune_j"].isin(communes)
-        return paires[~touchees]
+    variantes["Sans la commune-centre"] = pentes_paires_par_aire(
+        _paires_sans(paires, _communes_centres(base)), principale
+    )
 
-    variantes = {
-        "Spécification principale": pentes_paires_par_aire(paires, principale),
-    }
-    for rayon in config.RAYONS_KM:
-        if rayon == config.RAYON_PRINCIPAL_KM:
-            continue
-        colonne = f"d_n_lyc_prive_{rayon}km"
-        avec_rayon = paires.assign(
-            **{colonne: _ecart_paires(paires, base, f"n_lyc_prive_{rayon}km")}
-        )
-        variantes[f"Pente secondaire à {rayon} km"] = pentes_paires_par_aire(avec_rayon, colonne)
-    variantes |= {
-        "Sans la commune-centre": pentes_paires_par_aire(sans(_communes_centres(base)), principale),
-        f"Sans les communes de moins de {config.ACTIFS_MIN_ROBUSTESSE} actifs": (
-            pentes_paires_par_aire(sans(petites), principale)
-        ),
-        # La part de cadres des 15 ans ou plus prend la place de la variable à expliquer
-        "Cadres parmi les 15 ans ou plus": pentes_paires_par_aire(
-            paires.assign(d_part_cadres_2022=_ecart_paires(paires, base, "part_cadres_15p_2022")),
-            principale,
-        ),
-        "Lycées professionnels et privé hors contrat inclus": pentes_paires_par_aire(
-            paires.assign(d_dist_lyc_prive_min=ecart_elargi), principale
-        ),
-        "Sans contrôle de densité": pentes_paires_par_aire(
-            paires, principale, controles=("d_dist_centre_km",)
-        ),
-    }
-    # Seules les aires frontalières ont des communes près de la frontière : ailleurs, la variante
-    # redonnerait la spécification principale
-    frontiere = pentes_paires_par_aire(sans(pres_frontiere), principale)
+    petites = base.loc[base["actifs_2022"] < config.ACTIFS_MIN_ROBUSTESSE, "code_commune"]
+    variantes[f"Sans les communes de moins de {config.ACTIFS_MIN_ROBUSTESSE} actifs"] = (
+        pentes_paires_par_aire(_paires_sans(paires, petites), principale)
+    )
+
+    distance_frontiere = base["code_commune"].map(geo.distance_contour_national_km(base))
+    pres_frontiere = base.loc[
+        base["aire"].isin(config.AIRES_FRONTALIERES)
+        & (distance_frontiere < config.DIST_FRONTIERE_KM),
+        "code_commune",
+    ]
+    frontiere = pentes_paires_par_aire(_paires_sans(paires, pres_frontiere), principale)
+    # Ailleurs qu'aux aires frontalières, la variante redonnerait la spécification principale
     nom = f"Sans les communes à moins de {config.DIST_FRONTIERE_KM} km de la frontière"
     variantes[nom] = frontiere[frontiere.index.isin(config.AIRES_FRONTALIERES)]
+
+    sans_densite = tuple(c for c in config.CONTROLES_PAIRES if c != "d_log_densite")
+    variantes["Sans contrôle de densité"] = pentes_paires_par_aire(
+        paires, principale, controles=sans_densite
+    )
     return pd.concat(variantes, names=["variante", "aire"])
 
 
 def moran_part_cadres(base: gpd.GeoDataFrame) -> pd.DataFrame:
     """Renvoie l'indice I de Moran de la part de cadres dans chaque aire (§5.6).
 
-    Contiguïté Queen, la même que celle des paires, sur les communes qui ont une part en 2022.
+    Contiguïté Queen, la même que celle des paires.
     Deux variables : `part_cadres_2022`, puis l'écart restant après la comparaison par
     anneaux, c'est-à-dire la part moins la moyenne simple de son anneau (§5.2, sans fusion). La
     p-valeur vient de `config.NB_PERMUTATIONS_MORAN` permutations, avec la graine du bootstrap.
     Index (`aire`, `variable`) ; colonnes `I`, `p_valeur`, `n_communes`.
     """
     lignes = []
-    communes = base[base["part_cadres_2022"].notna()].copy()
-    anneau = pd.cut(communes["dist_centre_km"], [*config.ANNEAUX_KM, float("inf")], right=False)
-    moyenne_anneau = communes.groupby(["aire", anneau], observed=True)[
-        "part_cadres_2022"
-    ].transform("mean")
+    communes = base.copy()
+    anneau = _anneau(communes["dist_centre_km"])
+    moyenne_anneau = communes.groupby(["aire", anneau])["part_cadres_2022"].transform("mean")
     communes["ecart_anneau"] = communes["part_cadres_2022"] - moyenne_anneau
     for aire, communes_aire in communes.groupby("aire"):
         voisinage = libpysal.weights.Queen.from_dataframe(
             communes_aire.reset_index(drop=True), use_index=False, silence_warnings=True
         )
         assert not voisinage.islands, f"Communes sans voisine dans {aire} : {voisinage.islands}."
-        voisinage.transform = "r"
         for variable in ("part_cadres_2022", "ecart_anneau"):
             # esda tire ses permutations avec le générateur global de numpy
             np.random.seed(config.GRAINE_BOOTSTRAP)
