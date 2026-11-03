@@ -298,7 +298,7 @@ Les anneaux complètent l'estimation par paires (5.3) là où les cellules sont 
     - 3.1 Pourquoi ces trois aires (Fig. 1 ; tableau de support replié).
     - 3.2 Le gradient centre-périphérie des cadres (Fig. 2, carte à curseur de 1999 à 2022).
     - 3.3 La géographie de l'accès aux lycées (Fig. 3).
-4.  **À position égale, l'accès aux lycées fait-il une différence ?**
+4.  **À position égale, un meilleur accès aux lycées va-t-il de pair avec plus de cadres ?**
     - 4.1 Comparaison par anneaux (Fig. 4).
     - 4.2 Comparaison entre communes contiguës (Fig. 5).
     - 4.3 L'Ouest est-il différent ?
@@ -310,6 +310,7 @@ Les anneaux complètent l'estimation par paires (5.3) là où les cellules sont 
     - Limites ; une carte statique de la part de cadres de 15 à 64 ans par IRIS en 2011 et 2022 (exploration au sens du §5.8, sans test ni verdict, hors des 7 figures principales ; IRIS au même code aux deux dates, les autres en gris ; sans lycées) montre l'hétérogénéité à l'intérieur des communes et des arrondissements de Lyon. Aucune donnée publique sur la CSP n'est plus fine que l'IRIS.
     - Pistes : échelle IRIS, flux migratoires MIGCOM, temps de trajet, même analyse pour les collèges (non faite : nouvelle hypothèse après les résultats, §5.8).
 7.  **Annexes**
+    - Références.
     - Reproduire le projet (fichiers bruts lus et leur `sha256`).
     - Dictionnaire des variables.
     - Journal des décisions (replié).
@@ -320,8 +321,8 @@ Les anneaux complètent l'estimation par paires (5.3) là où les cellules sont 
 - Aucune sortie brute (`describe()`, `head()`) n'est laissée sans commentaire dans le rapport final.
 - Le code long vit dans `src/`. Les cellules du rapport appellent des fonctions et ne copient-collent jamais de code d'une cellule à l'autre.
 - Taille visée : 7 figures principales, 1 figure de robustesse (tableau détaillé replié), une lecture de 20 à 25 minutes.
-- Charte commune dans `figures.py` : couleurs fixes pour le public, le privé et chaque aire, source et champ en note ; matplotlib pour les figures statiques, folium pour les cartes seulement.
-- Le titre-message de chaque figure est écrit par le groupe dans le notebook et passé à la fonction de `figures.py` en argument obligatoire, sans valeur par défaut.
+- Charte commune dans `figures.py` : couleurs fixes pour le public, le privé et chaque aire, source et champ en note ; matplotlib pour les figures statiques (`figures.py`), folium pour les cartes seulement (`cartes.py`).
+- Le titre-message de chaque figure est écrit par le groupe dans le notebook et passé à la fonction de `figures.py` ou de `cartes.py` en argument obligatoire, sans valeur par défaut.
 
 ------------------------------------------------------------------------
 
@@ -347,7 +348,9 @@ projet-cadres-lycees/
 │   ├── geo.py                 # référentiel communes, centroïdes, distances, paires contiguës
 │   ├── accessibilite.py       # fonction générique d'accessibilité
 │   ├── analyse.py             # anneaux, bootstrap, comparaisons, indice de Moran
-│   ├── figures.py             # une fonction par figure, avec une charte graphique commune
+│   ├── figures.py             # figures matplotlib : une fonction par figure, avec une charte graphique commune
+│   ├── cartes.py              # cartes folium : une fonction par carte (accès aux lycées, carte à curseur de la part de cadres)
+│   ├── tableaux.py            # mise en forme des tableaux du rapport et des documents Markdown affichés en annexe
 │   └── pipeline.py            # construire_base() enchaîne les étapes A à G
 ├── tests/
 │   ├── test_accessibilite.py
@@ -567,3 +570,5 @@ Tu assistes un groupe de trois étudiants sur un projet noté. Le cours interdit
 | 03/11/2026 | Robustesse (§5.6, commits `71263eb`, `cba108b`) : celle de H1 présentée par une figure (pente principale par variante et par aire, avec intervalles), le tableau détaillé replié dessous ; ajout des robustesses déjà prévues mais non codées : H3 avec l'IVAL 2012-2025 et avec la valeur ajoutée du taux de réussite (§3.2), distances au lycée privé depuis le chef-lieu (point mairie d'ADMIN EXPRESS COG 2025, lu par le service WFS de l'IGN, copie gelée du 03/11, à publier avec les autres) au lieu du centroïde (§2.4) | Ces robustesses étaient écrites dans le plan avant les résultats (§2.4, §3.2) et manquaient au code (point ouvert du 03/11) ; elles sont codées après les chiffres du 03/11, sans choisir de variante. Une figure se lit plus vite qu'un tableau de 11 variantes par 3 aires (§6). Le point mairie n'est pas dans cartiflette, d'où le WFS ; source mutable, d'où le gel | pilote, validé par Giulio (délégation du 03/11) |
 | 03/11/2026 | Filosofi (source 11, descriptif seulement) abandonné ; `niveau_vie_med` retiré de l'étape E (§3.1, §4) | Aucune hypothèse ne l'utilise ; le niveau de vie est un mauvais contrôle (§2.5), et la composition sociale des lycées est déjà décrite par l'IPS. Source P2 sacrifiée sans perte pour H1 à H4 (§10) | pilote, validé par Giulio (délégation du 03/11) |
 | 03/11/2026 | Analyse semblable sur les collèges jugée faisable (environ deux fois plus de paires de statut différent à 5 km ; IPS et carte scolaire en open data) mais non faite ; citée en piste de conclusion (§6) | Ce serait une nouvelle hypothèse formulée après les résultats (§5.8) ; le calendrier (§9) donne la priorité à la reproductibilité, à Git et à la rédaction | pilote, validé par Giulio (délégation du 03/11) |
+| 03/11/2026 | `figures.py` (plus de 1 200 lignes) découpé en trois modules à rôle unique (commit `b8fe719`) : `figures.py` (figures matplotlib), `cartes.py` (cartes folium : accès aux lycées ; carte à curseur de la part de cadres, avec un curseur Leaflet écrit dans le module au lieu du module folium à curseur, qui dépendait de d3 et de moment.js) et `tableaux.py` (mise en forme des tableaux, `document_markdown`) ; arborescence du §7 et règles du §6 alignées (une fonction par figure ou par carte) | Lisibilité du code, demandée par le correcteur du 03/11 : 1 283 lignes avant le découpage, 763, 323 et 221 après. Aucun calcul ne change. Le curseur écrit à la main retire deux bibliothèques JavaScript chargées par le site et que le groupe n'aurait pas su expliquer | pilote, validé par Giulio (délégation du 03/11) |
+| 03/11/2026 | Titre de la section 4 du rapport : « À position égale, un meilleur accès aux lycées va-t-il de pair avec plus de cadres ? » au lieu de « … l'accès aux lycées fait-il une différence ? » ; références bibliographiques ajoutées en tête des annexes (§6) | L'ancien titre se lisait de façon causale, ce que le projet s'interdit (§0, §1.3). Les références citées au §1.1 (Fack et Grenet, Black, DEPP) doivent figurer dans le rapport | pilote, validé par Giulio (délégation du 03/11) |
