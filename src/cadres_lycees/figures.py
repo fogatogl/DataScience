@@ -934,6 +934,28 @@ def carte_iris(
     return fig
 
 
+def tableau_robustesse(robustesse: pd.DataFrame) -> pd.DataFrame:
+    """Met en forme le tableau de robustesse de H1 : une ligne par variante, une aire par colonne.
+
+    Chaque case donne la pente en points, par km (ou par lycée pour les pentes secondaires), et
+    son intervalle à 95 %. « — » : la variante ne concerne pas l'aire ; intervalle non rapporté
+    au-delà de `config.MAX_TIRAGES_ECARTES` tirages écartés. `robustesse` vient de
+    `analyse.robustesse_h1`.
+    """
+
+    def nombre(valeur: float) -> str:
+        return f"{valeur * 100:+.2f}".replace(".", ",").replace("-", "−")
+
+    def case(ligne: pd.Series) -> str:
+        if pd.isna(ligne["ic_bas"]):
+            return f"{nombre(ligne['pente'])} (intervalle non rapporté)"
+        return f"{nombre(ligne['pente'])} [{nombre(ligne['ic_bas'])} ; {nombre(ligne['ic_haut'])}]"
+
+    cases = robustesse.apply(case, axis=1).unstack("aire")
+    aires = _aires_ordonnees(cases.columns)
+    return cases.reindex(index=robustesse.index.unique("variante"), columns=aires).fillna("—")
+
+
 def document_markdown(chemin: Path, apres: str | None = None) -> str:
     """Renvoie un document Markdown du dépôt, pour l'afficher dans le rapport.
 

@@ -2,11 +2,13 @@
 
 import itertools
 
+import esda
 import geopandas as gpd
+import libpysal
 import numpy as np
 import pandas as pd
 
-from cadres_lycees import accessibilite, config, nettoyage
+from cadres_lycees import accessibilite, config, geo, nettoyage
 
 
 def profil_aires(lycees: gpd.GeoDataFrame) -> pd.DataFrame:
@@ -246,15 +248,23 @@ def tableau_support(
     return resultat
 
 
-def pente_paires(paires: pd.DataFrame, acces: str, poids: pd.Series | None = None) -> float:
+def pente_paires(
+    paires: pd.DataFrame,
+    acces: str,
+    poids: pd.Series | None = None,
+    controles: tuple[str, ...] = config.CONTROLES_PAIRES,
+) -> float | None:
     """Renvoie la pente de `d_part_cadres_2022` sur l'écart d'accès `acces` dans les paires (§5.3).
 
-    Moindres carrés sans constante, avec les écarts de `config.CONTROLES_PAIRES` en contrôle. Le
+    Moindres carrés sans constante, avec les écarts de `controles` en contrôle (ceux du §2.5
+    par défaut ; la robustesse « sans contrôle de densité » retire `d_log_densite`). Le
     sens i − j suit l'ordre des codes : changer le signe de toutes les colonnes d'une paire ne
     change pas cette pente, alors qu'une constante en dépendrait (A6). `poids`, aligné sur
-    `paires`, pondère les paires (bootstrap) ; sans poids, chaque paire compte une fois.
+    `paires`, pondère les paires (bootstrap) ; sans poids, chaque paire compte une fois. Renvoie
+    None si les régresseurs sont colinéaires : un tirage du bootstrap peut ne garder aucune paire
+    où l'accès diffère.
     """
-    colonnes = [acces, *config.CONTROLES_PAIRES]
+    colonnes = [acces, *controles]
     x = paires[colonnes].to_numpy(dtype=float)
     y = paires["d_part_cadres_2022"].to_numpy(dtype=float)
     assert not (np.isnan(x).any() or np.isnan(y).any()), "Écart manquant dans les paires."
@@ -269,8 +279,9 @@ def pente_paires(paires: pd.DataFrame, acces: str, poids: pd.Series | None = Non
     # compter la paire k fois
     racine = np.sqrt(poids_paires)
     coefficients, _, rang, _ = np.linalg.lstsq(x * racine[:, None], y * racine, rcond=None)
-    # lstsq rend une solution même si des régresseurs sont colinéaires : on l'interdit
-    assert rang == len(colonnes), f"Régresseurs colinéaires dans les paires (rang {rang})."
+    # lstsq rend une solution même si des régresseurs sont colinéaires : elle n'aurait pas de sens
+    if rang < len(colonnes):
+        return None
     return float(coefficients[0])
 
 
@@ -289,16 +300,20 @@ def poids_bootstrap(paires: pd.DataFrame, tirage: pd.Series) -> pd.Series:
     return tirage_i * tirage_j
 
 
-def pentes_paires_par_aire(paires: pd.DataFrame, acces: str) -> pd.DataFrame:
+def pentes_paires_par_aire(
+    paires: pd.DataFrame, acces: str, controles: tuple[str, ...] = config.CONTROLES_PAIRES
+) -> pd.DataFrame:
     """Renvoie, aire par aire, la pente des paires et son intervalle à 95 % (§5.3).
 
-    `paires` vient de `pipeline.construire_base`. Intervalle : percentiles 2,5 et 97,5 des pentes
-    de `config.NB_TIRAGES_BOOTSTRAP` tirages avec remise des communes de l'aire (voir
-    `poids_bootstrap`). La graine `config.GRAINE_BOOTSTRAP` est remise à chaque appel : le
-    résultat est reproductible, et deux appels sur les mêmes paires (principale et secondaire,
-    lycées et autres équipements pour H4) voient les mêmes tirages. Les tirages d'une aire
-    dépendent des aires traitées avant elle. Colonnes : `pente`, `ic_bas`, `ic_haut`, `n_paires`,
-    `n_communes` ; index : l'aire.
+    `paires` vient de `pipeline.construire_base` ; `controles` est passé à `pente_paires`.
+    Intervalle : percentiles 2,5 et 97,5 des pentes de `config.NB_TIRAGES_BOOTSTRAP` tirages
+    avec remise des communes de l'aire (voir `poids_bootstrap`). La graine
+    `config.GRAINE_BOOTSTRAP` est remise à chaque appel : le résultat est reproductible, et deux
+    appels sur les mêmes paires (principale et secondaire, lycées et autres équipements pour H4)
+    voient les mêmes tirages. Les tirages d'une aire dépendent des aires traitées avant elle.
+    Un tirage de régresseurs colinéaires est écarté et compté, comme pour H3 (A16) ; au-delà de
+    `config.MAX_TIRAGES_ECARTES`, l'intervalle n'est pas rapporté. Colonnes : `pente`, `ic_bas`,
+    `ic_haut`, `n_paires`, `n_communes`, `tirages_ecartes` ; index : l'aire.
     """
     generateur = np.random.default_rng(config.GRAINE_BOOTSTRAP)
     lignes = {}
@@ -310,13 +325,20 @@ def pentes_paires_par_aire(paires: pd.DataFrame, acces: str) -> pd.DataFrame:
         for _ in range(config.NB_TIRAGES_BOOTSTRAP):
             tirees = generateur.choice(communes, size=len(communes), replace=True)
             tirage = pd.Series(tirees).value_counts().reindex(communes, fill_value=0)
-            pentes.append(pente_paires(paires_aire, acces, poids_bootstrap(paires_aire, tirage)))
+            poids = poids_bootstrap(paires_aire, tirage)
+            pentes.append(pente_paires(paires_aire, acces, poids, controles))
+        pente = pente_paires(paires_aire, acces, controles=controles)
+        assert pente is not None, f"Régresseurs colinéaires dans les paires de {aire}."
+        valides = [pente_tiree for pente_tiree in pentes if pente_tiree is not None]
+        ecartes = len(pentes) - len(valides)
+        rapporte = ecartes <= config.MAX_TIRAGES_ECARTES
         lignes[aire] = {
-            "pente": pente_paires(paires_aire, acces),
-            "ic_bas": np.percentile(pentes, 2.5),
-            "ic_haut": np.percentile(pentes, 97.5),
+            "pente": pente,
+            "ic_bas": np.percentile(valides, 2.5) if rapporte else np.nan,
+            "ic_haut": np.percentile(valides, 97.5) if rapporte else np.nan,
             "n_paires": len(paires_aire),
             "n_communes": len(communes),
+            "tirages_ecartes": ecartes,
         }
     return pd.DataFrame.from_dict(lignes, orient="index").rename_axis("aire")
 
@@ -620,7 +642,7 @@ def estimation_h3(population: pd.DataFrame) -> pd.DataFrame:
     `population` vient de `population_h3`. Estimation sur les communes avec IVAL (et une part de
     cadres aux deux dates), les 3 aires ensemble puis chaque aire (descriptif), sur les mêmes
     tirages de `_tirages_grappes`, sans refaire la standardisation. Un tirage de rang incomplet
-    est écarté et compté (`tirages_ecartes`) ; au-delà de `config.MAX_TIRAGES_ECARTES_H3`,
+    est écarté et compté (`tirages_ecartes`) ; au-delà de `config.MAX_TIRAGES_ECARTES`,
     l'intervalle n'est pas rapporté. En points de part de cadres pour un écart-type. Index
     (`portee`, `coefficient`) ; colonnes `estimation`, `ic_bas`, `ic_haut`, `n_communes`,
     `n_grappes`, `tirages_ecartes`.
@@ -640,7 +662,7 @@ def estimation_h3(population: pd.DataFrame) -> pd.DataFrame:
             "β_n": (point[1], valides[:, 1]),
             "β_q − β_n": (point[0] - point[1], valides[:, 0] - valides[:, 1]),
         }
-        rapporte = ecartes <= config.MAX_TIRAGES_ECARTES_H3
+        rapporte = ecartes <= config.MAX_TIRAGES_ECARTES
         for coefficient, (valeur, tires) in estimations.items():
             lignes.append(
                 {
@@ -715,3 +737,112 @@ def terciles_h3(population: pd.DataFrame) -> pd.DataFrame:
             }
         )
     return pd.DataFrame(lignes).set_index(["aire", "categorie"])
+
+
+def _ecart_paires(paires: pd.DataFrame, base: pd.DataFrame, variable: str) -> pd.Series:
+    """Renvoie l'écart i − j de `variable` dans les paires, comme `geo.paires_contigues`."""
+    valeurs = base.set_index("code_commune")[variable]
+    return paires["code_commune_i"].map(valeurs) - paires["code_commune_j"].map(valeurs)
+
+
+def _communes_centres(base: pd.DataFrame) -> pd.Index:
+    """Renvoie les codes des communes-centres : la plus proche du centre de chaque aire.
+
+    À Lyon, la commune-centre est Lyon entière : tous les arrondissements de même `code_parent`.
+    """
+    plus_proches = base.loc[base.groupby("aire")["dist_centre_km"].idxmin(), "code_parent"]
+    return pd.Index(base.loc[base["code_parent"].isin(plus_proches), "code_commune"])
+
+
+def robustesse_h1(base: gpd.GeoDataFrame, paires: pd.DataFrame) -> pd.DataFrame:
+    """Renvoie les pentes de H1 dans chaque variante de robustesse du §5.6, aire par aire.
+
+    Pente principale, puis : pente secondaire à 3 et 10 km (le rayon de 5 km est la
+    secondaire) ; sans la commune-centre ; sans les communes de moins de
+    `config.ACTIFS_MIN_ROBUSTESSE` actifs en 2022 ; sans les communes à moins de
+    `config.DIST_FRONTIERE_KM` km du contour national (aires frontalières seulement) ; sans
+    contrôle de densité. Retirer une commune retire toutes ses paires. Même estimation et même
+    bootstrap que `pentes_paires_par_aire`. Index (`variante`, `aire`) ; colonnes de
+    `pentes_paires_par_aire`, en fraction par km ou par lycée.
+    """
+    principale = "d_dist_lyc_prive_min"
+    petites = base.loc[base["actifs_2022"] < config.ACTIFS_MIN_ROBUSTESSE, "code_commune"]
+    distance_frontiere = geo.distance_contour_national_km(base)
+    pres_frontiere = base.loc[
+        base["aire"].isin(config.AIRES_FRONTALIERES)
+        & (base["code_commune"].map(distance_frontiere) < config.DIST_FRONTIERE_KM),
+        "code_commune",
+    ]
+
+    def sans(communes: pd.Index | pd.Series) -> pd.DataFrame:
+        touchees = paires["code_commune_i"].isin(communes) | paires["code_commune_j"].isin(communes)
+        return paires[~touchees]
+
+    variantes = {
+        "Spécification principale": pentes_paires_par_aire(paires, principale),
+    }
+    for rayon in config.RAYONS_KM:
+        if rayon == config.RAYON_PRINCIPAL_KM:
+            continue
+        colonne = f"d_n_lyc_prive_{rayon}km"
+        avec_rayon = paires.assign(
+            **{colonne: _ecart_paires(paires, base, f"n_lyc_prive_{rayon}km")}
+        )
+        variantes[f"Pente secondaire à {rayon} km"] = pentes_paires_par_aire(avec_rayon, colonne)
+    variantes |= {
+        "Sans la commune-centre": pentes_paires_par_aire(sans(_communes_centres(base)), principale),
+        f"Sans les communes de moins de {config.ACTIFS_MIN_ROBUSTESSE} actifs": (
+            pentes_paires_par_aire(sans(petites), principale)
+        ),
+        "Sans contrôle de densité": pentes_paires_par_aire(
+            paires, principale, controles=("d_dist_centre_km",)
+        ),
+    }
+    # Seules les aires frontalières ont des communes près de la frontière : ailleurs, la variante
+    # redonnerait la spécification principale
+    frontiere = pentes_paires_par_aire(sans(pres_frontiere), principale)
+    nom = f"Sans les communes à moins de {config.DIST_FRONTIERE_KM} km de la frontière"
+    variantes[nom] = frontiere[frontiere.index.isin(config.AIRES_FRONTALIERES)]
+    return pd.concat(variantes, names=["variante", "aire"])
+
+
+def moran_part_cadres(base: gpd.GeoDataFrame) -> pd.DataFrame:
+    """Renvoie l'indice I de Moran de la part de cadres dans chaque aire (§5.6).
+
+    Contiguïté Queen, la même que celle des paires, sur les communes qui ont une part en 2022.
+    Deux variables : `part_cadres_2022`, puis l'écart restant après la comparaison par
+    anneaux, c'est-à-dire la part moins la moyenne simple de son anneau (§5.2, sans fusion). La
+    p-valeur vient de `config.NB_PERMUTATIONS_MORAN` permutations, avec la graine du bootstrap.
+    Index (`aire`, `variable`) ; colonnes `I`, `p_valeur`, `n_communes`.
+    """
+    lignes = []
+    communes = base[base["part_cadres_2022"].notna()].copy()
+    anneau = pd.cut(communes["dist_centre_km"], [*config.ANNEAUX_KM, float("inf")], right=False)
+    moyenne_anneau = communes.groupby(["aire", anneau], observed=True)[
+        "part_cadres_2022"
+    ].transform("mean")
+    communes["ecart_anneau"] = communes["part_cadres_2022"] - moyenne_anneau
+    for aire, communes_aire in communes.groupby("aire"):
+        voisinage = libpysal.weights.Queen.from_dataframe(
+            communes_aire.reset_index(drop=True), use_index=False, silence_warnings=True
+        )
+        assert not voisinage.islands, f"Communes sans voisine dans {aire} : {voisinage.islands}."
+        voisinage.transform = "r"
+        for variable in ("part_cadres_2022", "ecart_anneau"):
+            # esda tire ses permutations avec le générateur global de numpy
+            np.random.seed(config.GRAINE_BOOTSTRAP)
+            moran = esda.Moran(
+                communes_aire[variable].to_numpy(),
+                voisinage,
+                permutations=config.NB_PERMUTATIONS_MORAN,
+            )
+            lignes.append(
+                {
+                    "aire": aire,
+                    "variable": variable,
+                    "I": moran.I,
+                    "p_valeur": moran.p_sim,
+                    "n_communes": len(communes_aire),
+                }
+            )
+    return pd.DataFrame(lignes).set_index(["aire", "variable"])
