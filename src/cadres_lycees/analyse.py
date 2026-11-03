@@ -376,3 +376,26 @@ def pentes_h4(base: pd.DataFrame, paires: pd.DataFrame) -> pd.DataFrame:
         pentes = pentes_paires_par_aire(reduites, colonne)
         resultats.append(pentes.assign(mesure=mesure).set_index("mesure", append=True))
     return pd.concat(resultats).reorder_levels(["mesure", "aire"])
+
+
+def resume_acces(base: pd.DataFrame) -> pd.DataFrame:
+    """Résume, aire par aire, l'accès des communes aux lycées et aux autres infrastructures.
+
+    Tableau descriptif, sans donnée sur les cadres (sections 2.3 et 5 du rapport) : nombre de
+    communes, part des communes exposées (au moins un lycée privé sous contrat au rayon principal)
+    et médiane de chaque mesure d'accès. Médianes simples des communes : les distances et les
+    comptes sont très asymétriques.
+    """
+    rayon = config.RAYON_PRINCIPAL_KM
+    return base.groupby("aire").agg(
+        communes=("code_commune", "size"),
+        part_exposees=(f"expose_lyc_prive_{rayon}km", "mean"),
+        dist_lyc_prive_km=("dist_lyc_prive_min", "median"),
+        dist_lyc_public_km=("dist_lyc_public_min", "median"),
+        dist_gare_km=("dist_gare_min", "median"),
+        apl_mg=("apl_mg", "median"),
+        **{
+            f"n_sport_{rayon}km": (f"n_sport_{rayon}km", "median"),
+            f"n_culture_{rayon}km": (f"n_culture_{rayon}km", "median"),
+        },
+    )

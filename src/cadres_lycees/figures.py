@@ -3,6 +3,7 @@
 import html
 import itertools
 from collections.abc import Collection
+from pathlib import Path
 
 import folium
 import geopandas as gpd
@@ -743,3 +744,20 @@ def carte_iris(
     # Fermée, la figure n'est affichée qu'une fois par un notebook, avec sa valeur de retour
     plt.close(fig)
     return fig
+
+
+def document_markdown(chemin: Path, apres: str | None = None) -> str:
+    """Renvoie un document Markdown du dépôt, pour l'afficher dans le rapport.
+
+    Le texte part de la ligne qui suit `apres`, ou de la deuxième ligne (après le titre du
+    document) si `apres` est absent. Les titres sont descendus de deux niveaux (`##` devient
+    `####`) pour rester sous la section du rapport qui affiche le document.
+    """
+    texte = chemin.read_text(encoding="utf-8")
+    if apres is None:
+        corps = texte.split("\n", maxsplit=1)[1]
+    else:
+        assert apres in texte, f"« {apres} » absent de {chemin}."
+        corps = texte.split(apres, maxsplit=1)[1]
+    lignes = ["##" + ligne if ligne.startswith("#") else ligne for ligne in corps.splitlines()]
+    return "\n".join(lignes)

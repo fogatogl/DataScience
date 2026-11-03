@@ -170,3 +170,22 @@ def ecrire_tableau_support() -> None:
         ]
     )
     config.CHEMIN_TABLEAU_SUPPORT.write_text(texte + "\n", encoding="utf-8")
+
+
+def copies_gelees() -> pd.DataFrame:
+    """Renvoie la liste des fichiers bruts que lit le projet, avec leur sha256 (PLAN §7).
+
+    Tirée de `config.py`, qui associe chaque `CHEMIN_RAW_<X>` à son `SHA256_<X>` : la liste
+    reste ainsi celle du code. Un chemin qui dépend de l'aire (`{aav}`) donne une ligne par aire.
+    Colonnes `fichier` et `sha256`, pour la section 2.1 et l'annexe « Reproduire le projet ».
+    """
+    lignes = []
+    for nom, chemin in vars(config).items():
+        if not nom.startswith("CHEMIN_RAW_"):
+            continue
+        sha256 = getattr(config, nom.replace("CHEMIN_RAW_", "SHA256_"))
+        if isinstance(sha256, dict):
+            lignes += [(chemin.format(aav=aav), valeur) for aav, valeur in sha256.items()]
+        else:
+            lignes.append((chemin, sha256))
+    return pd.DataFrame(lignes, columns=["fichier", "sha256"])

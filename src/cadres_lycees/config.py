@@ -46,6 +46,11 @@ CHEMIN_BASE = "final/base_communale.parquet"
 CHEMIN_PAIRES = "final/paires.parquet"
 # Tableau de support du choix des aires (§5.2), livrable commité dans le dépôt
 CHEMIN_TABLEAU_SUPPORT = Path(__file__).parents[2] / "docs" / "tableau_support.md"
+# Documents du dépôt affichés en annexe du rapport (PLAN §6) : le dictionnaire des variables et le
+# plan, dont on montre le journal des décisions (§13)
+CHEMIN_DICTIONNAIRE = Path(__file__).parents[2] / "docs" / "dictionnaire_variables.md"
+CHEMIN_PLAN = Path(__file__).parents[2] / "docs" / "PLAN.md"
+TITRE_JOURNAL_PLAN = "## 13. Journal des décisions"
 # Rayons du tableau de support : le principal et le 10 km rapporté à côté (§5.2)
 RAYONS_SUPPORT_KM = (5, 10)
 # Aires candidates de l'Ouest, dont au moins une doit être retenue (§2.2, critère a)
