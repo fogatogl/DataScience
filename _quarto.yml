@@ -29,11 +29,11 @@ format:
     code-fold: true
     code-summary: Code
     # Quarto donne aux figures matplotlib leur largeur en pixels : sans cette règle, une figure
-    # plus large que la colonne (les cartes IRIS, affichées par display) déborde au lieu d'être
+    # plus large que la colonne (les cartes IRIS, affichées dans des onglets) déborde au lieu d'être
     # réduite
     include-in-header:
       text: |
-        <style>.figure-img, .cell-output-display img { max-width: 100%; height: auto; }</style>
+        <style>main img { max-width: 100%; height: auto; }</style>
     # Une carte folium créée dans un onglet caché est cadrée sur une surface nulle et montre le
     # monde entier : elle est recréée la première fois que son onglet s'affiche
     include-after-body:
