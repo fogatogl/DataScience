@@ -51,7 +51,7 @@ uv run pre-commit install        # active nb-clean et ruff avant chaque commit
 uv run pytest                    # lance les tests
 ```
 
-Le rapport est `rapport.ipynb` (pour l'instant le plan du rapport, les Fig. 1 et 3 à 7, la carte à curseur de la part de cadres de 1999 à 2022, les verdicts de H1 et H3, le tableau de robustesse, l'indice de Moran et la carte IRIS ; le texte reste à écrire). Le site se construit avec [Quarto](https://quarto.org/), déjà installé sur le SSPCloud :
+Le rapport est `rapport.ipynb` (pour l'instant le plan du rapport, les Fig. 1 et 3 à 7, la carte à curseur de la part de cadres de 1999 à 2022, les verdicts de H1 et H3, le tableau de robustesse, l'indice de Moran et la carte IRIS  et un premier jet du texte, à reprendre par le groupe). Le site se construit avec [Quarto](https://quarto.org/), déjà installé sur le SSPCloud :
 
 ```bash
 uv run quarto render             # exécute rapport.ipynb et écrit le site dans _site/
@@ -133,7 +133,7 @@ Le projet a été mené avec un assistant de code, Claude Code (Anthropic). Voic
 
 **Décisions.** La question, les hypothèses, le choix des trois aires, les règles de verdict, les sacrifices et les écarts au plan ont été décidés par le groupe. [À compléter par le groupe : les décisions prises contre l'avis des agents ou modifiées par le groupe.]
 
-**Texte du rapport.** L'assistant a rédigé un premier jet du texte, à la demande de Giulio et à partir des sorties du notebook ; le groupe l'a relu et repris. C'est un écart à notre règle de départ (`docs/PLAN.md`, §8.3), qui réservait le texte au groupe. [À compléter par le groupe : ce qui a été réécrit, par qui, et la ligne du journal qui consigne cet écart.]
+**Texte du rapport.** L'assistant a rédigé un premier jet du texte, à la demande de Giulio et à partir des sorties du notebook ; le groupe doit le relire et le reprendre section par section (journal du 03/11). C'est un écart à notre règle de départ (`docs/PLAN.md`, §8.3), qui réservait le texte au groupe. [À compléter par le groupe : ce qui a été réécrit, par qui, et la ligne du journal qui consigne cet écart.]
 
 **Soutenance.** La présentation interactive a été générée par l'assistant à partir des sorties du projet. [À compléter par le groupe : ce que le groupe y a modifié.]
 

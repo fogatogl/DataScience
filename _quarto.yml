@@ -28,12 +28,17 @@ format:
     toc-title: Sommaire
     code-fold: true
     code-summary: Code
+    # Les lettres grecques (β des coefficients de H3) dans une police mathématique, classe `.grec`.
     # Quarto donne aux figures matplotlib leur largeur en pixels : sans cette règle, une figure
     # plus large que la colonne (les cartes IRIS, affichées dans des onglets) déborde au lieu d'être
     # réduite
     include-in-header:
       text: |
-        <style>main img { max-width: 100%; height: auto; }</style>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital@0;1&display=swap">
+        <style>
+        main img { max-width: 100%; height: auto; }
+        .grec { font-family: "STIX Two Text", "Times New Roman", serif; font-size: 1.08em; }
+        </style>
     # Une carte folium créée dans un onglet caché est cadrée sur une surface nulle et montre le
     # monde entier : elle est recréée la première fois que son onglet s'affiche
     include-after-body:

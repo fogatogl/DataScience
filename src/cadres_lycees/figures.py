@@ -11,7 +11,6 @@ from collections.abc import Collection
 from pathlib import Path
 
 import folium
-import folium.plugins
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import numpy as np
@@ -19,6 +18,8 @@ import pandas as pd
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch, Rectangle
+from matplotlib.ticker import FuncFormatter, ScalarFormatter
+from pandas.io.formats.style import Styler
 
 from cadres_lycees import analyse, config
 
@@ -85,6 +86,7 @@ def fig1(
     )
     fig.tight_layout(rect=(0, 0.07, 1, 0.95))
     # Fermée, la figure n'est affichée qu'une fois par un notebook, avec sa valeur de retour
+    _axes_a_la_francaise(fig)
     plt.close(fig)
     return fig
 
@@ -224,6 +226,19 @@ def _panneau_ips(ax: plt.Axes, profil: pd.DataFrame, lycees: gpd.GeoDataFrame) -
     )
 
 
+def _axes_a_la_francaise(fig: Figure) -> None:
+    """Écrit les graduations numériques avec une virgule décimale et un vrai signe moins.
+
+    Seuls les axes à graduations calculées (`ScalarFormatter`) changent : les axes à libellés
+    (aires, variantes) gardent leurs noms.
+    """
+    francais = FuncFormatter(lambda valeur, _: f"{valeur:g}".replace(".", ",").replace("-", "−"))
+    for ax in fig.axes:
+        for axe in (ax.xaxis, ax.yaxis):
+            if isinstance(axe.get_major_formatter(), ScalarFormatter):
+                axe.set_major_formatter(francais)
+
+
 def _aires_ordonnees(aires: Collection[str]) -> list[str]:
     """Renvoie les aires présentes dans l'ordre de `config.COULEURS_AIRES`.
 
@@ -336,6 +351,7 @@ def fig4(
         color=texte,
     )
     fig.tight_layout(rect=(0, 0.16, 1, 0.95))
+    _axes_a_la_francaise(fig)
     plt.close(fig)
     return fig
 
@@ -429,8 +445,67 @@ def fig5(paires: pd.DataFrame, pentes: pd.DataFrame, titre: str) -> Figure:
         color=texte,
     )
     fig.tight_layout(rect=(0, 0.1, 1, 0.94))
+    _axes_a_la_francaise(fig)
     plt.close(fig)
     return fig
+
+
+# Curseur des recensements de `carte_cadres_dates` : un contrôle Leaflet qui recolore la couche
+# des communes avec les couleurs de chaque année, rangées dans leurs propriétés (`couleur_<année>`).
+# Du JavaScript simple, sans bibliothèque : le module à curseur de folium dépend de d3 et de
+# moment.js, que certaines pages bloquent
+_CURSEUR_JS = """
+// Au chargement : folium écrit ce script avant celui qui crée la carte
+window.addEventListener("load", function () {
+  var carte = __CARTE__, couche = __COUCHE__, annees = __ANNEES__;
+  var controle = L.control({position: "topright"});
+  controle.onAdd = function () {
+    var div = L.DomUtil.create("div");
+    div.style.cssText = "background:white;padding:6px 10px;font:13px sans-serif;"
+      + "border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.3)";
+    var dernier = annees.length - 1;
+    div.innerHTML = '<b style="font-size:16px">' + annees[dernier] + "</b> "
+      + '<input type="range" min="0" max="' + dernier + '" value="' + dernier
+      + '" style="width:160px;vertical-align:middle" aria-label="Recensement"> '
+      + '<button type="button">Lecture</button>';
+    L.DomEvent.disableClickPropagation(div);
+    var etiquette = div.querySelector("b");
+    var curseur = div.querySelector("input");
+    var bouton = div.querySelector("button");
+    var minuterie = null;
+    function montre(rang) {
+      var annee = annees[rang];
+      etiquette.textContent = annee;
+      curseur.value = rang;
+      couche.setStyle(function (commune) {
+        return {
+          fillColor: commune.properties["couleur_" + annee],
+          fillOpacity: commune.properties["opacite_" + annee]
+        };
+      });
+    }
+    function arrete() {
+      clearInterval(minuterie);
+      minuterie = null;
+      bouton.textContent = "Lecture";
+    }
+    curseur.addEventListener("input", function () { arrete(); montre(+curseur.value); });
+    bouton.addEventListener("click", function () {
+      if (minuterie) { arrete(); return; }
+      var rang = 0;
+      montre(rang);
+      bouton.textContent = "Pause";
+      minuterie = setInterval(function () {
+        rang += 1;
+        if (rang > dernier) { arrete(); return; }
+        montre(rang);
+      }, 1200);
+    });
+    return div;
+  };
+  controle.addTo(carte);
+});
+"""
 
 
 def carte_cadres_dates(communes: gpd.GeoDataFrame, parts: pd.DataFrame, titre: str) -> folium.Map:
@@ -440,8 +515,9 @@ def carte_cadres_dates(communes: gpd.GeoDataFrame, parts: pd.DataFrame, titre: s
     arrondissements de Lyon sont réunis, la série n'ayant que Lyon entière. `parts` vient de
     `nettoyage.parts_cadres_dates`. Mêmes classes et mêmes couleurs que la carte IRIS ; une
     commune de moins de `config.ACTIFS_MIN_ROBUSTESSE` actifs à une date est pâle, sa part étant
-    peu précise (§3.2). Le curseur choisit le recensement ; le survol donne toutes les dates.
-    `titre` est le message de la carte, écrit par le groupe (PLAN §6).
+    peu précise (§3.2). Le curseur, un petit contrôle Leaflet (`_CURSEUR_JS`), recolore les
+    communes selon le recensement choisi ; le survol donne toutes les dates. `titre` est le
+    message de la carte, écrit par le groupe (PLAN §6).
     """
     annees = list(config.GEOGRAPHIE_SERIE_CSP)
     unites = communes.dissolve("code_parent", as_index=False)[["code_parent", "geometry"]]
@@ -452,51 +528,45 @@ def carte_cadres_dates(communes: gpd.GeoDataFrame, parts: pd.DataFrame, titre: s
     affichage = gpd.GeoDataFrame(
         {"nom": unites["nom"]}, geometry=geometrie, crs=communes.crs
     ).to_crs(config.CRS_CARTES)
+    bornes = [0, *config.BORNES_PART_CADRES_IRIS, 100.01]
     for annee in annees:
         pourcentage = valeurs[f"part_cadres_{annee}"] * 100
         affichage[str(annee)] = pourcentage.map(lambda p: f"{p:.1f} %".replace(".", ","))
-
-    bornes = [0, *config.BORNES_PART_CADRES_IRIS, 100.01]
-    styles = {}
-    for rang, ligne in valeurs.iterrows():
-        styles[str(rang)] = {}
-        for annee in annees:
-            # Borne basse incluse, comme dans la légende
-            classe = pd.cut(
-                [ligne[f"part_cadres_{annee}"] * 100], bornes, right=False, labels=False
-            )
-            petite = ligne[f"actifs_{annee}"] < config.ACTIFS_MIN_ROBUSTESSE
-            horodatage = str(int(pd.Timestamp(f"{annee}-01-01").timestamp()))
-            styles[str(rang)][horodatage] = {
-                "color": config.COULEURS_PART_CADRES_IRIS[int(classe[0])],
-                "opacity": 0.35 if petite else 0.85,
-            }
+        # Borne basse incluse, comme dans la légende
+        classe = pd.cut(pourcentage, bornes, right=False, labels=False)
+        assert classe.notna().all(), f"Part de cadres hors des classes en {annee}."
+        affichage[f"couleur_{annee}"] = [config.COULEURS_PART_CADRES_IRIS[int(c)] for c in classe]
+        petite = valeurs[f"actifs_{annee}"] < config.ACTIFS_MIN_ROBUSTESSE
+        affichage[f"opacite_{annee}"] = petite.map({True: 0.35, False: 0.85})
 
     carte = folium.Map(tiles=None, control_scale=True)
     for rang, (nom, fournisseur) in enumerate(config.FONDS_CARTE.items()):
         folium.TileLayer(fournisseur, name=nom, show=(rang == 0)).add_to(carte)
     ouest, sud, est, nord = affichage.total_bounds
     carte.fit_bounds([[sud, ouest], [nord, est]])
-    folium.plugins.TimeSliderChoropleth(
-        affichage[["geometry"]].to_json(),
-        styledict=styles,
-        date_options="YYYY",
+    derniere = annees[-1]
+    couche = folium.GeoJson(
+        affichage,
         name="Part de cadres",
         # Le dernier recensement à l'ouverture : le curseur remonte le temps
-        init_timestamp=-1,
-        stroke_width=0.4,
-    ).add_to(carte)
-    # Couche transparente par-dessus, pour le survol : le curseur ne porte pas d'infobulle
-    folium.GeoJson(
-        affichage,
-        name="Valeurs aux cinq dates",
-        style_function=lambda _: {"fillOpacity": 0, "weight": 0},
+        style_function=lambda commune: {
+            "fillColor": commune["properties"][f"couleur_{derniere}"],
+            "fillOpacity": commune["properties"][f"opacite_{derniere}"],
+            "color": "white",
+            "weight": 0.4,
+        },
         tooltip=folium.GeoJsonTooltip(
             fields=["nom", *[str(annee) for annee in annees]],
             aliases=["Commune", *[f"Part de cadres en {annee}" for annee in annees]],
         ),
     ).add_to(carte)
-    folium.LayerControl(collapsed=True).add_to(carte)
+    folium.LayerControl(collapsed=True, position="bottomright").add_to(carte)
+    curseur = (
+        _CURSEUR_JS.replace("__CARTE__", carte.get_name())
+        .replace("__COUCHE__", couche.get_name())
+        .replace("__ANNEES__", str(annees))
+    )
+    carte.get_root().script.add_child(folium.Element(curseur))
 
     libelles = [f"moins de {bornes[1]} %"]
     libelles += [f"{bas} à {haut} %" for bas, haut in itertools.pairwise(bornes[1:-1])]
@@ -517,12 +587,9 @@ def carte_cadres_dates(communes: gpd.GeoDataFrame, parts: pd.DataFrame, titre: s
         f"<b>Part de cadres</b>{classes}<p style='font-size:10px'>{note}</p></div>"
     )
     carte.get_root().html.add_child(folium.Element(legende))
-    # Le curseur du module s'affiche en haut à gauche, au-dessus de la carte : le titre passe
-    # dessous, et le curseur est élargi pour se manier sans viser
     entete = (
-        "<style>input[type=range]{width:280px;vertical-align:middle}</style>"
-        '<div style="position:fixed;top:46px;left:56px;z-index:1000;background:white;'
-        f'padding:6px 10px;font:bold 14px sans-serif;color:{config.COULEUR_TEXTE};max-width:60%">'
+        '<div style="position:fixed;top:10px;left:56px;z-index:1000;background:white;'
+        f'padding:6px 10px;font:bold 14px sans-serif;color:{config.COULEUR_TEXTE};max-width:45%">'
         f"{html.escape(titre)}</div>"
     )
     carte.get_root().html.add_child(folium.Element(entete))
@@ -765,6 +832,7 @@ def fig6(terciles: pd.DataFrame, titre: str) -> Figure:
         color=texte,
     )
     fig.tight_layout(rect=(0, 0.17, 1, 0.95))
+    _axes_a_la_francaise(fig)
     plt.close(fig)
     return fig
 
@@ -829,6 +897,7 @@ def fig_robustesse(robustesse: pd.DataFrame, titre: str) -> Figure:
         color=texte,
     )
     fig.tight_layout(rect=(0, 0.12, 1, 0.95))
+    _axes_a_la_francaise(fig)
     plt.close(fig)
     return fig
 
@@ -895,6 +964,7 @@ def fig7(pentes: pd.DataFrame, titre: str) -> Figure:
         color=texte,
     )
     fig.tight_layout(rect=(0, 0.13, 1, 0.95))
+    _axes_a_la_francaise(fig)
     plt.close(fig)
     return fig
 
@@ -1004,6 +1074,7 @@ def carte_iris(
     )
     fig.tight_layout(rect=(0, 0.05, 0.85, 0.97))
     # Fermée, la figure n'est affichée qu'une fois par un notebook, avec sa valeur de retour
+    _axes_a_la_francaise(fig)
     plt.close(fig)
     return fig
 
@@ -1045,19 +1116,26 @@ def tableau_robustesse(robustesse: pd.DataFrame) -> pd.DataFrame:
     return tableau.rename_axis(index=None, columns=None)
 
 
-def tableau_h3(estimation: pd.DataFrame) -> pd.DataFrame:
+def tableau_h3(estimation: pd.DataFrame) -> Styler:
     """Met en forme les coefficients de H3 : une ligne par coefficient, une colonne par portée.
 
     `estimation` vient de `analyse.estimation_h3` (index portée, coefficient) ou de
     `analyse.robustesse_h3` (index variante, coefficient) : la colonne est le premier niveau.
-    Points de part de cadres, 2011-2022, pour un écart-type ; intervalle à 95 %.
+    Points de part de cadres, 2011-2022, pour un écart-type ; intervalle à 95 %. Renvoie un
+    `Styler` : son HTML garde les indices des β (β<sub>q</sub>), qu'un DataFrame échapperait.
     """
     cases = estimation.apply(_estimation, axis=1, valeur="estimation", facteur=1)
     premier = estimation.index.names[0]
     tableau = cases.unstack(premier).reindex(
         index=estimation.index.unique("coefficient"), columns=estimation.index.unique(premier)
     )
-    return tableau.rename_axis(index=None, columns=None)
+    beta = {"q": "β<sub>q</sub>", "n": "β<sub>n</sub>"}
+    libelles = {
+        "β_q": f'<span class="grec">{beta["q"]}</span> (qualité)',
+        "β_n": f'<span class="grec">{beta["n"]}</span> (nombre)',
+        "β_q − β_n": f'<span class="grec">{beta["q"]} − {beta["n"]}</span>',
+    }
+    return tableau.rename(index=libelles).rename_axis(index=None, columns=None).style
 
 
 def tableau_acces(resume: pd.DataFrame) -> pd.DataFrame:
