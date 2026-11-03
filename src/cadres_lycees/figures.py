@@ -215,6 +215,114 @@ def _panneau_ips(ax: plt.Axes, profil: pd.DataFrame, lycees: gpd.GeoDataFrame) -
     )
 
 
+def fig2(base: pd.DataFrame, titre: str) -> Figure:
+    """Fig. 2 : part de cadres de chaque commune selon sa distance au centre de l'aire.
+
+    Un point par commune et, par aire, une courbe qui relie la part de cadres de chaque tranche
+    de distance (`_courbe_tranches`). Les bornes des anneaux du §5.2 sont en pointillés : la
+    figure montre pourquoi on compare à distance égale (PLAN §5.1). `base` vient de
+    `pipeline.construire_base` ; `titre` est le message de la figure, écrit par le groupe
+    (PLAN §6). Une commune sans actif en 2022 n'a pas de part et n'est pas tracée (A17).
+    """
+    inconnues = sorted(set(base["aire"]) - set(config.COULEURS_AIRES))
+    assert not inconnues, f"Aires sans couleur dans config.COULEURS_AIRES : {inconnues}."
+    sans_part = base["part_cadres_2022"].isna()
+    communes = base[~sans_part]
+    texte = config.COULEUR_TEXTE
+
+    fig, ax = plt.subplots(figsize=(11, 6.2))
+    for borne in config.ANNEAUX_KM[1:]:
+        ax.axvline(borne, color=config.COULEUR_LIAISON, linestyle=":", linewidth=1, zorder=0)
+    ax.text(
+        config.ANNEAUX_KM[1],
+        1.0,
+        " bornes des anneaux",
+        transform=ax.get_xaxis_transform(),
+        va="top",
+        fontsize=8,
+        color=texte,
+    )
+    for aire, couleur in config.COULEURS_AIRES.items():
+        communes_aire = communes[communes["aire"] == aire]
+        if communes_aire.empty:
+            continue
+        ax.scatter(
+            communes_aire["dist_centre_km"],
+            communes_aire["part_cadres_2022"] * 100,
+            s=12,
+            color=couleur,
+            alpha=0.3,
+            linewidth=0,
+            zorder=1,
+        )
+        courbe = _courbe_tranches(communes_aire)
+        ax.plot(
+            courbe["distance"],
+            courbe["part"] * 100,
+            color=couleur,
+            linewidth=2.2,
+            marker="o",
+            markersize=4,
+            zorder=2,
+            label=f"{aire} ({len(communes_aire)} communes)",
+        )
+
+    ax.set_ylim(bottom=0)
+    ax.set_xlim(left=0)
+    ax.set_xlabel("Distance au centre de l'aire (km)", color=texte)
+    ax.set_ylabel("Part de cadres parmi les actifs de 25 à 54 ans en 2022 (%)", color=texte)
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.tick_params(colors=texte)
+    ax.grid(axis="y", color=config.COULEUR_GRILLE, linewidth=0.8)
+    ax.set_axisbelow(True)
+    ax.legend(frameon=False, loc="upper right")
+
+    fig.suptitle(titre, fontsize=13, x=0.01, ha="left")
+    pas = f"{config.PAS_COURBE_FIG2_KM:g}".replace(".", ",")
+    fig.text(
+        0.01,
+        0.01,
+        "Un point par commune (arrondissement à Lyon). Courbe : part de cadres de chaque tranche "
+        f"de {pas} km de distance au centre, toutes communes de la tranche réunies\n(moyenne "
+        "pondérée par les actifs), placée au milieu de la tranche ; pas de point pour une "
+        f"tranche de moins de {config.MIN_COMMUNES_TRANCHE_FIG2} communes. Distance à vol "
+        "d'oiseau entre centroïdes.\n"
+        f"Communes sans actif en 2022, non tracées : {sans_part.sum()}. Sources : Insee, "
+        "recensement 2022, « Évolution et structure de la population » ; aires d'attraction des "
+        "villes 2020 ; IGN.",
+        fontsize=8,
+        color=texte,
+    )
+    fig.tight_layout(rect=(0, 0.08, 1, 0.95))
+    plt.close(fig)
+    return fig
+
+
+def _courbe_tranches(communes: pd.DataFrame) -> pd.DataFrame:
+    """Part de cadres par tranche de distance au centre, pondérée par les actifs (Fig. 2).
+
+    La part d'une tranche est le total de ses cadres sur le total de ses actifs, soit la moyenne
+    des parts communales pondérée par `actifs_2022` (§3.2). Renvoie une ligne par tranche d'au
+    moins `config.MIN_COMMUNES_TRANCHE_FIG2` communes : `distance` (milieu de la tranche, km) et
+    `part` (fraction).
+    """
+    pas = config.PAS_COURBE_FIG2_KM
+    cadres = communes.assign(
+        tranche=communes["dist_centre_km"] // pas,
+        cadres=communes["part_cadres_2022"] * communes["actifs_2022"],
+    )
+    tranches = cadres.groupby("tranche").agg(
+        n=("cadres", "size"), cadres=("cadres", "sum"), actifs=("actifs_2022", "sum")
+    )
+    tranches = tranches[tranches["n"] >= config.MIN_COMMUNES_TRANCHE_FIG2]
+    return pd.DataFrame(
+        {
+            "distance": (tranches.index + 0.5) * pas,
+            "part": tranches["cadres"] / tranches["actifs"],
+        }
+    )
+
+
 def _libelles_distance() -> list[str]:
     """Libellés des classes de `config.BORNES_DISTANCE_KM`, du plus proche au plus loin."""
     bornes = config.BORNES_DISTANCE_KM

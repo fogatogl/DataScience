@@ -302,6 +302,16 @@ COULEUR_FOND_RETENUES = "#f0efec"
 DATE_ANNUAIRE = "13/10/2026"
 # Secteurs écrits en toutes lettres dans les légendes et les infobulles
 LIBELLES_SECTEURS = {"public": "public", "prive": "privé sous contrat"}
+# Une couleur par aire retenue, la même dans toutes les figures (PLAN §6) : vert, violet et brun
+# de la palette d'Okabe et Ito, lisibles en cas de daltonisme et distincts du bleu et de l'orange
+# des secteurs
+COULEURS_AIRES = {"Nantes": "#009e73", "Lyon": "#a2559c", "Strasbourg": "#9c6b1f"}
+
+# Fig. 2 : la courbe de chaque aire relie les parts moyennes des communes par tranche de distance
+# au centre, pondérées par les actifs (§3.2). Une tranche de 2,5 km découpe chaque anneau du §5.2
+# en deux au moins ; une tranche de moins de 5 communes n'a pas de point, trop bruité
+PAS_COURBE_FIG2_KM = 2.5
+MIN_COMMUNES_TRANCHE_FIG2 = 5
 
 # Fig. 3 : classes de distance au lycée privé le plus proche, par leurs bornes supérieures en km
 # (incluses). Les rayons du §2.4 en sont les premières bornes : être à 5 km ou moins du plus
