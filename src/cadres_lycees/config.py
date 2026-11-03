@@ -165,6 +165,20 @@ CHEMIN_RAW_BPE = "raw/bpe_2025_20261103.parquet"
 SHA256_BPE = "3bad0dc8b02eff0bee86832acf97fdeccef02116bbeb8a6dca2ad0e99d054f6a"
 SOUS_DOMAINE_CULTURE_BPE = "F3"
 EPSG_BPE_METROPOLE = "2154"
+# Prix au m² (robustesse, §2.5, §5.6) : « Statistiques DVF » d'Etalab, médianes par commune sur
+# toute la période publiée (de juillet 2021 à juin 2026 dans la copie du 03/11/2026 ; aucune
+# source DVF ne remonte à 2020). Ventes d'un seul bien, appartements et maisons ensemble. Fichier
+# réécrit sans prévenir à la même URL : copie gelée. L'Alsace-Moselle n'est pas dans DVF (livre
+# foncier) : aucune valeur à Strasbourg (exploration_sources §19)
+URL_DVF = "https://data-pipeline-open.s3.sbg.io.cloud.ovh.net/dvf/stats_whole_period.csv"
+CHEMIN_RAW_DVF = "raw/statistiques_dvf_20261103.csv"
+SHA256_DVF = "eca12b1b1b45274e315859135d5f4ac15137f3e084712ea9b614b11c4a100722"
+COLONNE_VENTES_DVF = "nb_ventes_whole_apt_maison"
+COLONNE_PRIX_DVF = "med_prix_m2_whole_apt_maison"
+# Seuil de ventes en deçà duquel la médiane d'une commune est manquante (§3.2)
+MIN_VENTES_DVF = 10
+# Aires dont les communes sont hors de DVF (Alsace-Moselle) : la robustesse au prix y est sans objet
+AIRES_HORS_DVF = ("Strasbourg",)
 # Délai d'attente de `requests` par lecture, pas durée totale (le téléchargement dure ~12 s)
 DELAI_TELECHARGEMENT_S = 120
 # Zonage en aires d'attraction des villes 2020 (source 8), géographie au 01/01/2025. Le zip de
@@ -527,6 +541,7 @@ FICHIERS_BRUTS = (
     (CHEMIN_RAW_APL, SHA256_APL),
     (CHEMIN_RAW_EQUIPEMENTS_SPORTIFS, SHA256_EQUIPEMENTS_SPORTIFS),
     (CHEMIN_RAW_BPE, SHA256_BPE),
+    (CHEMIN_RAW_DVF, SHA256_DVF),
     (CHEMIN_RAW_AAV, SHA256_AAV),
     (CHEMIN_RAW_PASSAGE_COG, SHA256_PASSAGE_COG),
     (CHEMIN_RAW_SERIE_RP2022, SHA256_SERIE_RP2022),

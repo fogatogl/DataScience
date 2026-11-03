@@ -62,6 +62,14 @@ def geler_bpe(chemin: str) -> str:
     return _geler(config.URL_BPE, chemin, _parquet_complet)
 
 
+def geler_dvf(chemin: str) -> str:
+    """Écrit à `chemin` les statistiques DVF d'Etalab par commune et renvoie son sha256.
+
+    Produit la copie gelée du 03/11/2026 ; le rapport lit cette copie (`statistiques_dvf`).
+    """
+    return _geler(config.URL_DVF, chemin, _csv_complet)
+
+
 def _geler(url: str, chemin: str, est_complet: Callable[[bytes], bool]) -> str:
     """Écrit à `chemin` le fichier téléchargé à `url` et renvoie son sha256.
 
@@ -81,6 +89,11 @@ def _geler(url: str, chemin: str, est_complet: Callable[[bytes], bool]) -> str:
 def _parquet_complet(contenu: bytes) -> bool:
     """Dit si `contenu` est un fichier Parquet entier : "PAR1" l'ouvre et le ferme toujours."""
     return contenu.startswith(b"PAR1") and contenu.endswith(b"PAR1")
+
+
+def _csv_complet(contenu: bytes) -> bool:
+    """Dit si `contenu` est un CSV entier : un fichier tronqué ne finit pas par un saut de ligne."""
+    return contenu.endswith(b"\n")
 
 
 def _xlsx_complet(contenu: bytes) -> bool:
@@ -499,6 +512,24 @@ def equipements_sportifs() -> gpd.GeoDataFrame:
         },
         geometry=points,
     ).to_crs(config.CRS_CALCUL)
+
+
+def statistiques_dvf() -> pd.DataFrame:
+    """Renvoie le nombre de ventes et le prix médian au m² de chaque commune (Statistiques DVF).
+
+    Lignes de l'échelle « commune » seulement (le fichier mêle sections, EPCI et départements),
+    avec `code_geo` en chaîne. Les arrondissements de Lyon y sont, et aussi Lyon entière (69123).
+    La médiane est renseignée dès une vente : le seuil du §3.2 s'applique au nettoyage. Lu dans
+    la copie gelée du 03/11/2026.
+    """
+    contenu = stockage.copie_controlee(
+        _copies_publiques(config.CHEMIN_RAW_DVF), config.CHEMIN_RAW_DVF, config.SHA256_DVF
+    )
+    colonnes = ["code_geo", "echelle_geo", config.COLONNE_VENTES_DVF, config.COLONNE_PRIX_DVF]
+    dvf = pd.read_csv(io.BytesIO(contenu), usecols=colonnes, dtype={"code_geo": str})
+    communes = dvf[dvf["echelle_geo"] == "commune"].drop(columns="echelle_geo")
+    assert communes["code_geo"].is_unique, "Une commune apparaît deux fois dans DVF."
+    return communes
 
 
 def equipements_culturels() -> gpd.GeoDataFrame:

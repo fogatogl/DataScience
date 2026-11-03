@@ -235,6 +235,26 @@ def part_cadres(effectifs: pd.DataFrame, referentiel: gpd.GeoDataFrame) -> pd.Da
     )
 
 
+def prix_m2(dvf: pd.DataFrame, referentiel: gpd.GeoDataFrame) -> pd.DataFrame:
+    """Renvoie le prix médian au m² de chaque commune, et son logarithme (§3.2, robustesse).
+
+    `dvf` vient de `collecte.statistiques_dvf`. `prix_m2_med` est manquant sous
+    `config.MIN_VENTES_DVF` ventes (appartements et maisons), et pour toute l'Alsace-Moselle,
+    absente de DVF. `log_prix_m2` sert de contrôle, comme `log_densite` (A7). Indexé par
+    `code_commune` ; toute commune du référentiel doit être dans le fichier.
+    """
+    par_code = dvf.set_index("code_geo")
+    manquantes = sorted(set(referentiel["code_commune"]) - set(par_code.index))
+    assert not manquantes, f"Communes absentes des statistiques DVF : {manquantes[:10]}."
+    lignes = par_code.loc[referentiel["code_commune"]]
+    assez_de_ventes = lignes[config.COLONNE_VENTES_DVF] >= config.MIN_VENTES_DVF
+    prix = lignes[config.COLONNE_PRIX_DVF].where(assez_de_ventes)
+    assert (prix.dropna() > 0).all(), "Prix au m² nul ou négatif."
+    return pd.DataFrame({"prix_m2_med": prix, "log_prix_m2": np.log(prix)}).rename_axis(
+        "code_commune"
+    )
+
+
 def _lignes_du_referentiel(
     fichier_insee: pd.DataFrame, referentiel: gpd.GeoDataFrame, colonnes: list[str]
 ) -> pd.DataFrame:

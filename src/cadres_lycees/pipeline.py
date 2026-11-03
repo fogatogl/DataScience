@@ -54,6 +54,14 @@ def construire_base(
         how="left",
         validate="one_to_one",
     )
+    # Prix au m² : robustesse seulement (§2.5) ; manquant à Strasbourg et sous 10 ventes
+    base = base.merge(
+        nettoyage.prix_m2(collecte.statistiques_dvf(), referentiel),
+        left_on="code_commune",
+        right_index=True,
+        how="left",
+        validate="one_to_one",
+    )
     cadres = nettoyage.part_cadres(collecte.evol_struct_rp2022(), referentiel)
     base = base.merge(
         cadres, left_on="code_commune", right_index=True, how="left", validate="one_to_one"

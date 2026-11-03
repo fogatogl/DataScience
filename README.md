@@ -73,6 +73,7 @@ Les sources qui changent sans prévenir sont lues dans une copie datée, jamais 
 | `apl_medecins_generalistes_20261103.xlsx` | 03/11/2026 | https://data.drees.solidarites-sante.gouv.fr/api/explore/v2.1/catalog/datasets/530_l-accessibilite-potentielle-localisee-apl/attachments/indicateur_d_apl_aux_medecins_generalistes_xlsx | `21c73deff57dc7a83a3cd6fcfd5b5ceb8c7a40e98590a50b5b1194f2dd4d75a2` |
 | `equipements_sportifs_20261103.parquet` | 03/11/2026 | https://equipements.sports.gouv.fr/api/explore/v2.1/catalog/datasets/data-es/exports/parquet | `c78cb234bb591f54660277c5720e5a8275ec26ffacf7120b141024cfba936eef` |
 | `bpe_2025_20261103.parquet` | 03/11/2026 | https://www.insee.fr/fr/statistiques/fichier/8217525/BPE25.parquet | `3bad0dc8b02eff0bee86832acf97fdeccef02116bbeb8a6dca2ad0e99d054f6a` |
+| `statistiques_dvf_20261103.csv` | 03/11/2026 | https://data-pipeline-open.s3.sbg.io.cloud.ovh.net/dvf/stats_whole_period.csv | `eca12b1b1b45274e315859135d5f4ac15137f3e084712ea9b614b11c4a100722` |
 | `ips_lycees_20261013.csv` | 13/10/2026 | https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-ips-lycees-ap2023/exports/csv | `31b2aafd8fb4597608c55f8f78f7144444a350df795111a651fb5222ee9c8aa7` |
 | `ival_lycees_gt_20261020.csv` | 20/10/2026 | https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-indicateurs-de-resultat-des-lycees-gt_v2/exports/csv | `6ab77b391e3405f5157bb942d4548d5f1cfbacd94e76dd52b93db9b370de8658` |
 | `contours_departements_20261020.parquet` | 20/10/2026 | `cartiflette==0.4.0`, départements de France entière, COG 2025, sans simplification | `a6e4d3b3a7657f61b8fe9b710efa5f50c0cab76cde0d522f4cfd4adfdbe405ca` |
@@ -91,6 +92,7 @@ collecte.geler_gares("raw/gares_voyageurs_AAAAMMJJ.parquet")
 collecte.geler_apl("raw/apl_medecins_generalistes_AAAAMMJJ.xlsx")
 collecte.geler_equipements_sportifs("raw/equipements_sportifs_AAAAMMJJ.parquet")
 collecte.geler_bpe("raw/bpe_2025_AAAAMMJJ.parquet")
+collecte.geler_dvf("raw/statistiques_dvf_AAAAMMJJ.csv")
 collecte.geler_contours(
     "raw/contours_aav_013_AAAAMMJJ.parquet",
     valeur="013",

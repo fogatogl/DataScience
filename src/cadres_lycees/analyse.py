@@ -793,14 +793,16 @@ def robustesse_h1(
     """Renvoie les pentes de H1 dans chaque variante de robustesse du §5.6, aire par aire.
 
     Dans l'ordre du §5.6, après la spécification principale : pente secondaire à 3 et 10 km (le
-    rayon de 5 km est la secondaire) ; part de cadres parmi les 15 ans ou plus en 2022 ; distance
-    au lycée privé le plus proche parmi `prives_elargis` (`pipeline.lycees_prives_robustesse`,
-    professionnels et hors contrat inclus) ; sans la commune-centre ; sans les communes de moins
-    de `config.ACTIFS_MIN_ROBUSTESSE` actifs en 2022 ; sans les communes à moins de
+    rayon de 5 km est la secondaire) ; avec le logarithme du prix au m² en contrôle, sur les
+    paires dont les deux communes ont un prix, hors de `config.AIRES_HORS_DVF` ; part de cadres
+    parmi les 15 ans ou plus en 2022 ; distance au lycée privé le plus proche parmi
+    `prives_elargis` (`pipeline.lycees_prives_robustesse`, professionnels et hors contrat
+    inclus) ; sans la commune-centre ; sans les communes de moins de
+    `config.ACTIFS_MIN_ROBUSTESSE` actifs en 2022 ; sans les communes à moins de
     `config.DIST_FRONTIERE_KM` km du contour national, dans les aires frontalières seulement ;
     sans contrôle de densité. Même estimation et même bootstrap que `pentes_paires_par_aire`.
-    Index (`variante`, `aire`) ; colonnes de `pentes_paires_par_aire`, en fraction par km ou
-    par lycée.
+    Index (`variante`, `aire`) ; colonnes de `pentes_paires_par_aire`, en fraction par km ou par
+    lycée.
     """
     principale = "d_dist_lyc_prive_min"
     variantes = {"Spécification principale": pentes_paires_par_aire(paires, principale)}
@@ -811,6 +813,14 @@ def robustesse_h1(
         variantes[f"Pente secondaire à {rayon} km"] = pentes_paires_par_aire(
             paires.assign(**{colonne: ecart}), colonne
         )
+
+    # Prix au m² (§2.5) : paires dont les deux communes ont un prix, hors des aires sans DVF
+    ecart_prix = _ecart_paires(paires, base, "log_prix_m2")
+    avec_prix = paires.assign(d_log_prix_m2=ecart_prix)
+    avec_prix = avec_prix[ecart_prix.notna() & ~paires["aire"].isin(config.AIRES_HORS_DVF)]
+    variantes["Avec contrôle du prix au m²"] = pentes_paires_par_aire(
+        avec_prix, principale, controles=(*config.CONTROLES_PAIRES, "d_log_prix_m2")
+    )
 
     # La part de cadres des 15 ans ou plus prend la place de la variable à expliquer
     ecart_15p = _ecart_paires(paires, base, "part_cadres_15p_2022")
