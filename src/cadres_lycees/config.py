@@ -181,6 +181,8 @@ MIN_VENTES_DVF = 10
 AIRES_HORS_DVF = ("Strasbourg",)
 # Délai d'attente de `requests` par lecture, pas durée totale (le téléchargement dure ~12 s)
 DELAI_TELECHARGEMENT_S = 120
+# Essais par URL quand la connexion est coupée ou le contenu tronqué (sha256 différent)
+NB_ESSAIS_TELECHARGEMENT = 3
 # Zonage en aires d'attraction des villes 2020 (source 8), géographie au 01/01/2025. Le zip de
 # l'Insee est permanent : il est lu à son URL d'origine, et son sha256 est contrôlé à chaque lecture
 URL_AAV = "https://www.insee.fr/fr/statistiques/fichier/4803954/AAV2020_au_01-01-2025.zip"

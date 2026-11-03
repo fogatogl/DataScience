@@ -80,22 +80,33 @@ def _telecharger(urls: list[str], sha256: str) -> bytes:
     """Renvoie le contenu de la première des `urls` qui fournit le fichier attendu (même sha256).
 
     Une URL injoignable, ou qui fournit un autre contenu, laisse la place à la suivante, avec un
-    avertissement : une copie principale en panne ne doit pas passer inaperçue. Si aucune ne
-    convient, tous les refus sont dans le message d'erreur. Une URL mal écrite fait échouer.
+    avertissement : une copie principale en panne ne doit pas passer inaperçue. Une connexion
+    coupée en cours de route est retentée `config.NB_ESSAIS_TELECHARGEMENT` fois : les serveurs
+    de l'Insee coupent parfois un gros fichier (exploration_sources, « Évolution et
+    structure »), et un compte neuf télécharge tout. Si aucune URL ne convient, tous les refus
+    sont dans le message d'erreur. Une URL mal écrite fait échouer.
     """
     refus = []
     for url in urls:
-        try:
-            reponse = requests.get(url, timeout=config.DELAI_TELECHARGEMENT_S)
-        except (requests.ConnectionError, requests.Timeout) as erreur:
-            refus.append(f"{url} : {erreur}")
+        for _ in range(config.NB_ESSAIS_TELECHARGEMENT):
+            try:
+                reponse = requests.get(url, timeout=config.DELAI_TELECHARGEMENT_S)
+            except (
+                requests.ConnectionError,
+                requests.Timeout,
+                requests.exceptions.ChunkedEncodingError,
+            ) as erreur:
+                refus.append(f"{url} : {erreur}")
+                warnings.warn(refus[-1], stacklevel=2)
+                continue
+            recu = hashlib.sha256(reponse.content).hexdigest()
+            if reponse.ok and recu == sha256:
+                return reponse.content
+            refus.append(f"{url} : HTTP {reponse.status_code}, sha256 {recu}")
             warnings.warn(refus[-1], stacklevel=2)
-            continue
-        recu = hashlib.sha256(reponse.content).hexdigest()
-        if reponse.ok and recu == sha256:
-            return reponse.content
-        refus.append(f"{url} : HTTP {reponse.status_code}, sha256 {recu}")
-        warnings.warn(refus[-1], stacklevel=2)
+            # Un refus net (404, 403) ne change pas d'un essai à l'autre ; un contenu tronqué si
+            if not reponse.ok:
+                break
     raise RuntimeError(f"Aucune source ne fournit le fichier de sha256 {sha256} : {refus}")
 
 
