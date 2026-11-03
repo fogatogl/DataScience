@@ -769,6 +769,70 @@ def fig6(terciles: pd.DataFrame, titre: str) -> Figure:
     return fig
 
 
+def fig_robustesse(robustesse: pd.DataFrame, titre: str) -> Figure:
+    """Pente principale de H1 dans chaque variante de robustesse, par aire (§5.6).
+
+    Une ligne par variante en points par km (les pentes secondaires, en points par lycée, restent
+    dans le tableau), un point par aire avec son intervalle à 95 % ; la spécification principale
+    en haut, sur fond gris, sert de repère. `robustesse` vient de `analyse.robustesse_h1` ;
+    `titre` est le message de la figure (PLAN §6).
+    """
+    en_km = robustesse[~robustesse.index.get_level_values("variante").str.contains("secondaire")]
+    variantes = list(en_km.index.unique("variante"))
+    aires = _aires_ordonnees(en_km.index.get_level_values("aire"))
+    texte = config.COULEUR_TEXTE
+    decalages = {aire: 0.22 * (k - (len(aires) - 1) / 2) for k, aire in enumerate(aires)}
+
+    fig, ax = plt.subplots(figsize=(10, 1.2 + 0.62 * len(variantes)))
+    ax.axhspan(-0.45, 0.45, color=config.COULEUR_FOND_RETENUES, zorder=0)
+    ax.axvline(0, color=config.COULEUR_LIAISON, linewidth=1, zorder=0)
+    for rang, variante in enumerate(variantes):
+        for aire in aires:
+            if (variante, aire) not in en_km.index:
+                continue
+            ligne = en_km.loc[(variante, aire)]
+            y = rang + decalages[aire]
+            couleur = config.COULEURS_AIRES[aire]
+            if pd.notna(ligne["ic_bas"]):
+                ax.hlines(y, ligne["ic_bas"] * 100, ligne["ic_haut"] * 100, color=couleur, lw=2)
+            ax.scatter(
+                ligne["pente"] * 100,
+                y,
+                s=36,
+                color=couleur,
+                edgecolor="white",
+                zorder=3,
+                label=aire if rang == 0 else None,
+            )
+    ax.set_yticks(range(len(variantes)))
+    ax.set_yticklabels(variantes, color=texte)
+    ax.invert_yaxis()
+    ax.set_xlabel(
+        "Pente principale : points de part de cadres par km de distance au lycée privé", color=texte
+    )
+    ax.spines[["top", "right", "left"]].set_visible(False)
+    ax.tick_params(colors=texte)
+    ax.tick_params(axis="y", length=0)
+    ax.grid(axis="x", color=config.COULEUR_GRILLE, linewidth=0.8)
+    ax.set_axisbelow(True)
+    ax.legend(frameon=False, loc="upper left", bbox_to_anchor=(1.0, 1.0))
+    fig.suptitle(titre, fontsize=13, x=0.01, ha="left")
+    fig.text(
+        0.01,
+        0.01,
+        "Sens de H1 : pente négative. Même estimation et même bootstrap que la spécification "
+        f"principale ({config.NB_TIRAGES_BOOTSTRAP} tirages par commune).\nUne variante sans objet "
+        "dans une aire n'a pas de point : prix au m² à Lyon et Nantes (Alsace-Moselle hors DVF),\n"
+        "frontière à Strasbourg. Sources : Insee, recensement 2022 ; annuaire de l'éducation ; "
+        "DVF (Etalab) ; IGN.",
+        fontsize=8,
+        color=texte,
+    )
+    fig.tight_layout(rect=(0, 0.12, 1, 0.95))
+    plt.close(fig)
+    return fig
+
+
 def fig7(pentes: pd.DataFrame, titre: str) -> Figure:
     """Fig. 7 : association de la part de cadres avec l'accès à chaque infrastructure (H4).
 

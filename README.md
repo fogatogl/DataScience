@@ -33,7 +33,13 @@ Le plan complet et le journal des décisions sont dans [`docs/PLAN.md`](docs/PLA
 
 ## Résultats clés
 
-À compléter par le groupe une fois l'analyse terminée.
+- **Le privé n'a pas le même profil partout** : 47 % des lycées à Nantes, 45 % à Lyon, 27 % à Strasbourg ; l'écart d'IPS entre privé et public est de 12 points à Nantes contre 24 à Lyon et 23 à Strasbourg.
+- **La part de cadres suit d'abord la distance au centre** : elle est 1,9 à 2,5 fois plus élevée à moins de 5 km du centre qu'au-delà de 30 km.
+- **H1, proximité d'un lycée privé** : entre communes contiguës, la pente est faible et son intervalle contient zéro dans les trois aires (Lyon : −0,18 point de part de cadres par km, intervalle [−0,53 ; +0,21]). « Infirmée » à Lyon (résultat nul établi), « non concluante » à Nantes et à Strasbourg.
+- **H2, l'Ouest** : les pentes des trois aires sont proches ; rien ne distingue Nantes (descriptif).
+- **H3, qualité ou nombre** : la hausse de la part de cadres de 2011 à 2022 va davantage de pair avec le nombre de lycées proches (+1,73 point par écart-type) qu'avec leur valeur ajoutée (+0,22) ; β_q − β_n = −1,51 [−2,85 ; −0,63], H3 « infirmée », y compris avec deux autres mesures de la qualité.
+- **H4, autres infrastructures** : lycées, gares, médecins, équipements sportifs et culturels ont tous des pentes proches de zéro ; aucune ne se détache (descriptif).
+- **Ce sont des associations**, non des relations causales ; l'autocorrélation spatiale qui demeure à position égale rend les intervalles probablement trop étroits.
 
 ## Reproduire le projet
 
@@ -116,6 +122,22 @@ collecte.geler_contours(
 ```
 
 Ces fonctions refusent d'écraser un chemin existant. Il faut ensuite reporter le chemin et le `sha256` dans `config.py`, publier le fichier aux deux adresses ci-dessus et mettre à jour ce tableau.
+
+## Usage de l'IA générative
+
+Le projet a été mené avec un assistant de code, Claude Code (Anthropic). Voici son rôle, aussi précisément que possible.
+
+**Code.** L'assistant a écrit l'essentiel du code de `src/`, des tests et des cellules du notebook, ticket par ticket, sous la direction de Giulio, qui validait chaque ticket avant qu'il soit codé. Les commits de ce code sont au nom de Giulio. Des règles écrites (`CLAUDE.md`) et des contrôles automatiques encadraient l'assistant : pas d'URL en dur hors de `config.py`, pas de modification du plan sans validation, budget de tests limité. [À compléter par le groupe : ce que chaque membre a écrit, relu ou corrigé lui-même, avec les pull requests correspondantes.]
+
+**Agents.** L'assistant a fait appel à des agents spécialisés, dont les noms apparaissent dans le journal des décisions (`docs/PLAN.md`, §13) : des explorateurs de données, un relecteur et un auditeur méthodologique, qui relisaient le code et la méthode en fin de ticket ; un « pilote », qui proposait des amendements au plan ; un « correcteur », qui évaluait le projet selon la grille du cours et discutait les propositions du pilote. Les lignes du journal signées « pilote, validé par Giulio » sont des propositions de cet agent acceptées par Giulio.
+
+**Décisions.** La question, les hypothèses, le choix des trois aires, les règles de verdict, les sacrifices et les écarts au plan ont été décidés par le groupe. [À compléter par le groupe : les décisions prises contre l'avis des agents ou modifiées par le groupe.]
+
+**Texte du rapport.** L'assistant a rédigé un premier jet du texte, à la demande de Giulio et à partir des sorties du notebook ; le groupe l'a relu et repris. C'est un écart à notre règle de départ (`docs/PLAN.md`, §8.3), qui réservait le texte au groupe. [À compléter par le groupe : ce qui a été réécrit, par qui, et la ligne du journal qui consigne cet écart.]
+
+**Soutenance.** La présentation interactive a été générée par l'assistant à partir des sorties du projet. [À compléter par le groupe : ce que le groupe y a modifié.]
+
+**Ce que nous garantissons.** Chaque membre peut expliquer le code du dépôt, en particulier `accessibilite.py` et `analyse.py`, et chaque chiffre du rapport vient d'une sortie du notebook. [À confirmer par le groupe.]
 
 ## Organisation
 
