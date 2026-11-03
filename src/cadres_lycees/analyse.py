@@ -833,7 +833,11 @@ def _paires_sans(paires: pd.DataFrame, communes: pd.Series) -> pd.DataFrame:
 
 
 def robustesse_h1(
-    base: gpd.GeoDataFrame, paires: pd.DataFrame, prives_elargis: gpd.GeoDataFrame
+    base: gpd.GeoDataFrame,
+    paires: pd.DataFrame,
+    lycees: gpd.GeoDataFrame,
+    prives_elargis: gpd.GeoDataFrame,
+    chefs_lieux: gpd.GeoDataFrame,
 ) -> pd.DataFrame:
     """Renvoie les pentes de H1 dans chaque variante de robustesse du §5.6, aire par aire.
 
@@ -878,6 +882,18 @@ def robustesse_h1(
     ecart_elargi = _ecart_paires(paires, acces_elargi.reset_index(), "dist_lyc_prive_min")
     variantes["Lycées professionnels et privé hors contrat inclus"] = pentes_paires_par_aire(
         paires.assign(d_dist_lyc_prive_min=ecart_elargi), principale
+    )
+
+    # Chef-lieu (§2.4) : la distance au lycée privé est mesurée depuis la mairie
+    # (`collecte.chefs_lieux`) au lieu du centroïde ; contrôles et part de cadres restent les mêmes
+    mairies = base[["code_commune"]].merge(chefs_lieux, on="code_commune", validate="one_to_one")
+    assert len(mairies) == len(base), "Commune sans chef-lieu dans ADMIN EXPRESS."
+    depuis_mairie = base.assign(centroide=gpd.GeoSeries(mairies["geometry"].values, crs=base.crs))
+    prives = lycees[lycees["secteur"] == "prive"]
+    acces_mairie = accessibilite.indicateurs(depuis_mairie, prives, "lyc_prive", rayons=())
+    ecart_mairie = _ecart_paires(paires, acces_mairie.reset_index(), "dist_lyc_prive_min")
+    variantes["Distances depuis le chef-lieu (mairie)"] = pentes_paires_par_aire(
+        paires.assign(d_dist_lyc_prive_min=ecart_mairie), principale
     )
 
     variantes["Sans la commune-centre"] = pentes_paires_par_aire(

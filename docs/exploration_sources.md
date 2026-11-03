@@ -397,3 +397,9 @@ Aucune valeur de cadres des 3 aires retenues n'a été lue : seulement des compt
 - **Couverture** : les 789 unités des 3 aires sont présentes, arrondissements de Lyon compris (69381 à 69389, de 2 140 à 7 458 ventes) ; Lyon entière (69123) l'est aussi. Avec au moins 10 ventes : Lyon 400 sur 405, Nantes 116 sur 116, **Strasbourg 1 sur 268**.
 - **Piège** : **l'Alsace-Moselle n'est pas dans DVF** (livre foncier) : 0 vente dans les communes du 67 et du 57. La robustesse au prix n'est possible qu'à Lyon et à Nantes.
 
+## 20. Chefs-lieux des communes, ADMIN EXPRESS COG 2025 de l'IGN (robustesse du §2.4, explorée le 03/11)
+
+- **Source retenue** : le service WFS de la Géoplateforme, couches `ADMINEXPRESS-COG.2025:chef_lieu_de_commune` (34 871 entités, code `code_insee_de_la_commune`) et `ADMINEXPRESS-COG.2025:chef_lieu_d_arrondissement_municipal` (45 entités, code `code_insee_de_l_arrondissement_municipal`), en EPSG:2154, pages de 5 000 (`count`, `startIndex`). Le millésime est dans le nom de la couche : copie gelée du 03/11/2026.
+- **Écartés** : cartiflette n'a pas de niveau `CHFLIEU_COMMUNE` (« No GeoParquet file ») ; l'API Géo (`geo.api.gouv.fr/communes?fields=mairie`, arrondissements avec `type=arrondissement-municipal`) donne le même point (écart médian 4 m) mais sans millésime.
+- **Couverture** : les 789 unités des 3 aires, arrondissements de Lyon compris, chaque mairie dans le contour de sa commune. Distance au centroïde : médiane 0,65 km, 99 % sous 3,84 km, au plus 5,97 km (Le Pellerin, 44120).
+

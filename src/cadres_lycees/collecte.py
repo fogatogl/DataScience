@@ -75,6 +75,52 @@ def geler_dvf(chemin: str) -> str:
     return _geler(config.URL_DVF, chemin, _csv_complet)
 
 
+def geler_chefs_lieux(chemin: str) -> str:
+    """Écrit à `chemin` le point du chef-lieu de chaque commune et arrondissement, et son sha256.
+
+    Lit page par page les couches WFS de `config.COUCHES_CHEFS_LIEUX` (IGN, ADMIN EXPRESS COG
+    2025) et en fait un Parquet à deux colonnes, `code_commune` et `geometry` (Lambert 93).
+    Produit la copie gelée du 03/11/2026 ; le rapport lit cette copie (`chefs_lieux`).
+    """
+    assert not stockage.existe(chemin), f"{chemin} existe déjà : choisir un autre chemin daté."
+    morceaux = []
+    for couche, colonne_code in config.COUCHES_CHEFS_LIEUX.items():
+        debut, attendus = 0, None
+        while attendus is None or debut < attendus:
+            url = config.URL_CHEFS_LIEUX.format(
+                couche=couche, nombre=config.TAILLE_PAGE_WFS, debut=debut
+            )
+            reponse = requests.get(url, timeout=config.DELAI_TELECHARGEMENT_S)
+            reponse.raise_for_status()
+            page = reponse.json()
+            attendus = page["numberMatched"]
+            points = gpd.GeoDataFrame.from_features(page["features"], crs=config.CRS_CALCUL)
+            morceaux.append(
+                points[[colonne_code, "geometry"]].rename(columns={colonne_code: "code_commune"})
+            )
+            debut += config.TAILLE_PAGE_WFS
+    chefs_lieux = pd.concat(morceaux, ignore_index=True).sort_values("code_commune")
+    # Sans ordre imposé au service, une page pourrait répéter ou sauter une entité
+    assert chefs_lieux["code_commune"].is_unique, "Chef-lieu en double dans le WFS de l'IGN."
+    contenu = io.BytesIO()
+    gpd.GeoDataFrame(chefs_lieux, crs=config.CRS_CALCUL).to_parquet(contenu, index=False)
+    stockage.ecrire_octets(contenu.getvalue(), chemin)
+    return hashlib.sha256(contenu.getvalue()).hexdigest()
+
+
+def chefs_lieux() -> gpd.GeoDataFrame:
+    """Renvoie le point du chef-lieu de chaque commune et arrondissement (IGN, COG 2025).
+
+    Colonnes `code_commune` et `geometry` (Lambert 93). Lu dans la copie gelée du 03/11/2026.
+    """
+    contenu = stockage.copie_controlee(
+        _copies_publiques(config.CHEMIN_RAW_CHEFS_LIEUX),
+        config.CHEMIN_RAW_CHEFS_LIEUX,
+        config.SHA256_CHEFS_LIEUX,
+    )
+    return gpd.read_parquet(io.BytesIO(contenu))
+
+
 def _geler(url: str, chemin: str, est_complet: Callable[[bytes], bool]) -> str:
     """Écrit à `chemin` le fichier téléchargé à `url` et renvoie son sha256.
 

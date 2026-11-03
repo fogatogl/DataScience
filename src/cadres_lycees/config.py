@@ -175,6 +175,23 @@ CHEMIN_RAW_DVF = "raw/statistiques_dvf_20261103.csv"
 SHA256_DVF = "eca12b1b1b45274e315859135d5f4ac15137f3e084712ea9b614b11c4a100722"
 COLONNE_VENTES_DVF = "nb_ventes_whole_apt_maison"
 COLONNE_PRIX_DVF = "med_prix_m2_whole_apt_maison"
+# Robustesse « chef-lieu » (§2.4) : point du chef-lieu (la mairie) de chaque commune et de chaque
+# arrondissement municipal, ADMIN EXPRESS COG 2025 de l'IGN par son service WFS (millésime fixé
+# dans le nom de la couche), en Lambert 93. Copie gelée : une seule lecture du service
+URL_CHEFS_LIEUX = (
+    "https://data.geopf.fr/wfs/ows?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature"
+    "&outputFormat=application/json&srsName=EPSG:2154&TYPENAMES={couche}"
+    "&count={nombre}&startIndex={debut}"
+)
+COUCHES_CHEFS_LIEUX = {
+    "ADMINEXPRESS-COG.2025:chef_lieu_de_commune": "code_insee_de_la_commune",
+    "ADMINEXPRESS-COG.2025:chef_lieu_d_arrondissement_municipal": (
+        "code_insee_de_l_arrondissement_municipal"
+    ),
+}
+TAILLE_PAGE_WFS = 5000
+CHEMIN_RAW_CHEFS_LIEUX = "raw/chefs_lieux_cog2025_20261103.parquet"
+SHA256_CHEFS_LIEUX = "a43f55f677f463f10bb9487007426874fddf14a127a3e48021e787753e9849f6"
 # Seuil de ventes en deçà duquel la médiane d'une commune est manquante (§3.2)
 MIN_VENTES_DVF = 10
 # Aires dont les communes sont hors de DVF (Alsace-Moselle) : la robustesse au prix y est sans objet
@@ -560,6 +577,7 @@ FICHIERS_BRUTS = (
     (CHEMIN_RAW_EQUIPEMENTS_SPORTIFS, SHA256_EQUIPEMENTS_SPORTIFS),
     (CHEMIN_RAW_BPE, SHA256_BPE),
     (CHEMIN_RAW_DVF, SHA256_DVF),
+    (CHEMIN_RAW_CHEFS_LIEUX, SHA256_CHEFS_LIEUX),
     (CHEMIN_RAW_AAV, SHA256_AAV),
     (CHEMIN_RAW_PASSAGE_COG, SHA256_PASSAGE_COG),
     (CHEMIN_RAW_SERIE_RP2022, SHA256_SERIE_RP2022),
