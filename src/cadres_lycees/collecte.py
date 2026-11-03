@@ -14,8 +14,13 @@ from cadres_lycees import config, stockage
 
 
 def _copies_publiques(chemin: str) -> list[str]:
-    """Renvoie les URL publiques d'une copie gelée : le bucket du projet, puis la release."""
-    return [config.URL_COPIES_S3 + chemin, config.URL_COPIES_RELEASE + chemin.removeprefix("raw/")]
+    """Renvoie les URL publiques d'une copie gelée : la release GitHub, puis le bucket du projet.
+
+    La release d'abord : elle est lisible sans compte, alors que le dossier public du bucket
+    répond 403 depuis le 20/10 ; dans l'autre ordre, chaque lecture sur un compte neuf
+    imprimerait un avertissement de repli dans le rapport.
+    """
+    return [config.URL_COPIES_RELEASE + chemin.removeprefix("raw/"), config.URL_COPIES_S3 + chemin]
 
 
 def geler_annuaire(chemin: str) -> str:

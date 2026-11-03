@@ -265,7 +265,7 @@ def fig4(
     panneaux = [
         (axes[0], "Pente principale", "points par km de distance au lycée privé le plus proche"),
         (axes[1], "Pente secondaire", "points par lycée privé de plus à 5 km"),
-        (axes[2], "Écarts des cellules d'anneaux", "points, communes avec moins sans lycée privé"),
+        (axes[2], "Écarts des cellules d'anneaux", "points, communes exposées moins non exposées"),
     ]
     for ax, pentes in ((axes[0], principale), (axes[1], secondaire)):
         for aire in aires:

@@ -25,7 +25,7 @@ Le plan complet et le journal des décisions sont dans [`docs/PLAN.md`](docs/PLA
 | H1 | À distance égale du centre, plus de cadres là où l'accès au privé sous contrat est meilleur | Paires de communes contiguës : écart de part de cadres sur l'écart de distance au lycée privé le plus proche, avec les écarts de distance au centre et de densité, sans constante ; intervalles par bootstrap des communes. En complément : anneaux de distance au centre, cellules d'au moins 15 communes exposées et 15 non exposées et d'écart de distance au centre d'au plus 2 km |
 | H2 | Lien plus faible dans l'Ouest (Nantes), où le privé est plus répandu | H1 aire par aire, comparée sans test |
 | H3 | La qualité des lycées (IVAL), plus que leur nombre, accompagne la hausse de la part de cadres | Régression de l'évolution sur l'IVAL et le nombre de lycées, centrés réduits dans l'aire, effet fixe aire × anneau ; bootstrap par grappes de communes |
-| H4 | Lien plus fort avec les lycées qu'avec les autres équipements | Même mesure d'accès pour les gares, les médecins et les équipements |
+| H4 | Lien plus fort avec les lycées qu'avec les autres équipements | Même mesure d'accès, centrée réduite dans l'aire, pour les gares, les médecins (APL), les équipements sportifs et culturels, dans les paires de communes contiguës ; descriptive, sans verdict, faute de règle fixée avant l'estimation (journal du 03/11) |
 
 **Règles de verdict, fixées avant les données.** H1 est « confirmée » si la pente principale va dans le sens attendu avec un intervalle à 95 % qui exclut zéro, si la pente secondaire (nombre de lycées privés à 5 km) va dans le même sens, et si les anneaux estimables aux deux rayons concordent. Elle est « nuancée » ou « infirmée » selon des règles symétriques. Un résultat nul n'est dit « établi » que s'il existe un anneau estimable aux deux rayons ; sinon le verdict est « non concluant ». H3 n'est testable que si la mesure de l'IVAL est assez fiable (au moins 0,5 ; 0,608 mesuré le 20/10), et son verdict se lit sur la différence entre la pente de la qualité et celle du nombre. Les règles complètes sont au §5 du plan.
 
@@ -45,7 +45,7 @@ uv run pre-commit install        # active nb-clean et ruff avant chaque commit
 uv run pytest                    # lance les tests
 ```
 
-Le rapport est `rapport.ipynb` (pour l'instant le plan du rapport, les Fig. 1 et 3 à 7, les verdicts de H1 et H3, le tableau de robustesse, l'indice de Moran et la carte IRIS ; le texte reste à écrire). Le site se construit avec [Quarto](https://quarto.org/), déjà installé sur le SSPCloud :
+Le rapport est `rapport.ipynb` (pour l'instant le plan du rapport, les Fig. 1 et 3 à 7, la carte à curseur de la part de cadres de 1999 à 2022, les verdicts de H1 et H3, le tableau de robustesse, l'indice de Moran et la carte IRIS ; le texte reste à écrire). Le site se construit avec [Quarto](https://quarto.org/), déjà installé sur le SSPCloud :
 
 ```bash
 uv run quarto render             # exécute rapport.ipynb et écrit le site dans _site/
@@ -64,7 +64,7 @@ Les données ne sont pas dans Git. `stockage.py` les lit et les écrit :
 
 ### Copies gelées des données
 
-Les sources qui changent sans prévenir sont lues dans une copie datée, jamais directement à leur API. Chaque copie est cherchée dans le dossier public `https://minio.lab.sspcloud.fr/gfogato/projet-cadres-lycees/raw/`, puis, si elle y manque ou diffère, dans la release GitHub [`donnees-20261020`](https://github.com/gabrielwenger1-coder/DataScience/releases/tag/donnees-20261020) du dépôt, avec un avertissement. Le code échoue si aucune des deux ne fournit un fichier au `sha256` attendu, et il recontrôle le `sha256` à chaque lecture d'une copie déjà téléchargée.
+Les sources qui changent sans prévenir sont lues dans une copie datée, jamais directement à leur API. Chaque copie est cherchée dans la release GitHub [`donnees-20261020`](https://github.com/gabrielwenger1-coder/DataScience/releases/tag/donnees-20261020) du dépôt, puis, si elle y manque ou diffère, dans le dossier public `https://minio.lab.sspcloud.fr/gfogato/projet-cadres-lycees/raw/`, avec un avertissement. Le code échoue si aucune des deux ne fournit un fichier au `sha256` attendu, et il recontrôle le `sha256` à chaque lecture d'une copie déjà téléchargée.
 
 | Copie | Date | Origine | `sha256` |
 |---|---|---|---|
@@ -118,6 +118,5 @@ Ces fonctions refusent d'écraser un chemin existant. Il faut ensuite reporter l
 ## Organisation
 
 - `src/cadres_lycees/` : le code du pipeline, un module par étape (voir PLAN §7).
-- `tests/` : les tests des calculs critiques (accessibilité et paires de communes contiguës).
-- `notebooks/exploration/` : brouillons individuels, jamais rendus.
+- `tests/` : les tests des calculs critiques (accessibilité, paires de communes contiguës, fusion des anneaux, bootstrap par commune, sens des paires et verdict de H1).
 - `docs/` : le plan, les notes sur les sources de données et le [dictionnaire des variables](docs/dictionnaire_variables.md) de la base communale (`pipeline.construire_base`).
