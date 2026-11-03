@@ -59,7 +59,11 @@ uv run quarto render             # exécute rapport.ipynb et écrit le site dans
 
 `uv run` est nécessaire : il donne à Quarto le Python de l'environnement du projet, où `cadres_lycees` est installé.
 
-Sur un compte neuf, les données sont téléchargées depuis les copies gelées publiques décrites ci-dessous, puis gardées dans `data/`.
+Sur un compte neuf, les données sont téléchargées depuis les copies gelées publiques décrites ci-dessous, puis gardées dans `data/`. Depuis un clone neuf, sans identifiants S3, le notebook s'exécute de bout en bout en environ 12 minutes, téléchargements compris (mesuré le 03/11/2026). Pour l'exécuter sans construire le site :
+
+```bash
+uv run jupyter nbconvert --to notebook --execute rapport.ipynb --output rapport_execute.ipynb
+```
 
 ### Stockage des données
 
