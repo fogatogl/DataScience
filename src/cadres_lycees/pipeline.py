@@ -227,4 +227,6 @@ def fichiers_bruts() -> pd.DataFrame:
             lignes += [(chemin.format(aav=aav), valeur) for aav, valeur in sha256.items()]
         else:
             lignes.append((chemin, sha256))
-    return pd.DataFrame(lignes, columns=["fichier", "sha256"]).set_index("fichier")
+    # Le nom de fichier sert d'index, sans titre : l'annexe n'a qu'une colonne, le sha256
+    fichiers = pd.DataFrame(lignes, columns=["fichier", "sha256"]).set_index("fichier")
+    return fichiers.rename_axis(None)
