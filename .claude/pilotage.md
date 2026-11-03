@@ -24,7 +24,7 @@ Suivi au 03/11 : décisions du 03/11 et A19 à A21 au journal (§13) ; choix fig
 
 ## Points ouverts
 - Soutenance : savoir chiffrer le résultat nul de Lyon (intervalle de −0,53 à +0,21 point par km, soit −2,7 à +1,1 point sur 5 km) ; H3 « infirmée » alors que le test penche contre H3 (β_q atténué, β_n gonflé) ; Moran résiduel (0,31 à Lyon, intervalles des paires optimistes). Encadré 2.5 : fenêtre DVF postérieure à 2022, Strasbourg hors DVF, 15 lycées agricoles privés en Loire-Atlantique.
-- Écarts entre le plan et le code : robustesse « chef-lieu » (§2.4), robustesses de l'IVAL 2012-2025 et du taux de réussite (§3.2) et Filosofi descriptif (§3.1, §4 E) ne sont pas codés : les faire ou les abandonner au journal avant le 15/11.
+- Écarts plan-code réglés le 03/11 au soir : chef-lieu et robustesses de H3 codés, Filosofi abandonné. Premier jet du texte par l'assistant (écart au §8.3, déclaré) : chaque auteur doit le reprendre selon A21 ; copie gelée des chefs-lieux à publier avec les 5 autres.
 - 6 cellules d'anneaux estimables sur 12 : le panneau des anneaux de la Fig. 4 est presque vide. Code : `config.py` (563 lignes), `figures.py` (983) et `analyse.py` (901) à alléger en S6.
 
 ## Désaccords ouverts entre pilote et correcteur
