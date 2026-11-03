@@ -690,6 +690,75 @@ def fig3(communes: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame, titre: str) -> fo
     return carte
 
 
+def fig6(terciles: pd.DataFrame, titre: str) -> Figure:
+    """Fig. 6 : évolution de la part de cadres par tiers d'IVAL de chaque aire (H3, §5.5).
+
+    Un point par aire et par catégorie (`config.CATEGORIES_FIG6`), avec son intervalle à 95 %
+    par le bootstrap par grappes de l'estimation ; la catégorie « sans IVAL » est à part.
+    `terciles` vient de `analyse.terciles_h3` ; `titre` est le message de la figure, écrit par
+    le groupe (PLAN §6). Elle décrit : le verdict de H3 se lit sur β_q et β_n.
+    """
+    aires = _aires_ordonnees(terciles.index.get_level_values("aire"))
+    texte = config.COULEUR_TEXTE
+    decalages = {aire: 0.22 * (k - (len(aires) - 1) / 2) for k, aire in enumerate(aires)}
+    # La catégorie « sans IVAL » est séparée des tiers par un intervalle plus large
+    positions = {categorie: k for k, categorie in enumerate(config.CATEGORIES_FIG6[:3])}
+    positions[config.CATEGORIES_FIG6[3]] = 3.6
+
+    fig, ax = plt.subplots(figsize=(10, 5.6))
+    ax.axvline(3.3, color=config.COULEUR_LIAISON, linewidth=1, linestyle=":")
+    for aire in aires:
+        couleur = config.COULEURS_AIRES[aire]
+        for k, (categorie, ligne) in enumerate(terciles.loc[aire].iterrows()):
+            x = positions[categorie] + decalages[aire]
+            ax.vlines(x, ligne["ic_bas"], ligne["ic_haut"], color=couleur, linewidth=2)
+            ax.scatter(
+                x,
+                ligne["moyenne"],
+                s=45,
+                color=couleur,
+                edgecolor="white",
+                zorder=3,
+                label=aire if k == 0 else None,
+            )
+            ax.annotate(
+                f"{int(ligne['n_communes'])}",
+                (x, ligne["ic_bas"]),
+                xytext=(0, -10),
+                textcoords="offset points",
+                ha="center",
+                fontsize=7,
+                color=texte,
+            )
+    ax.set_xticks(list(positions.values()))
+    ax.set_xticklabels(list(positions), color=texte)
+    ax.set_xlabel("IVAL moyenne des lycées à 5 km, en tiers calculés dans chaque aire", color=texte)
+    ax.set_ylabel("Évolution de la part de cadres, 2011-2022 (points)", color=texte)
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.tick_params(colors=texte)
+    ax.grid(axis="y", color=config.COULEUR_GRILLE, linewidth=0.8)
+    ax.set_axisbelow(True)
+    ax.legend(frameon=False, loc="upper left", bbox_to_anchor=(1.0, 1.0))
+
+    fig.suptitle(titre, fontsize=13, x=0.01, ha="left")
+    fig.text(
+        0.01,
+        0.01,
+        "Communes ayant au moins un lycée retenu à 5 km ; « sans IVAL » : aucun de ces lycées n'a "
+        "d'IVAL. Moyennes simples ; sous chaque point, le nombre de communes.\nIntervalles à 95 % "
+        "par bootstrap des grappes « lycée avec IVAL le plus proche », tirées dans chaque aire "
+        f"({config.NB_TIRAGES_BOOTSTRAP} tirages).\nIVAL : valeur ajoutée du taux d'accès de la "
+        "seconde au bac, moyenne des sessions 2012 à 2022 (règle A1).\nSources : Insee, "
+        "recensements 2011 et 2022, « Évolution et structure de la population » ; DEPP, IVAL ; "
+        f"annuaire de l'éducation ({config.DATE_ANNUAIRE}) ; IGN.",
+        fontsize=8,
+        color=texte,
+    )
+    fig.tight_layout(rect=(0, 0.14, 1, 0.95))
+    plt.close(fig)
+    return fig
+
+
 def fig7(pentes: pd.DataFrame, titre: str) -> Figure:
     """Fig. 7 : association de la part de cadres avec l'accès à chaque infrastructure (H4).
 

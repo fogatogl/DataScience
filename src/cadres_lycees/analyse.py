@@ -523,3 +523,195 @@ def verdict_h1(
         mention = "paires seules" if verdict == "confirmée" and compares == 0 else ""
         lignes[aire] = {"verdict": verdict, "mention": mention, "anneaux_compares": compares}
     return pd.DataFrame.from_dict(lignes, orient="index").rename_axis("aire")
+
+
+def population_h3(base: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame) -> pd.DataFrame:
+    """Renvoie la population de H3 (§5.5, A16), une ligne par commune, indexée par son code.
+
+    Les communes qui ont au moins un lycée retenu à 5 km. `avec_ival` dit si `ival_moy_5km` est
+    renseignée (sinon, catégorie « sans IVAL », hors de l'estimation). Ajoute :
+    `log_n_lyc_ival_5km` (logarithme du nombre de lycées à 5 km qui ont une IVAL) et
+    `ival_reduite`, `log_n_reduit`, ces deux variables centrées réduites une seule fois dans
+    chaque aire sur les communes avec IVAL ; `anneau`, l'anneau du §5.2 sans fusion ; `grappe`,
+    l'UAI du lycée avec IVAL le plus proche du centroïde, unité du bootstrap.
+    """
+    rayon = config.RAYON_PRINCIPAL_KM
+    avec_ival_lycees = lycees[lycees["ival"].notna()]
+    population = base[base[f"n_lyc_{rayon}km"] > 0]
+    comptes = accessibilite.indicateurs(population, avec_ival_lycees, "lyc_ival", rayons=(rayon,))
+
+    centroides = gpd.GeoDataFrame(
+        population[["code_commune"]], geometry=population["centroide"], crs=population.crs
+    )
+    proches = gpd.sjoin_nearest(centroides, avec_ival_lycees[["uai", "geometry"]])
+    # Deux lycées à égale distance donneraient deux lignes : on garde le premier UAI, sans effet
+    # sur l'estimation (ce n'est que le regroupement du bootstrap)
+    proches = proches.sort_values("uai").drop_duplicates("code_commune")
+    grappes = proches.set_index("code_commune")["uai"]
+
+    colonnes = ["aire", "evol_cadres_pts", "ival_moy_5km", "dist_centre_km", "log_densite"]
+    resultat = population.set_index("code_commune")[colonnes].copy()
+    resultat["avec_ival"] = resultat["ival_moy_5km"].notna()
+    nombre = comptes[f"n_lyc_ival_{rayon}km"].reindex(resultat.index)
+    assert (nombre[resultat["avec_ival"]] >= 1).all(), "Commune avec IVAL sans lycée à IVAL."
+    # Le logarithme n'est pris que là où il y a au moins un lycée à IVAL : la population estimée
+    resultat["log_n_lyc_ival_5km"] = np.log(nombre.where(resultat["avec_ival"]))
+    resultat["anneau"] = pd.cut(
+        resultat["dist_centre_km"], [*config.ANNEAUX_KM, float("inf")], right=False
+    ).astype(str)
+    resultat["grappe"] = grappes.reindex(resultat.index)
+    assert resultat["grappe"].notna().all(), "Commune sans lycée avec IVAL le plus proche."
+
+    estimees = resultat[resultat["avec_ival"]]
+    for colonne, reduite in (
+        ("ival_moy_5km", "ival_reduite"),
+        ("log_n_lyc_ival_5km", "log_n_reduit"),
+    ):
+        par_aire = estimees.groupby("aire")[colonne]
+        moyenne = resultat["aire"].map(par_aire.mean())
+        ecart_type = resultat["aire"].map(par_aire.std())
+        resultat[reduite] = (resultat[colonne] - moyenne) / ecart_type
+    return resultat
+
+
+def _tirages_grappes(population: pd.DataFrame) -> list[pd.Series]:
+    """Renvoie les poids des communes dans chaque tirage du bootstrap par grappes de H3 (A16).
+
+    Dans chaque aire, les grappes sont tirées avec remise, autant que l'aire en compte ; une
+    commune pèse le nombre de fois que sa grappe est tirée. La graine est remise à chaque appel :
+    l'estimation et la Fig. 6 voient les mêmes tirages.
+    """
+    generateur = np.random.default_rng(config.GRAINE_BOOTSTRAP)
+    tirages = []
+    for _ in range(config.NB_TIRAGES_BOOTSTRAP):
+        poids = []
+        for _aire, communes in population.groupby("aire"):
+            grappes = communes["grappe"].unique()
+            tirees = generateur.choice(grappes, size=len(grappes), replace=True)
+            poids.append(communes["grappe"].map(pd.Series(tirees).value_counts()).fillna(0))
+        tirages.append(pd.concat(poids))
+    return tirages
+
+
+def _coefficients_h3(echantillon: pd.DataFrame, poids: pd.Series) -> np.ndarray | None:
+    """Renvoie β_q et β_n de la régression de H3, ou None si les régresseurs sont colinéaires.
+
+    Moindres carrés pondérés par `poids` (1 sans bootstrap) de `evol_cadres_pts` sur
+    `ival_reduite`, `log_n_reduit`, `dist_centre_km`, `log_densite` et un effet fixe par
+    aire × anneau, sans constante (les effets fixes en tiennent lieu). Seules les cellules
+    présentes dans le tirage ont un effet fixe (A16).
+    """
+    gardees = echantillon[poids.loc[echantillon.index] > 0]
+    cellule = gardees["aire"] + " " + gardees["anneau"]
+    effets_fixes = pd.get_dummies(cellule, dtype=float).to_numpy()
+    regresseurs = gardees[["ival_reduite", "log_n_reduit", "dist_centre_km", "log_densite"]]
+    x = np.column_stack([regresseurs.to_numpy(dtype=float), effets_fixes])
+    y = gardees["evol_cadres_pts"].to_numpy(dtype=float)
+    racine = np.sqrt(poids.loc[gardees.index].to_numpy(dtype=float))
+    coefficients, _, rang, _ = np.linalg.lstsq(x * racine[:, None], y * racine, rcond=None)
+    if rang < x.shape[1]:
+        return None
+    return coefficients[:2]
+
+
+def estimation_h3(population: pd.DataFrame) -> pd.DataFrame:
+    """Renvoie β_q, β_n et β_q − β_n de H3 avec leurs intervalles (§5.5, A16).
+
+    `population` vient de `population_h3`. Estimation sur les communes avec IVAL (et une part de
+    cadres aux deux dates), les 3 aires ensemble puis chaque aire (descriptif), sur les mêmes
+    tirages de `_tirages_grappes`, sans refaire la standardisation. Un tirage de rang incomplet
+    est écarté et compté (`tirages_ecartes`) ; au-delà de `config.MAX_TIRAGES_ECARTES_H3`,
+    l'intervalle n'est pas rapporté. En points de part de cadres pour un écart-type. Index
+    (`portee`, `coefficient`) ; colonnes `estimation`, `ic_bas`, `ic_haut`, `n_communes`,
+    `n_grappes`, `tirages_ecartes`.
+    """
+    estimees = population[population["avec_ival"] & population["evol_cadres_pts"].notna()]
+    tirages = _tirages_grappes(population)
+    portees = {"ensemble": estimees} | dict(tuple(estimees.groupby("aire")))
+    lignes = []
+    for portee, echantillon in portees.items():
+        point = _coefficients_h3(echantillon, pd.Series(1.0, index=echantillon.index))
+        assert point is not None, f"Régresseurs colinéaires dans l'estimation de H3 ({portee})."
+        valides = [_coefficients_h3(echantillon, poids) for poids in tirages]
+        ecartes = sum(coefficients is None for coefficients in valides)
+        valides = np.array([coefficients for coefficients in valides if coefficients is not None])
+        estimations = {
+            "β_q": (point[0], valides[:, 0]),
+            "β_n": (point[1], valides[:, 1]),
+            "β_q − β_n": (point[0] - point[1], valides[:, 0] - valides[:, 1]),
+        }
+        rapporte = ecartes <= config.MAX_TIRAGES_ECARTES_H3
+        for coefficient, (valeur, tires) in estimations.items():
+            lignes.append(
+                {
+                    "portee": portee,
+                    "coefficient": coefficient,
+                    "estimation": valeur,
+                    "ic_bas": np.percentile(tires, 2.5) if rapporte else np.nan,
+                    "ic_haut": np.percentile(tires, 97.5) if rapporte else np.nan,
+                    "n_communes": len(echantillon),
+                    "n_grappes": echantillon["grappe"].nunique(),
+                    "tirages_ecartes": ecartes,
+                }
+            )
+    return pd.DataFrame(lignes).set_index(["portee", "coefficient"])
+
+
+def verdict_h3(estimation: pd.DataFrame, fiabilite: float) -> str:
+    """Renvoie le verdict de H3, toutes aires ensemble, par les règles du §5.5 (A1, A7, A16).
+
+    `estimation` vient de `estimation_h3`, `fiabilite` est la valeur après Spearman-Brown de la
+    ligne « ensemble » de `fiabilite_ival`. Première règle vérifiée, dans l'ordre du plan.
+    """
+    if fiabilite < config.SEUIL_FIABILITE_IVAL:
+        return "non testable avec cette mesure"
+    ensemble = estimation.loc["ensemble"]
+    if ensemble["ic_bas"].isna().any():
+        # Trop de tirages écartés : l'intervalle n'est pas rapporté
+        return "non concluante"
+    qualite, ecart = ensemble.loc["β_q"], ensemble.loc["β_q − β_n"]
+    if qualite["ic_haut"] < 0 or ecart["ic_haut"] < 0:
+        return "infirmée"
+    if qualite["ic_bas"] > 0 and ecart["ic_bas"] > 0:
+        return "confirmée"
+    if qualite["ic_bas"] > 0:
+        return "nuancée"
+    return "non concluante"
+
+
+def terciles_h3(population: pd.DataFrame) -> pd.DataFrame:
+    """Renvoie la moyenne de `evol_cadres_pts` par tiers d'IVAL de chaque aire (Fig. 6, §5.5).
+
+    Tiers de `ival_moy_5km` calculés dans chaque aire sur les communes avec IVAL, plus la
+    catégorie « sans IVAL ». Moyennes simples, intervalles à 95 % par les tirages de
+    `_tirages_grappes`, les mêmes que l'estimation. Elles décrivent : le verdict se lit sur β_q
+    et β_n. Index (`aire`, `categorie`) ; colonnes `moyenne`, `ic_bas`, `ic_haut`, `n_communes`.
+    """
+    communes = population[population["evol_cadres_pts"].notna()].copy()
+    tiers = (
+        communes[communes["avec_ival"]]
+        .groupby("aire")["ival_moy_5km"]
+        .transform(lambda ival: pd.qcut(ival, 3, labels=config.CATEGORIES_FIG6[:3]))
+    )
+    communes["categorie"] = (
+        tiers.astype(str).reindex(communes.index).fillna(config.CATEGORIES_FIG6[3])
+    )
+    tirages = _tirages_grappes(population)
+    lignes = []
+    for (aire, categorie), groupe in communes.groupby(["aire", "categorie"]):
+        moyennes = [
+            np.average(groupe["evol_cadres_pts"], weights=poids.loc[groupe.index])
+            for poids in tirages
+            if poids.loc[groupe.index].sum() > 0
+        ]
+        lignes.append(
+            {
+                "aire": aire,
+                "categorie": categorie,
+                "moyenne": groupe["evol_cadres_pts"].mean(),
+                "ic_bas": np.percentile(moyennes, 2.5),
+                "ic_haut": np.percentile(moyennes, 97.5),
+                "n_communes": len(groupe),
+            }
+        )
+    return pd.DataFrame(lignes).set_index(["aire", "categorie"])

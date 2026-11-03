@@ -395,6 +395,14 @@ NB_SESSIONS_MIN_IVAL = 5
 # de sessions valides dans chacune
 MOITIES_IVAL = ((2012, 2017), (2018, 2022))
 NB_SESSIONS_MIN_MOITIE = 3
+# Seuil de fiabilité (Spearman-Brown, toutes aires ensemble) en dessous duquel H3 est « non
+# testable avec cette mesure » (A1, A7)
+SEUIL_FIABILITE_IVAL = 0.5
+# H3 (§5.5, A16) : au-delà de ce nombre de tirages écartés (rang incomplet), soit 5 % des
+# tirages, l'intervalle n'est pas rapporté et le verdict est « non concluante »
+MAX_TIRAGES_ECARTES_H3 = 50
+# Fig. 6 : les trois tiers d'IVAL de chaque aire, puis les communes sans IVAL
+CATEGORIES_FIG6 = ("1er tiers", "2e tiers", "3e tiers", "sans IVAL")
 # Lycées publiés dans l'IVAL sous un autre UAI que celui de l'annuaire du 13/10/2026 : leurs
 # sessions sont rattachées à l'UAI de l'annuaire, avec la même règle dans toutes les aires (choix
 # du 20/10). Les trois lycées privés de Saint-Sébastien-sur-Loire, regroupés en 2026 sous un
