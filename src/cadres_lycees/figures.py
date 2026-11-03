@@ -14,6 +14,7 @@ import folium
 import folium.plugins
 import geopandas as gpd
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
@@ -261,7 +262,7 @@ def fig4(
     estimables = anneaux[anneaux["estimable"]]
     marqueurs = {5: "o", 10: "s"}
 
-    fig, axes = plt.subplots(1, 3, figsize=(14, 1.6 + 1.2 * len(aires)), sharey=True)
+    fig, axes = plt.subplots(1, 3, figsize=(12, 1.8 + 1.3 * len(aires)), sharey=True)
     panneaux = [
         (axes[0], "Pente principale", "points par km de distance au lycée privé le plus proche"),
         (axes[1], "Pente secondaire", "points par lycée privé de plus à 5 km"),
@@ -295,7 +296,7 @@ def fig4(
                 xytext=(4, 0),
                 textcoords="offset points",
                 va="center",
-                fontsize=7.5,
+                fontsize=9,
                 color=texte,
             )
     for ax, nom, unite in panneaux:
@@ -331,7 +332,7 @@ def fig4(
         f"Cellules non estimables : {', '.join(noms)}.\nSources : Insee, recensement 2022, "
         f"« Évolution et structure de la population » ; annuaire de l'éducation "
         f"({config.DATE_ANNUAIRE}) ; IGN.",
-        fontsize=8,
+        fontsize=9,
         color=texte,
     )
     fig.tight_layout(rect=(0, 0.16, 1, 0.95))
@@ -368,6 +369,17 @@ def fig5(paires: pd.DataFrame, pentes: pd.DataFrame, titre: str) -> Figure:
             zorder=2,
         )
         bornes_x = [nuage["acces_residuel"].min(), nuage["acces_residuel"].max()]
+        # Éventail des droites dont la pente parcourt l'intervalle à 95 %
+        x = np.linspace(*bornes_x, 50)
+        ax.fill_between(
+            x,
+            ligne["ic_bas"] * 100 * x,
+            ligne["ic_haut"] * 100 * x,
+            color=couleur,
+            alpha=0.15,
+            linewidth=0,
+            zorder=0,
+        )
         ax.plot(
             bornes_x,
             [ligne["pente"] * 100 * x for x in bornes_x],
@@ -470,6 +482,8 @@ def carte_cadres_dates(communes: gpd.GeoDataFrame, parts: pd.DataFrame, titre: s
         styledict=styles,
         date_options="YYYY",
         name="Part de cadres",
+        # Le dernier recensement à l'ouverture : le curseur remonte le temps
+        init_timestamp=-1,
         stroke_width=0.4,
     ).add_to(carte)
     # Couche transparente par-dessus, pour le survol : le curseur ne porte pas d'infobulle
@@ -492,15 +506,14 @@ def carte_cadres_dates(communes: gpd.GeoDataFrame, parts: pd.DataFrame, titre: s
         f'background:{couleur}"></span>{libelle}</div>'
         for couleur, libelle in zip(config.COULEURS_PART_CADRES_IRIS, libelles, strict=True)
     )
+    # Courte : la légende est posée sur la carte ; la définition complète est dans le rapport
     note = (
-        "Cadres et professions intellectuelles supérieures parmi les actifs de 25 à 54 ans "
-        "(en emploi ou chômeurs ayant déjà travaillé), communes du COG 2025 ; Lyon entière. "
-        f"Pâle : moins de {config.ACTIFS_MIN_ROBUSTESSE} actifs, part peu précise. Sources : "
-        "Insee, séries historiques du recensement 1999 à 2022 ; IGN."
+        f"Actifs de 25 à 54 ans ; Lyon entière. Pâle : moins de {config.ACTIFS_MIN_ROBUSTESSE} "
+        "actifs. Sources : Insee, séries historiques du recensement ; IGN."
     )
     legende = (
         '<div style="position:fixed;bottom:28px;left:12px;z-index:1000;background:white;'
-        f'padding:8px;font:11px sans-serif;color:{config.COULEUR_TEXTE};width:230px">'
+        f'padding:8px;font:11px sans-serif;color:{config.COULEUR_TEXTE};width:170px">'
         f"<b>Part de cadres</b>{classes}<p style='font-size:10px'>{note}</p></div>"
     )
     carte.get_root().html.add_child(folium.Element(legende))
@@ -632,7 +645,7 @@ def fig3(communes: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame, titre: str) -> fo
                 tooltip=f"<b>{html.escape(lycee.nom_lycee)}</b><br>{libelle.capitalize()}<br>{ips}",
             ).add_to(groupe)
         groupe.add_to(carte)
-    folium.LayerControl(collapsed=False).add_to(carte)
+    folium.LayerControl(collapsed=True).add_to(carte)
 
     # folium n'a pas de légende par classes : elle est écrite en HTML, fixée au-dessus du fond
     pastille = (
@@ -745,9 +758,9 @@ def fig6(terciles: pd.DataFrame, titre: str) -> Figure:
         "par bootstrap des grappes « lycée avec IVAL le plus proche », tirées dans chaque aire "
         f"({config.NB_TIRAGES_BOOTSTRAP} tirages) ;\ntirages sans commune de la catégorie, écartés "
         f"pour elle : {noms_ecartes or 'aucun'}.\nIVAL : valeur ajoutée du taux d'accès de la "
-        "seconde au bac, moyenne des sessions 2012 à 2022 (règle A1).\nSources : Insee, "
-        "recensements 2011 et 2022, « Évolution et structure de la population » ; DEPP, IVAL ; "
-        f"annuaire de l'éducation ({config.DATE_ANNUAIRE}) ; IGN.",
+        "seconde au bac, moyenne des sessions 2012 à 2022, lycées d'au moins 5 sessions.\n"
+        "Sources : Insee, recensements 2011 et 2022, « Évolution et structure de la population » ; "
+        f"DEPP, IVAL ; annuaire de l'éducation ({config.DATE_ANNUAIRE}) ; IGN.",
         fontsize=8,
         color=texte,
     )
@@ -961,7 +974,11 @@ def tableau_robustesse(robustesse: pd.DataFrame) -> pd.DataFrame:
     """
     cases = robustesse.apply(_estimation, axis=1, valeur="pente", facteur=100).unstack("aire")
     aires = _aires_ordonnees(cases.columns)
-    return cases.reindex(index=robustesse.index.unique("variante"), columns=aires).fillna("—")
+    variantes = robustesse.index.unique("variante")
+    tableau = cases.reindex(index=variantes, columns=aires).fillna("—")
+    unites = ["points par lycée" if "secondaire" in nom else "points par km" for nom in variantes]
+    tableau.insert(0, "Unité", unites)
+    return tableau.rename_axis(index=None, columns=None)
 
 
 def tableau_h3(estimation: pd.DataFrame) -> pd.DataFrame:
@@ -973,9 +990,10 @@ def tableau_h3(estimation: pd.DataFrame) -> pd.DataFrame:
     """
     cases = estimation.apply(_estimation, axis=1, valeur="estimation", facteur=1)
     premier = estimation.index.names[0]
-    return cases.unstack(premier).reindex(
+    tableau = cases.unstack(premier).reindex(
         index=estimation.index.unique("coefficient"), columns=estimation.index.unique(premier)
     )
+    return tableau.rename_axis(index=None, columns=None)
 
 
 def tableau_acces(resume: pd.DataFrame) -> pd.DataFrame:
@@ -995,7 +1013,7 @@ def tableau_acces(resume: pd.DataFrame) -> pd.DataFrame:
     tableau["part_exposees"] = tableau["part_exposees"] * 100
     tableau = tableau[list(libelles)].rename(columns=libelles).T
     texte = tableau.map(lambda valeur: _nombre(valeur, signe=False).removesuffix(",00"))
-    return texte[_aires_ordonnees(texte.columns)]
+    return texte[_aires_ordonnees(texte.columns)].rename_axis(index=None, columns=None)
 
 
 def tableau_fiabilite(fiabilite: pd.DataFrame) -> pd.DataFrame:
@@ -1007,8 +1025,10 @@ def tableau_fiabilite(fiabilite: pd.DataFrame) -> pd.DataFrame:
         "n_communes": "Communes renseignées dans les deux moitiés",
         "n_lycees": "Lycées distincts à 5 km",
     }
-    tableau = fiabilite[list(libelles)].rename(columns=libelles)
-    return tableau.round(3).rename(index={"ensemble": "Ensemble (tranche H3)"})
+    ordre = ["ensemble", *_aires_ordonnees(fiabilite.index.drop("ensemble"))]
+    tableau = fiabilite.loc[ordre, list(libelles)].rename(columns=libelles)
+    texte = tableau.map(lambda valeur: f"{valeur:.3f}".replace(".", ",").removesuffix(",000"))
+    return texte.rename(index={"ensemble": "Ensemble (tranche H3)"}).rename_axis(index=None)
 
 
 def tableau_moran(moran: pd.DataFrame) -> pd.DataFrame:
@@ -1025,7 +1045,31 @@ def tableau_moran(moran: pd.DataFrame) -> pd.DataFrame:
         f"{'I de Moran' if mesure == 'I' else 'p-valeur'}, {variables[variable]}"
         for mesure, variable in tableau.columns
     ]
-    return tableau.round(3).loc[_aires_ordonnees(tableau.index)]
+    # La plus petite p-valeur possible par permutations est 1 / (permutations + 1)
+    plancher = 1 / (config.NB_PERMUTATIONS_MORAN + 1)
+
+    def case(nom: str, valeur: float) -> str:
+        if nom.startswith("p-valeur") and valeur <= plancher:
+            return f"< {plancher:.3f}".replace(".", ",")
+        return f"{valeur:.3f}".replace(".", ",")
+
+    texte = tableau.apply(lambda colonne: colonne.map(lambda v: case(colonne.name, v)))
+    return texte.loc[_aires_ordonnees(texte.index)].rename_axis(index=None)
+
+
+def tableau_gradient(parts: pd.DataFrame) -> pd.DataFrame:
+    """Met en forme `analyse.parts_par_anneau` : une ligne par anneau, une aire par colonne.
+
+    Chaque case donne la part de cadres de l'anneau, en %, et le nombre de communes.
+    """
+    cases = parts.apply(
+        lambda ligne: (
+            f"{_nombre(ligne['part_cadres_2022'], 100, signe=False)} % "
+            f"({int(ligne['communes'])} communes)"
+        ),
+        axis=1,
+    ).unstack("aire")
+    return cases[_aires_ordonnees(cases.columns)].fillna("—").rename_axis(index=None, columns=None)
 
 
 def tableau_hypotheses(verdict_h1: pd.DataFrame, verdict_h3: pd.DataFrame) -> pd.DataFrame:
@@ -1045,7 +1089,12 @@ def tableau_hypotheses(verdict_h1: pd.DataFrame, verdict_h3: pd.DataFrame) -> pd
         for aire, ligne in verdict_h1.loc[_aires_ordonnees(verdict_h1.index)].iterrows()
     ]
     lignes.append(
-        {"Hypothèse": "H2", "Portée": "3 aires", "Verdict": "descriptive", "Mention": "§5.4"}
+        {
+            "Hypothèse": "H2",
+            "Portée": "3 aires",
+            "Verdict": "descriptive",
+            "Mention": "une seule aire de l'Ouest : comparaison sans test",
+        }
     )
     fiabilite = _nombre(verdict_h3.loc["ensemble", "fiabilite"], signe=False)
     lignes.append(
@@ -1057,7 +1106,12 @@ def tableau_hypotheses(verdict_h1: pd.DataFrame, verdict_h3: pd.DataFrame) -> pd
         }
     )
     lignes.append(
-        {"Hypothèse": "H4", "Portée": "3 aires", "Verdict": "descriptive", "Mention": "A20"}
+        {
+            "Hypothèse": "H4",
+            "Portée": "3 aires",
+            "Verdict": "descriptive",
+            "Mention": "aucune règle de verdict fixée avant l'estimation",
+        }
     )
     return pd.DataFrame(lignes).set_index(["Hypothèse", "Portée"])
 

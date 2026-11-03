@@ -502,10 +502,34 @@ def ecarts_anneaux(base: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(lignes)
 
 
+def parts_par_anneau(base: pd.DataFrame) -> pd.DataFrame:
+    """Renvoie la part de cadres de chaque anneau de distance au centre, aire par aire (§3.2).
+
+    Anneaux du §5.2 sans fusion ; part de l'anneau = cadres sur actifs de ses communes réunies,
+    soit la moyenne des parts pondérée par `actifs_2022`. Index (`aire`, `anneau`) ; colonnes
+    `part_cadres_2022` (fraction) et `communes`. Décrit le gradient centre-périphérie, qui
+    justifie de comparer les communes à distance égale du centre.
+    """
+    communes = base.assign(
+        anneau=_anneau(base["dist_centre_km"]),
+        cadres=base["part_cadres_2022"] * base["actifs_2022"],
+    )
+    par_anneau = communes.groupby(["aire", "anneau"], observed=True).agg(
+        cadres=("cadres", "sum"), actifs=("actifs_2022", "sum"), communes=("code_commune", "size")
+    )
+    par_anneau["part_cadres_2022"] = par_anneau["cadres"] / par_anneau["actifs"]
+    return par_anneau[["part_cadres_2022", "communes"]]
+
+
 def _anneau(dist_centre_km: pd.Series) -> pd.Series:
-    """Renvoie l'anneau du §5.2, sans fusion, de chaque distance au centre, en texte."""
+    """Renvoie l'anneau du §5.2, sans fusion, de chaque distance au centre (catégorie ordonnée).
+
+    Libellés « 0-5 km » … « 30 km et plus », borne basse incluse.
+    """
     bornes = [*config.ANNEAUX_KM, float("inf")]
-    return pd.cut(dist_centre_km, bornes, right=False).astype(str)
+    libelles = [f"{bas}-{haut} km" for bas, haut in itertools.pairwise(config.ANNEAUX_KM)]
+    libelles.append(f"{config.ANNEAUX_KM[-1]} km et plus")
+    return pd.cut(dist_centre_km, bornes, right=False, labels=libelles)
 
 
 def _concordent(a: pd.Series, b: pd.Series) -> bool:
@@ -638,7 +662,7 @@ def _coefficients_h3(echantillon: pd.DataFrame, poids: pd.Series) -> np.ndarray 
     présentes dans le tirage ont un effet fixe (A16).
     """
     gardees = echantillon[poids.loc[echantillon.index] > 0]
-    cellule = gardees["aire"] + " " + gardees["anneau"]
+    cellule = gardees["aire"] + " " + gardees["anneau"].astype(str)
     effets_fixes = pd.get_dummies(cellule, dtype=float).to_numpy()
     regresseurs = gardees[["ival_reduite", "log_n_reduit", "dist_centre_km", "log_densite"]]
     x = np.column_stack([regresseurs.to_numpy(dtype=float), effets_fixes])
@@ -935,7 +959,9 @@ def moran_part_cadres(base: gpd.GeoDataFrame) -> pd.DataFrame:
     lignes = []
     communes = base.copy()
     anneau = _anneau(communes["dist_centre_km"])
-    moyenne_anneau = communes.groupby(["aire", anneau])["part_cadres_2022"].transform("mean")
+    moyenne_anneau = communes.groupby(["aire", anneau], observed=True)[
+        "part_cadres_2022"
+    ].transform("mean")
     communes["ecart_anneau"] = communes["part_cadres_2022"] - moyenne_anneau
     for aire, communes_aire in communes.groupby("aire"):
         voisinage = libpysal.weights.Queen.from_dataframe(
