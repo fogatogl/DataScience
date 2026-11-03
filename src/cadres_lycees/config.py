@@ -96,8 +96,8 @@ VARIABLE_BUCKET_S3 = "BUCKET_S3"
 PREFIXE_S3 = "projet-cadres-lycees"
 DOSSIER_LOCAL = Path(__file__).parents[2] / "data"
 # Adresses de lecture publique des copies gelées des sources qui changent sans prévenir (PLAN §7,
-# A2) : le dossier raw/ du bucket de Giulio, qui doit rester accessible jusqu'à la soutenance,
-# puis en repli une release GitHub du dépôt (les deux hébergements, choix de l'étudiant du
+# A2) : le dossier raw/ du bucket du projet sur le SSPCloud, qui doit rester accessible jusqu'à
+# la soutenance, puis en repli une release GitHub du dépôt (les deux hébergements, journal du
 # 20/10). Le sha256 de chaque copie est contrôlé à chaque lecture, quelle que soit sa provenance
 URL_COPIES_S3 = "https://minio.lab.sspcloud.fr/gfogato/projet-cadres-lycees/"
 URL_COPIES_RELEASE = (
@@ -234,6 +234,70 @@ ACTIFS_2554_2011 = (
 )
 CADRES_2554_2022 = "C22_POP2554_STAT_GSEC13_23"
 CADRES_2554_2011 = "C11_POP2554_CS3"
+# Carte de la part de cadres par IRIS (source 16 bis, A18) : bases infracommunales « Activité
+# des résidents », en IRIS et COG 2024 pour 2022, en géographie 2013 pour 2011. Seule la tranche
+# des 15-64 ans y croise la CSP : ce n'est pas la variable du §2.3 (25-54 ans). Zips permanents
+# de l'Insee, sha256 observés le 20/10
+URL_ACTIVITE_IRIS_2022 = (
+    "https://www.insee.fr/fr/statistiques/fichier/8647006/base-ic-activite-residents-2022_csv.zip"
+)
+SHA256_ACTIVITE_IRIS_2022 = "f4aefb7fab425b9f7eb802e2afb475908bbf2186e0d88f542cf7a67fc70623cb"
+CHEMIN_RAW_ACTIVITE_IRIS_2022 = "raw/base-ic-activite-residents-2022_csv.zip"
+CSV_ACTIVITE_IRIS_2022 = "base-ic-activite-residents-2022.CSV"
+NB_LIGNES_ACTIVITE_IRIS_2022 = 49276
+URL_ACTIVITE_IRIS_2011 = (
+    "https://www.insee.fr/fr/statistiques/fichier/2028668/infra-activite-resident-2011.zip"
+)
+SHA256_ACTIVITE_IRIS_2011 = "05076a23c7a3e6bab7aadae8e1b12c17ed1a2aff395340edd59df1474719e7ea"
+CHEMIN_RAW_ACTIVITE_IRIS_2011 = "raw/infra-activite-resident-2011.zip"
+XLS_ACTIVITE_IRIS_2011 = "base-ic-activite-residents-2011.xls"
+# Feuille des IRIS ; noms de variables à la ligne 6, après les titres
+FEUILLE_ACTIVITE_IRIS_2011 = "IRIS"
+ENTETE_ACTIVITE_IRIS_2011 = 5
+NB_LIGNES_ACTIVITE_IRIS_2011 = 50867
+# Actifs de 15 à 64 ans des 6 groupes socioprofessionnels, du groupe 1 au groupe 6 (le 3 : cadres)
+ACTIFS_1564_IRIS_2022 = (
+    "C22_ACT1564_STAT_GSEC11_21",
+    "C22_ACT1564_STAT_GSEC12_22",
+    "C22_ACT1564_STAT_GSEC13_23",
+    "C22_ACT1564_STAT_GSEC14_24",
+    "C22_ACT1564_STAT_GSEC15_25",
+    "C22_ACT1564_STAT_GSEC16_26",
+)
+ACTIFS_1564_IRIS_2011 = (
+    "C11_ACT1564_CS1",
+    "C11_ACT1564_CS2",
+    "C11_ACT1564_CS3",
+    "C11_ACT1564_CS4",
+    "C11_ACT1564_CS5",
+    "C11_ACT1564_CS6",
+)
+CADRES_1564_IRIS_2022 = "C22_ACT1564_STAT_GSEC13_23"
+CADRES_1564_IRIS_2011 = "C11_ACT1564_CS3"
+# Contours des IRIS des aires retenues (cartiflette 0.4.0, COG 2025, sans simplification),
+# copies gelées du 21/10
+CHEMIN_RAW_CONTOURS_IRIS = "raw/contours_iris_{aav}_20261021.parquet"
+SHA256_CONTOURS_IRIS = {
+    "008": "61e52233fcdd7fe09d0f0350b6a5060719ca83f0a56c7710848a5ae35d34ff23",
+    "002": "5c77cb03f2cfb55e3e2634218f4f94b6b43f13ed1496e85572919dc271b43018",
+    "010": "15b57329479d4261de4a443b9b4458332f92692b286caecbb270a3b678aad82c",
+}
+# Code IRIS des contours (COG 2025) -> code des données 2022 (COG 2024), quand il a changé :
+# Porte des Pierres Dorées, 69159 en 2024, devenue 69114 en 2025
+IRIS_RECODES_2025_2024 = {"691140000": "691590000"}
+# Table de passage annuelle des codes communes 2025 (source 9) : elle repère les communes qui en
+# ont absorbé d'autres entre la géographie des données 2011 (2013) et celle de 2022 (2024)
+URL_PASSAGE_COG = (
+    "https://www.insee.fr/fr/statistiques/fichier/7671867/table_passage_annuelle_2025.zip"
+)
+SHA256_PASSAGE_COG = "803527a040748f4c7dc5e97777cb5838e8b7d4cc36d0b182f53a83e9787d595b"
+CHEMIN_RAW_PASSAGE_COG = "raw/table_passage_annuelle_2025.zip"
+XLSX_PASSAGE_COG = "table_passage_annuelle_2025.xlsx"
+# Feuille des communes et arrondissements ; noms de variables à la ligne 6, après les titres
+FEUILLE_PASSAGE_COG = "COM"
+ENTETE_PASSAGE_COG = 5
+# Une ligne par chemin de filiation (exploration §8)
+NB_LIGNES_PASSAGE_COG = 36760
 
 # Codes du filtre des lycées (PLAN §2.4) ; les libellés de la source ("Lycée", "Public"...)
 # restent dans collecte.py. `code_nature` : 300 général et technologique, 301 technologique,
@@ -402,3 +466,15 @@ SIMPLIFICATION_CARTE_M = 50
 # gris laisse lire les couleurs des communes, le plan IGN donne les noms de lieux. CARTO, le fond
 # clair habituel, exige une clé depuis 2026 (constaté le 20/10)
 FONDS_CARTE = {"Fond gris (Esri)": "Esri.WorldGrayCanvas", "Plan IGN": "GeoportailFrance.plan"}
+
+# Carte IRIS (A18) : classes de la part de cadres parmi les actifs de 15 à 64 ans, en %, par
+# leurs bornes (basse incluse), les mêmes pour 2011 et 2022 et fixées sans regarder les aires
+# retenues ; palette ColorBrewer « Purples » à 6 classes, une seule teinte, ni bleu ni orange
+# (secteurs) ni vert (Fig. 3). Les IRIS non comparables sont hachurés en gris
+BORNES_PART_CADRES_IRIS = (10, 20, 30, 40, 50)
+COULEURS_PART_CADRES_IRIS = ("#f2f0f7", "#dadaeb", "#bcbddc", "#9e9ac8", "#756bb1", "#54278f")
+COULEUR_IRIS_NON_COMPARABLE = "#e3e2de"
+# Demi-côté, en km, du carré de zoom sur la commune-centre, où les IRIS sont trop petits pour se
+# lire à l'échelle de l'aire. 9 km couvrent les communes-centres des 3 aires, Strasbourg compris
+# (17,3 km du nord au sud), et Villeurbanne avec Lyon
+ZOOM_IRIS_KM = 9

@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
+from matplotlib.patches import Patch, Rectangle
 
 from cadres_lycees import analyse, config
 
@@ -631,5 +632,114 @@ def fig7(pentes: pd.DataFrame, titre: str) -> Figure:
         color=texte,
     )
     fig.tight_layout(rect=(0, 0.13, 1, 0.95))
+    plt.close(fig)
+    return fig
+
+
+def carte_iris(
+    contours: gpd.GeoDataFrame, parts: pd.DataFrame, code_centre: str, titre: str
+) -> Figure:
+    """Carte statique de la part de cadres par IRIS d'une aire, en 2011 puis en 2022 (A18).
+
+    `contours` vient de `collecte.contours_iris`, `parts` de `nettoyage.part_cadres_iris`. En haut,
+    l'aire entière ; en bas, un zoom sur un carré de `config.ZOOM_IRIS_KM` km de demi-côté autour
+    du centroïde de la commune-centre `code_centre` (Lyon : 69123, ses arrondissements réunis),
+    où ses IRIS deviennent lisibles. Les quatre panneaux ont les mêmes classes ; les IRIS non
+    comparables (code ou territoire changé depuis 2011) sont hachurés en gris. C'est une
+    exploration (§5.8) : ni lycées ni test. `titre` est le message de la carte, écrit par le
+    groupe (PLAN §6).
+    """
+    codes = contours["CODE_IRIS"].replace(config.IRIS_RECODES_2025_2024)
+    # Dans les deux sens : un IRIS de 2022 sans contour disparaîtrait de la carte sans signal
+    communes = codes.str[:5].unique()
+    donnees = parts.index[parts.index.str[:5].isin(communes)]
+    ecart = sorted(set(codes) ^ set(donnees))
+    assert not ecart, (
+        f"IRIS présents dans les contours ou dans les données de 2022 seulement : {ecart}"
+    )
+    carte = contours.to_crs(config.CRS_CALCUL).assign(iris=codes.to_numpy())
+    carte = carte.join(parts, on="iris", validate="one_to_one")
+    comparables = carte[carte["comparable"]]
+    autres = carte[~carte["comparable"]]
+    commune_centre = carte[carte["INSEE_COM"] == code_centre]
+    assert not commune_centre.empty, f"Commune-centre {code_centre} absente des contours."
+    centre = commune_centre.union_all().centroid
+
+    bornes = [0, *config.BORNES_PART_CADRES_IRIS, 100]
+    demi_cote = config.ZOOM_IRIS_KM * 1000
+    ouest, sud = centre.x - demi_cote, centre.y - demi_cote
+    fig, axes = plt.subplots(2, 2, figsize=(13, 13))
+    for colonne, annee in enumerate((2011, 2022)):
+        # Borne basse incluse, comme dans la légende
+        classe = pd.cut(
+            comparables[f"part_cadres_1564_{annee}"] * 100, bornes, right=False, labels=False
+        )
+        assert classe.notna().all(), f"Part manquante ou hors des classes en {annee}."
+        couleurs = [config.COULEURS_PART_CADRES_IRIS[int(rang)] for rang in classe]
+        ax_aire, ax_zoom = axes[0, colonne], axes[1, colonne]
+        for ax, epaisseur in ((ax_aire, 0.2), (ax_zoom, 0.6)):
+            # Les hachures prennent la couleur du trait : un gris foncé les rend lisibles
+            autres.plot(
+                ax=ax,
+                color=config.COULEUR_IRIS_NON_COMPARABLE,
+                hatch="////",
+                edgecolor=config.COULEUR_TEXTE,
+                linewidth=epaisseur,
+            )
+            comparables.plot(ax=ax, color=couleurs, edgecolor="white", linewidth=epaisseur)
+            ax.set_axis_off()
+        ax_aire.add_patch(
+            Rectangle(
+                (ouest, sud),
+                2 * demi_cote,
+                2 * demi_cote,
+                fill=False,
+                edgecolor=config.COULEUR_TEXTE,
+                linewidth=1,
+            )
+        )
+        ax_zoom.set_xlim(ouest, ouest + 2 * demi_cote)
+        ax_zoom.set_ylim(sud, sud + 2 * demi_cote)
+        ax_aire.set_title(f"{annee}, aire entière", loc="left", fontsize=11)
+        ax_zoom.set_title(
+            f"{annee}, autour de la commune-centre ({2 * config.ZOOM_IRIS_KM} km de côté)",
+            loc="left",
+            fontsize=11,
+        )
+
+    libelles = [f"moins de {bornes[1]} %"]
+    libelles += [f"{bas} à {haut} %" for bas, haut in itertools.pairwise(bornes[1:-1])]
+    libelles.append(f"{bornes[-2]} % ou plus")
+    poignees = [
+        Patch(facecolor=couleur, edgecolor="white", label=libelle)
+        for couleur, libelle in zip(config.COULEURS_PART_CADRES_IRIS, libelles, strict=True)
+    ]
+    poignees.append(
+        Patch(
+            facecolor=config.COULEUR_IRIS_NON_COMPARABLE,
+            hatch="////",
+            edgecolor=config.COULEUR_TEXTE,
+            label="IRIS non comparable",
+        )
+    )
+    fig.legend(handles=poignees, loc="center right", frameon=False, fontsize=9)
+    fig.suptitle(titre, fontsize=13, x=0.01, ha="left")
+    fig.text(
+        0.01,
+        0.01,
+        "Part des cadres et professions intellectuelles supérieures parmi les actifs de 15 à 64 "
+        "ans (occupés et chômeurs ayant déjà travaillé), et non de 25 à 54 ans comme dans le reste "
+        "du rapport : les bases IRIS ne croisent pas\ncette tranche avec la catégorie "
+        "socioprofessionnelle. Non comparable : code IRIS absent en 2011, aucun actif à une "
+        "date, ou commune non découpée qui en a absorbé une autre depuis 2013. Exploitation "
+        "complémentaire : la part\nd'un IRIS de moins de 200 actifs est peu précise "
+        "(échantillon). Sources : Insee, recensements 2011 et 2022, bases infracommunales "
+        "« Activité des résidents » ; contours IRIS de l'IGN (cartiflette, "
+        f"COG {config.ANNEE_COG}).",
+        fontsize=8,
+        color=config.COULEUR_TEXTE,
+    )
+    fig.tight_layout(rect=(0, 0.05, 0.85, 0.97))
+    # Fermée, la figure n'est affichée qu'une fois par un notebook, avec sa valeur de retour
     plt.close(fig)
     return fig

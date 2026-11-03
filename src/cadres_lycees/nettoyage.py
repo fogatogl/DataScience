@@ -151,7 +151,7 @@ def population(serie: pd.DataFrame, referentiel: gpd.GeoDataFrame) -> pd.DataFra
 
     `serie` vient de `collecte.serie_historique_rp2022`. `densite` est en habitants par km², avec
     `SUPERF`, la superficie de l'Insee, et non la surface des contours : même source que la
-    population (choix de l'étudiant du 20/10). `log_densite` est la forme sous laquelle la
+    population (journal du 20/10). `log_densite` est la forme sous laquelle la
     densité sert de contrôle (A7), tant sa distribution est asymétrique. Les communes sont celles
     du référentiel, au grain des arrondissements à Lyon : la commune parente 69123 n'est jamais
     lue, ce qui évite de compter Lyon deux fois. Le résultat se joint par `code_commune`.
@@ -222,6 +222,67 @@ def _lignes_du_referentiel(
     manquantes = sorted(set(referentiel["code_commune"]) - set(fichier_insee.index))
     assert not manquantes, f"Communes absentes du fichier de {colonnes} : {manquantes}"
     return fichier_insee.loc[referentiel["code_commune"], colonnes].rename_axis("code_commune")
+
+
+def part_cadres_iris(
+    activite_2011: pd.DataFrame, activite_2022: pd.DataFrame, passage: pd.DataFrame
+) -> pd.DataFrame:
+    """Renvoie la part de cadres parmi les actifs de 15 à 64 ans par IRIS, en 2011 et en 2022.
+
+    Une ligne par IRIS de 2022 (index `iris`, codes de la géographie 2024). La part est le groupe
+    3 sur la somme des 6 groupes, comme pour la commune (§2.3), mais sur les 15-64 ans, seule
+    tranche que les bases IRIS croisent avec la CSP. Elle manque sans actif (IRIS d'activité ou de
+    loisirs, ce qui n'est pas une erreur, contrairement à une commune sans actif en T5), et en 2011
+    si le code n'existait pas. `comparable` est vrai si l'IRIS a le même code et une part aux
+    deux dates, sauf l'IRIS unique (commune + 0000) d'une commune non découpée qui en a absorbé
+    une autre entre les géographies 2013 et 2024 : il garde son code, mais pas son territoire
+    (A18). Les arguments viennent de `collecte.activite_iris_2011`, `collecte.activite_iris_2022`
+    et `collecte.passage_communes`.
+    """
+    actifs_2011, part_2011 = _actifs_et_part(
+        activite_2011, config.ACTIFS_1564_IRIS_2011, config.CADRES_1564_IRIS_2011
+    )
+    actifs_2022, part_2022 = _actifs_et_part(
+        activite_2022, config.ACTIFS_1564_IRIS_2022, config.CADRES_1564_IRIS_2022
+    )
+    # Les IRIS de 2022 font l'index ; un IRIS sans code en 2011 y a des valeurs manquantes
+    parts = pd.DataFrame(
+        {
+            "actifs_1564_2011": actifs_2011,
+            "part_cadres_1564_2011": part_2011,
+            "actifs_1564_2022": actifs_2022,
+            "part_cadres_1564_2022": part_2022,
+        },
+        index=actifs_2022.index,
+    ).rename_axis("iris")
+
+    # Une filiation à case vide (commune créée ou disparue) ne dit rien d'une fusion entre 2013
+    # et 2024 ; une commune peut avoir plusieurs lignes, d'où les paires uniques
+    filiations = passage.dropna().drop_duplicates()
+    communes_2013 = filiations.groupby("CODGEO_2024")["CODGEO_2013"].nunique()
+    fusionnees = communes_2013.index[communes_2013 > 1]
+    # Dans une commune découpée, le territoire absorbé reçoit de nouveaux codes, déjà écartés
+    # parce qu'absents en 2011 : seul l'IRIS unique d'une commune non découpée change en gardant
+    # son code
+    commune = activite_2022.set_index("IRIS")["COM"]
+    iris_unique = parts.index.str.endswith("0000")
+    agrandi = commune.isin(fusionnees).to_numpy() & iris_unique
+    meme_code = parts.index.isin(actifs_2011.index)
+    # Un IRIS sans actif à une date n'a pas de part à comparer
+    deux_parts = parts[["part_cadres_1564_2011", "part_cadres_1564_2022"]].notna().all(axis=1)
+    parts["comparable"] = meme_code & ~agrandi & deux_parts
+    return parts
+
+
+def _actifs_et_part(
+    activite: pd.DataFrame, groupes: tuple[str, ...], cadres: str
+) -> tuple[pd.Series, pd.Series]:
+    """Renvoie, par IRIS, les actifs (somme des 6 groupes) et la part de cadres parmi eux."""
+    effectifs = activite.set_index("IRIS")[list(groupes)]
+    actifs = effectifs.sum(axis=1)
+    part = (effectifs[cadres] / actifs).where(actifs > 0)
+    assert part.dropna().between(0, 1).all(), "Part de cadres hors de [0, 1]."
+    return actifs, part
 
 
 def ival_par_lycee(

@@ -233,8 +233,9 @@ def geler_contours(chemin: str, valeur: str, maille: str, filtre: str) -> str:
 
     `valeur`, `maille` et `filtre` sont les arguments `values`, `borders` et `filter_by` de
     `carti_download` : un code d'aire, "COMMUNE_ARRONDISSEMENT" et "AIRE_ATTRACTION_VILLES" pour
-    les contours d'une aire ; "France", "DEPARTEMENT" et "FRANCE_ENTIERE" pour les départements.
-    Produit une copie gelée : celles du 13/10 et du 20/10/2026 viennent de là. Le rapport ne
+    les contours d'une aire ; "France", "DEPARTEMENT" et "FRANCE_ENTIERE" pour les départements ;
+    un code d'aire, "IRIS" et "AIRE_ATTRACTION_VILLES" pour les IRIS d'une aire (carte A18).
+    Produit une copie gelée : celles des 13, 20 et 21/10/2026 viennent de là. Le rapport ne
     l'appelle pas, il lit la copie gelée. Le sha256 fige une sérialisation (versions de geopandas
     et de pyarrow comprises), pas seulement des données. Mode d'emploi dans le README.
     """
@@ -262,6 +263,98 @@ def contours_aire(code_aav: str) -> gpd.GeoDataFrame:
         _copies_publiques(chemin), chemin, config.SHA256_CONTOURS[code_aav]
     )
     return gpd.read_parquet(io.BytesIO(contenu))
+
+
+def contours_iris(code_aav: str) -> gpd.GeoDataFrame:
+    """Renvoie les contours des IRIS d'une aire d'attraction, en WGS84 (COG 2025).
+
+    `CODE_IRIS` identifie l'IRIS ; à Lyon, `INSEE_COM` vaut 69123 et `INSEE_COG` l'arrondissement.
+    Lu dans la copie gelée du 21/10/2026.
+    """
+    chemin = config.CHEMIN_RAW_CONTOURS_IRIS.format(aav=code_aav)
+    contenu = stockage.copie_controlee(
+        _copies_publiques(chemin), chemin, config.SHA256_CONTOURS_IRIS[code_aav]
+    )
+    return gpd.read_parquet(io.BytesIO(contenu))
+
+
+def activite_iris_2022() -> pd.DataFrame:
+    """Renvoie les actifs de 15 à 64 ans par groupe socioprofessionnel et par IRIS, en 2022.
+
+    Colonnes `IRIS`, `COM` et celles de `config.ACTIFS_1564_IRIS_2022`, en IRIS et COG 2024.
+    Effectifs décimaux (exploitation complémentaire). À Lyon, `COM` donne l'arrondissement.
+    """
+    contenu = stockage.copie_controlee(
+        [config.URL_ACTIVITE_IRIS_2022],
+        config.CHEMIN_RAW_ACTIVITE_IRIS_2022,
+        config.SHA256_ACTIVITE_IRIS_2022,
+    )
+    with zipfile.ZipFile(io.BytesIO(contenu)) as archive:
+        csv = io.BytesIO(archive.read(config.CSV_ACTIVITE_IRIS_2022))
+    colonnes = ["IRIS", "COM", *config.ACTIFS_1564_IRIS_2022]
+    # Lus en nombre, les codes perdraient leur zéro initial
+    activite = pd.read_csv(csv, sep=";", usecols=colonnes, dtype={"IRIS": str, "COM": str})
+    assert len(activite) == config.NB_LIGNES_ACTIVITE_IRIS_2022, (
+        f"{len(activite)} IRIS en 2022, {config.NB_LIGNES_ACTIVITE_IRIS_2022} attendus."
+    )
+    assert activite["IRIS"].is_unique, "Codes IRIS en double en 2022."
+    return activite
+
+
+def activite_iris_2011() -> pd.DataFrame:
+    """Renvoie les actifs de 15 à 64 ans par groupe socioprofessionnel et par IRIS, en 2011.
+
+    Colonnes `IRIS` et celles de `config.ACTIFS_1564_IRIS_2011`, en géographie 2013. Le fichier
+    n'existe qu'en xls : il est lu avec calamine, tout en texte pour garder les zéros initiaux des
+    codes, puis les effectifs sont convertis en nombres.
+    """
+    contenu = stockage.copie_controlee(
+        [config.URL_ACTIVITE_IRIS_2011],
+        config.CHEMIN_RAW_ACTIVITE_IRIS_2011,
+        config.SHA256_ACTIVITE_IRIS_2011,
+    )
+    with zipfile.ZipFile(io.BytesIO(contenu)) as archive:
+        xls = io.BytesIO(archive.read(config.XLS_ACTIVITE_IRIS_2011))
+    feuille = pd.read_excel(
+        xls,
+        sheet_name=config.FEUILLE_ACTIVITE_IRIS_2011,
+        header=config.ENTETE_ACTIVITE_IRIS_2011,
+        dtype=str,
+        engine="calamine",
+    )
+    activite = feuille[["IRIS", *config.ACTIFS_1564_IRIS_2011]].copy()
+    groupes = list(config.ACTIFS_1564_IRIS_2011)
+    # Une valeur non numérique fait échouer la conversion
+    activite[groupes] = activite[groupes].astype(float)
+    assert len(activite) == config.NB_LIGNES_ACTIVITE_IRIS_2011, (
+        f"{len(activite)} IRIS en 2011, {config.NB_LIGNES_ACTIVITE_IRIS_2011} attendus."
+    )
+    assert activite["IRIS"].is_unique, "Codes IRIS en double en 2011."
+    return activite
+
+
+def passage_communes() -> pd.DataFrame:
+    """Renvoie la table de passage annuelle des codes communes 2025 : une ligne par filiation.
+
+    Colonnes `CODGEO_2013` et `CODGEO_2024` (une case vide : la commune n'existait pas). Une
+    commune peut avoir plusieurs lignes : réduire aux paires uniques avant de compter.
+    """
+    contenu = stockage.copie_controlee(
+        [config.URL_PASSAGE_COG], config.CHEMIN_RAW_PASSAGE_COG, config.SHA256_PASSAGE_COG
+    )
+    with zipfile.ZipFile(io.BytesIO(contenu)) as archive:
+        xlsx = io.BytesIO(archive.read(config.XLSX_PASSAGE_COG))
+    table = pd.read_excel(
+        xlsx,
+        sheet_name=config.FEUILLE_PASSAGE_COG,
+        header=config.ENTETE_PASSAGE_COG,
+        dtype=str,
+        engine="calamine",
+    )
+    assert len(table) == config.NB_LIGNES_PASSAGE_COG, (
+        f"{len(table)} lignes dans la table de passage, {config.NB_LIGNES_PASSAGE_COG} attendues."
+    )
+    return table[["CODGEO_2013", "CODGEO_2024"]]
 
 
 def contours_departements() -> gpd.GeoDataFrame:
