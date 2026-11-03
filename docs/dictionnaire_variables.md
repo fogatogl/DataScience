@@ -36,6 +36,7 @@ Communes des aires demandées, au COG 2025, avec les arrondissements municipaux 
 | `dist_culture_min` | Distance à l'équipement culturel le plus proche (H4, descriptif) | km | idem |
 | `log_n_culture_5km` | log(1 + `n_culture_5km`), mesure de la culture dans H4 | — | `pipeline.construire_base` |
 | `part_cadres_2011`, `part_cadres_2022` | Cadres et professions intellectuelles supérieures (groupe 3) parmi les actifs de 25 à 54 ans, occupés ou chômeurs ayant déjà travaillé (somme des 6 groupes), au recensement 2011 ou 2022 | fraction de 0 à 1 | Insee, « Évolution et structure de la population » 2022 (`C11_POP2554_CS3`, `C22_POP2554_STAT_GSEC13_23`), `nettoyage.part_cadres` |
+| `part_cadres_15p_2022` | Cadres et professions intellectuelles supérieures parmi la population de 15 ans ou plus en 2022, inactifs et retraités compris ; robustesse de la variable à expliquer (§2.3, §5.6) | fraction de 0 à 1 | Insee, « Évolution et structure de la population » 2022 (`C22_POP15P_STAT_GSEC13_23` sur `C22_POP15P`), `nettoyage.part_cadres` |
 | `evol_cadres_pts` | `part_cadres_2022` moins `part_cadres_2011` | points de pourcentage | `nettoyage.part_cadres` |
 | `actifs_2011`, `actifs_2022` | Actifs de 25 à 54 ans en 2011 ou 2022, dénominateurs des parts de cadres ; `actifs_2022` est le poids des moyennes, et le plus petit des deux sert au seuil de 200 actifs de H3 (§3.2, A17) ; effectifs décimaux (exploitation complémentaire) | personnes | idem |
 

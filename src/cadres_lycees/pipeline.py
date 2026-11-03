@@ -20,6 +20,17 @@ def lycees_avec_aire(referentiel: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     )
 
 
+def lycees_prives_robustesse() -> gpd.GeoDataFrame:
+    """Renvoie les lycées privés de la robustesse du §5.6 : professionnels et hors contrat inclus.
+
+    France métropolitaine, comme pour l'indicateur principal (effet de bord, §2.4).
+    """
+    annuaire = collecte.annuaire_education(
+        config.NATURES_LYCEES_ROBUSTESSE, config.CONTRATS_PRIVE_ROBUSTESSE
+    )
+    return nettoyage.lycees_prives(annuaire)
+
+
 def construire_base(
     aires: dict[str, str],
 ) -> tuple[gpd.GeoDataFrame, gpd.GeoDataFrame, pd.DataFrame]:

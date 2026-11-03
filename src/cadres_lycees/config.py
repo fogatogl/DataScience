@@ -236,6 +236,10 @@ ACTIFS_2554_2011 = (
 )
 CADRES_2554_2022 = "C22_POP2554_STAT_GSEC13_23"
 CADRES_2554_2011 = "C11_POP2554_CS3"
+# Robustesse (§2.3, §5.6) : cadres parmi la population de 15 ans ou plus en 2022, inactifs et
+# retraités compris (`docs/exploration_sources.md`, « Évolution et structure »)
+CADRES_15P_2022 = "C22_POP15P_STAT_GSEC13_23"
+POP_15P_2022 = "C22_POP15P"
 # Carte de la part de cadres par IRIS (source 16 bis, A18) : bases infracommunales « Activité
 # des résidents », en IRIS et COG 2024 pour 2022, en géographie 2013 pour 2011. Seule la tranche
 # des 15-64 ans y croise la CSP : ce n'est pas la variable du §2.3 (25-54 ans). Zips permanents
@@ -307,6 +311,21 @@ NB_LIGNES_PASSAGE_COG = 36760
 NATURES_LYCEES = (300, 301, 302, 306)
 # `code_type_contrat_prive` du privé sous contrat : 30 association (toutes classes), 31 (partie)
 CONTRATS_PRIVE_RETENUS = ("30", "31")
+# Robustesse (§2.4, §5.6) : lycées professionnels (320) et privé hors contrat (10) réintégrés
+NATURES_LYCEES_ROBUSTESSE = (*NATURES_LYCEES, 320)
+CONTRATS_PRIVE_ROBUSTESSE = (*CONTRATS_PRIVE_RETENUS, "10")
+# Lycées privés hors contrat de cette robustesse sans coordonnées dans l'annuaire du 13/10/2026,
+# presque tous ouverts en 2026 : écartés nommément, tout autre lycée sans position fait échouer.
+# 0443105L est au Landreau (44079), dans l'aire de Nantes
+UAI_SANS_POSITION_ROBUSTESSE = (
+    "0443105L",
+    "0313176J",
+    "0581019T",
+    "0783920M",
+    "0212319G",
+    "0756899S",
+    "0756960H",
+)
 # Lycées de métropole retenus par le type, la nature et la tutelle, mais dont l'annuaire du
 # 13/10/2026 ne donne pas le statut public ou privé : leur secteur est inconnu, ils sont écartés.
 # 0271911F (Eure, ouvert en 2024) n'est pas non plus dans l'IPS ; il est à 188 km de l'aire

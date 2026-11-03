@@ -45,7 +45,7 @@ uv run pre-commit install        # active nb-clean et ruff avant chaque commit
 uv run pytest                    # lance les tests
 ```
 
-Le rapport est `rapport.ipynb` (pour l'instant le plan du rapport, les Fig. 1, 3, 5 et 7, les tableaux de H1, H2 et H4 et la carte IRIS). Le site se construit avec [Quarto](https://quarto.org/), déjà installé sur le SSPCloud :
+Le rapport est `rapport.ipynb` (pour l'instant le plan du rapport, les Fig. 1 et 3 à 7, les verdicts de H1 et H3, le tableau de robustesse, l'indice de Moran et la carte IRIS ; le texte reste à écrire). Le site se construit avec [Quarto](https://quarto.org/), déjà installé sur le SSPCloud :
 
 ```bash
 uv run quarto render             # exécute rapport.ipynb et écrit le site dans _site/

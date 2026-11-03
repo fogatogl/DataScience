@@ -754,15 +754,20 @@ def _communes_centres(base: pd.DataFrame) -> pd.Index:
     return pd.Index(base.loc[base["code_parent"].isin(plus_proches), "code_commune"])
 
 
-def robustesse_h1(base: gpd.GeoDataFrame, paires: pd.DataFrame) -> pd.DataFrame:
+def robustesse_h1(
+    base: gpd.GeoDataFrame, paires: pd.DataFrame, prives_elargis: gpd.GeoDataFrame
+) -> pd.DataFrame:
     """Renvoie les pentes de H1 dans chaque variante de robustesse du §5.6, aire par aire.
 
     Pente principale, puis : pente secondaire à 3 et 10 km (le rayon de 5 km est la
     secondaire) ; sans la commune-centre ; sans les communes de moins de
     `config.ACTIFS_MIN_ROBUSTESSE` actifs en 2022 ; sans les communes à moins de
-    `config.DIST_FRONTIERE_KM` km du contour national (aires frontalières seulement) ; sans
-    contrôle de densité. Retirer une commune retire toutes ses paires. Même estimation et même
-    bootstrap que `pentes_paires_par_aire`. Index (`variante`, `aire`) ; colonnes de
+    `config.DIST_FRONTIERE_KM` km du contour national (aires frontalières seulement) ; avec la
+    part de cadres parmi les 15 ans ou plus en 2022 ; avec la distance au lycée privé le plus
+    proche parmi `prives_elargis` (`pipeline.lycees_prives_robustesse`, professionnels et hors
+    contrat inclus) ; sans contrôle de densité. Retirer une
+    commune retire toutes ses paires. Même estimation et même bootstrap que
+    `pentes_paires_par_aire`. Index (`variante`, `aire`) ; colonnes de
     `pentes_paires_par_aire`, en fraction par km ou par lycée.
     """
     principale = "d_dist_lyc_prive_min"
@@ -773,6 +778,10 @@ def robustesse_h1(base: gpd.GeoDataFrame, paires: pd.DataFrame) -> pd.DataFrame:
         & (base["code_commune"].map(distance_frontiere) < config.DIST_FRONTIERE_KM),
         "code_commune",
     ]
+
+    # Seule la distance change : le reste de la paire (contrôles, part de cadres) est le même
+    acces_elargi = accessibilite.indicateurs(base, prives_elargis, "lyc_prive", rayons=())
+    ecart_elargi = _ecart_paires(paires, acces_elargi.reset_index(), "dist_lyc_prive_min")
 
     def sans(communes: pd.Index | pd.Series) -> pd.DataFrame:
         touchees = paires["code_commune_i"].isin(communes) | paires["code_commune_j"].isin(communes)
@@ -793,6 +802,14 @@ def robustesse_h1(base: gpd.GeoDataFrame, paires: pd.DataFrame) -> pd.DataFrame:
         "Sans la commune-centre": pentes_paires_par_aire(sans(_communes_centres(base)), principale),
         f"Sans les communes de moins de {config.ACTIFS_MIN_ROBUSTESSE} actifs": (
             pentes_paires_par_aire(sans(petites), principale)
+        ),
+        # La part de cadres des 15 ans ou plus prend la place de la variable à expliquer
+        "Cadres parmi les 15 ans ou plus": pentes_paires_par_aire(
+            paires.assign(d_part_cadres_2022=_ecart_paires(paires, base, "part_cadres_15p_2022")),
+            principale,
+        ),
+        "Lycées professionnels et privé hors contrat inclus": pentes_paires_par_aire(
+            paires.assign(d_dist_lyc_prive_min=ecart_elargi), principale
         ),
         "Sans contrôle de densité": pentes_paires_par_aire(
             paires, principale, controles=("d_dist_centre_km",)

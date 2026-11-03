@@ -25,6 +25,23 @@ def lycees_geo(
     return _ajouter_ival(lycees, sessions_ival, referentiel)
 
 
+def lycees_prives(annuaire: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Renvoie les lycées privés de l'annuaire filtré, un par UAI, en Lambert 93.
+
+    Pour la robustesse « lycées professionnels et privé hors contrat inclus » (§5.6), qui n'a
+    besoin que des positions : ni aire, ni IPS, ni IVAL. Les lycées sans coordonnées de
+    `config.UAI_SANS_POSITION_ROBUSTESSE` sont écartés.
+    """
+    sans_position = annuaire.geometry.isna() | annuaire.geometry.is_empty
+    uai_sans_position = sorted(annuaire.loc[sans_position, "identifiant_de_l_etablissement"])
+    assert uai_sans_position == sorted(config.UAI_SANS_POSITION_ROBUSTESSE), (
+        f"Lycées sans coordonnées : {uai_sans_position}, attendus : "
+        f"{sorted(config.UAI_SANS_POSITION_ROBUSTESSE)} (config.UAI_SANS_POSITION_ROBUSTESSE)."
+    )
+    lycees = _un_lycee_par_uai(annuaire[~sans_position])
+    return lycees[lycees["secteur"] == "prive"]
+
+
 def _un_lycee_par_uai(annuaire: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """Renvoie une ligne par UAI de l'annuaire filtré, renommée, avec son secteur, en Lambert 93.
 
@@ -176,13 +193,20 @@ def part_cadres(effectifs: pd.DataFrame, referentiel: gpd.GeoDataFrame) -> pd.Da
     actifs occupés et les chômeurs ayant déjà travaillé (PLAN §2.3, A11) : une fraction entre 0
     et 1. `evol_cadres_pts` est la part de 2022 moins celle de 2011, en points de pourcentage.
     `actifs_2022` sert de poids (§3.2) ; le seuil de 200 actifs de H3 se lit sur le plus petit de
-    `actifs_2011` et `actifs_2022` (A17). Lyon est lue au grain de ses arrondissements, comme
-    dans `population`. Une commune sans actif à une date n'a pas de part à cette date : A17 veut
-    ces communes nommées dans `config`, mais aucune des aires retenues n'est dans ce cas (voir
-    `config.ACTIFS_2554_2011`) ; une commune sans actif fait donc échouer. Le résultat se joint
+    `actifs_2011` et `actifs_2022` (A17). `part_cadres_15p_2022`, les cadres parmi la population
+    de 15 ans ou plus en 2022, sert à la robustesse (§2.3). Lyon est lue au grain de ses
+    arrondissements, comme dans `population`. Une commune sans actif à une date n'a pas de part à
+    cette date : A17 veut ces communes nommées dans `config`, mais aucune des aires retenues
+    n'est dans ce cas (voir `config.ACTIFS_2554_2011`) ; une commune sans actif fait donc
+    échouer. Le résultat se joint
     par `code_commune`.
     """
-    colonnes = [*config.ACTIFS_2554_2011, *config.ACTIFS_2554_2022]
+    colonnes = [
+        *config.ACTIFS_2554_2011,
+        *config.ACTIFS_2554_2022,
+        config.CADRES_15P_2022,
+        config.POP_15P_2022,
+    ]
     actifs = _lignes_du_referentiel(effectifs, referentiel, colonnes)
     assert actifs.notna().all().all(), "Effectif d'actifs de 25 à 54 ans manquant."
     actifs_2011 = actifs[list(config.ACTIFS_2554_2011)].sum(axis=1)
@@ -195,10 +219,11 @@ def part_cadres(effectifs: pd.DataFrame, referentiel: gpd.GeoDataFrame) -> pd.Da
 
     part_2011 = actifs[config.CADRES_2554_2011] / actifs_2011
     part_2022 = actifs[config.CADRES_2554_2022] / actifs_2022
-    # Le numérateur est l'un des 6 termes du dénominateur : hors de [0, 1], un effectif est négatif
-    assert part_2011.between(0, 1).all() and part_2022.between(0, 1).all(), (
-        "Part de cadres hors de [0, 1]."
-    )
+    assert (actifs[config.POP_15P_2022] > 0).all(), "Commune sans habitant de 15 ans ou plus."
+    part_15p_2022 = actifs[config.CADRES_15P_2022] / actifs[config.POP_15P_2022]
+    # Le numérateur est une partie du dénominateur : hors de [0, 1], un effectif est négatif
+    parts = (part_2011, part_2022, part_15p_2022)
+    assert all(part.between(0, 1).all() for part in parts), "Part de cadres hors de [0, 1]."
     return pd.DataFrame(
         {
             "part_cadres_2011": part_2011,
@@ -206,6 +231,7 @@ def part_cadres(effectifs: pd.DataFrame, referentiel: gpd.GeoDataFrame) -> pd.Da
             "evol_cadres_pts": (part_2022 - part_2011) * 100,
             "actifs_2011": actifs_2011,
             "actifs_2022": actifs_2022,
+            "part_cadres_15p_2022": part_15p_2022,
         }
     )
 

@@ -92,11 +92,15 @@ def _xlsx_complet(contenu: bytes) -> bool:
     return zipfile.ZipFile(io.BytesIO(contenu)).testzip() is None
 
 
-def annuaire_education() -> gpd.GeoDataFrame:
+def annuaire_education(
+    natures: tuple[int, ...] = config.NATURES_LYCEES,
+    contrats: tuple[str, ...] = config.CONTRATS_PRIVE_RETENUS,
+) -> gpd.GeoDataFrame:
     """Renvoie les lycées de France métropolitaine de l'annuaire de l'éducation.
 
-    Lycées généraux, technologiques et polyvalents, publics ou privés sous contrat (PLAN §2.4),
-    repérés par `code_nature` car les `voie_*` de l'annuaire sont trop souvent vides. Toute la
+    Par défaut, lycées généraux, technologiques et polyvalents, publics ou privés sous contrat
+    (PLAN §2.4), repérés par `code_nature` car les `voie_*` de l'annuaire sont trop souvent
+    vides ; la robustesse du §5.6 élargit `natures` et `contrats`. Toute la
     métropole est gardée, pas seulement les aires et une marge autour : le lycée le plus proche
     d'une commune du bord peut être bien au-delà de l'aire. Une ligne par site : un UAI
     multi-sites apparaît plusieurs fois (dédoublonné au nettoyage). Lu dans la copie gelée du
@@ -115,7 +119,7 @@ def annuaire_education() -> gpd.GeoDataFrame:
     # Le type "Lycée" isole la partie lycée d'une cité scolaire, dont la partie collège
     # (type "Collège") porte le même UAI
     est_lycee = annuaire["type_etablissement"] == "Lycée"
-    nature_retenue = annuaire["code_nature"].isin(config.NATURES_LYCEES)
+    nature_retenue = annuaire["code_nature"].isin(natures)
     # `lycee_agricole` est parfois vide : on exclut aussi sur la tutelle
     pas_agricole = (annuaire["ministere_tutelle"] != "AGRICULTURE") & (
         annuaire["lycee_agricole"] != "1"
@@ -133,7 +137,7 @@ def annuaire_education() -> gpd.GeoDataFrame:
 
     est_public = annuaire["statut_public_prive"] == "Public"
     est_prive = annuaire["statut_public_prive"] == "Privé"
-    contrat_retenu = annuaire["code_type_contrat_prive"].isin(config.CONTRATS_PRIVE_RETENUS)
+    contrat_retenu = annuaire["code_type_contrat_prive"].isin(contrats)
     lycees = annuaire[candidats & (est_public | (est_prive & contrat_retenu))]
     return lycees.reset_index(drop=True)
 
@@ -194,7 +198,8 @@ def evol_struct_rp2022() -> pd.DataFrame:
     """Renvoie les actifs de 25 à 54 ans par groupe socioprofessionnel, en 2011 et en 2022.
 
     Une ligne par commune ou arrondissement (`CODGEO`), en COG 2025, avec les colonnes de
-    `config.ACTIFS_2554_2011` et `config.ACTIFS_2554_2022`. Les effectifs sont décimaux
+    `config.ACTIFS_2554_2011` et `config.ACTIFS_2554_2022`, et, pour la robustesse, les cadres
+    et la population de 15 ans ou plus en 2022. Les effectifs sont décimaux
     (exploitation complémentaire du recensement). Les arrondissements de Lyon, Marseille et Paris
     y figurent avec leur commune parente : sommer tout le fichier compterait ces villes deux
     fois. Le zip de l'Insee est permanent : il est lu à son URL d'origine.
@@ -206,7 +211,13 @@ def evol_struct_rp2022() -> pd.DataFrame:
     )
     with zipfile.ZipFile(io.BytesIO(contenu)) as archive:
         csv = io.BytesIO(archive.read(config.CSV_EVOL_STRUCT_RP2022))
-    colonnes = ["CODGEO", *config.ACTIFS_2554_2011, *config.ACTIFS_2554_2022]
+    colonnes = [
+        "CODGEO",
+        *config.ACTIFS_2554_2011,
+        *config.ACTIFS_2554_2022,
+        config.CADRES_15P_2022,
+        config.POP_15P_2022,
+    ]
     # Lu en nombre, "01001" deviendrait 1001 ; une colonne disparue fait échouer la lecture
     effectifs = pd.read_csv(csv, sep=";", usecols=colonnes, dtype={"CODGEO": str})
 
