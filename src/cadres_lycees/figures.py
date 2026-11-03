@@ -619,16 +619,17 @@ def fig7(pentes: pd.DataFrame, titre: str) -> Figure:
     fig.text(
         0.01,
         0.01,
-        "Pente des paires de communes contiguës, sans constante, à écarts de distance au centre et "
-        "de log-densité donnés ; mesures d'accès centrées réduites dans chaque aire et orientées\n"
-        "pour qu'une valeur positive dise « plus d'accès, plus de cadres » (distances retournées). "
-        f"Intervalles à 95 % par bootstrap des communes ({config.NB_TIRAGES_BOOTSTRAP} tirages, "
-        "les mêmes pour toutes les mesures).\nSources : Insee, recensement 2022 ; annuaire de "
-        f"l'éducation ({config.DATE_ANNUAIRE}) ; SNCF Gares & Connexions (03/11/2026) ; DREES, "
-        "APL 2024 ; IGN.",
+        "Pente des paires de communes contiguës, sans constante, à écarts de distance au centre "
+        "et de log-densité donnés.\nMesures d'accès centrées réduites dans chaque aire et "
+        "orientées pour qu'une valeur positive dise « plus d'accès, plus de cadres » (distances "
+        "retournées).\nIntervalles à 95 % par bootstrap des communes "
+        f"({config.NB_TIRAGES_BOOTSTRAP} tirages, les mêmes pour toutes les mesures).\n"
+        "Sources : Insee, recensement 2022 et BPE 2025 ; annuaire de l'éducation "
+        f"({config.DATE_ANNUAIRE}) ; SNCF Gares & Connexions ; ministère des Sports (Data ES) ;\n"
+        "copies du 03/11/2026 pour la BPE, les gares et Data ES ; DREES, APL 2024 ; IGN.",
         fontsize=8,
         color=texte,
     )
-    fig.tight_layout(rect=(0, 0.12, 1, 0.94))
+    fig.tight_layout(rect=(0, 0.13, 1, 0.95))
     plt.close(fig)
     return fig

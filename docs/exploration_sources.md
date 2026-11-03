@@ -362,3 +362,23 @@ Aucune valeur de cadres des 3 aires retenues n'a été lue : seulement des compt
 - Unité : consultations ou visites accessibles par an et par habitant standardisé. Aucune valeur manquante ; 523 zéros en France en 2024, aucun dans le 44, le 67 et le 69.
 - Géographie de la feuille 2024 : fusions de 2024 et 2025 appliquées, arrondissements de Paris, Lyon et Marseille à la place de la commune parente, donc le grain du projet ; les 207 communes du 44, les 514 du 67 et les 265 du 69 plus 9 arrondissements y sont. Écarts au COG 2025 hors des aires : scission de 15141 non appliquée, 6 communes « mortes pour la France » de la Meuse et Mayotte absentes. Les feuilles 2022 et 2023 sont en COG antérieur (69152 et 69159 encore présents).
 - Variante retenue : APL tous âges de la feuille 2024 (choix du 03/11, à valider par le groupe).
+
+## 17. Équipements sportifs, Data ES (source 15, exploré le 03/11)
+
+- **Piège** : la page data.gouv « recensement-des-equipements-sportifs-espaces-et-sites-de-pratiques-2 » du plan est publiée par la Région Île-de-France et ne couvre que l'Île-de-France (30 075 lignes). Source nationale : API Opendatasoft du ministère, jeu `data-es` (URL dans `config.py`), mis à jour chaque jour : copie gelée du 03/11/2026 (37 Mo).
+- **Piège** : un export peut répondre HTTP 200 avec un flux tronqué par un message d'erreur (`ApiError(502 …)`) ; le gel contrôle que le Parquet est complet.
+- 333 588 lignes, 115 colonnes ; une ligne par équipement (`equip_numero` unique), 152 034 installations (`inst_numero`), dont 147 277 en métropole. Les équipements d'une installation sont à 52 m les uns des autres en médiane (99e centile 3,3 km : sentiers, sites de nature).
+- Position WGS84 en texte (`equip_x`, `equip_y`) ; 1 480 équipements de métropole sans coordonnées ; outre-mer par le préfixe 97 ou 98 de `new_code` (9 235 lignes). Corse incluse.
+- Seul indicateur de fermeture : `inst_hs_bool` = « Oui » (462 lignes) ; aucune date de fermeture. `equip_ouv_public_bool` est un arrêté administratif, pas l'ouverture effective.
+- Codes communes au COG 2025 à 3 codes près (69159, 25347, 25303, hors des communes utilisées comme référentiel, sans effet sur l'accès calculé par distance) ; arrondissements de Lyon présents. 29 familles, 185 types ; les plus nombreux (boucles de randonnée, terrains de football, city-stades, boulodromes) sont partout.
+- Retenu : installations en service de métropole, une par `inst_numero`, au point de son premier équipement. La distance à la plus proche vaut 0,4 à 0,8 km en médiane selon l'aire et ne distingue pas les communes : mesure de H4 = log(1 + nombre d'installations à 5 km).
+
+## 18. Équipements culturels, BPE 2025 de l'Insee (source 14, explorée le 03/11)
+
+- **Piège** : la page data.gouv « base-permanente-des-equipements-2 » du plan est une republication de la BPE 2023 par l'Île-de-France. Source : fichier détail BPE 2025 de l'Insee, page 8217525, `BPE25.parquet` (172 Mo), « actualisé mensuellement » : copie gelée du 03/11/2026.
+- **Piège** : le serveur de l'Insee coupe parfois le téléchargement (113 Mo, 47 Mo) en renvoyant HTTP 200, sans Content-Length ; le gel contrôle que le Parquet est complet et il faut parfois réessayer.
+- 2 921 770 lignes, 96 colonnes ; une ligne par équipement d'une source administrative (Culture, CNC), sans SIRET pour la culture. Colonnes utiles : `SDOM`, `TYPEQU`, `DEPCOM` (arrondissements de Lyon), `LAMBERT_X`, `LAMBERT_Y`, `EPSG`, `QUALITE_XY`.
+- Culture = sous-domaine F3, 7 types en 2025 : F303 cinéma (1 946 en métropole), F305 conservatoire (434), F307 bibliothèque (15 501), F312 exposition et médiation (2 097), F313 patrimoine (549), F314 archives (760), F315 arts du spectacle (1 372). Nomenclature refondue en 2021 : ne pas comparer aux millésimes antérieurs.
+- Tous les équipements F3 de métropole ont des coordonnées en Lambert 93 (EPSG 2154) ; qualité bonne 81 %, acceptable 13 % (arrondie à 50 m), mauvaise 6 % (11 % dans le Rhône). DROM dans d'autres projections (UTM), Mayotte sans coordonnées : exclus par `EPSG`.
+- Même type au même point : 427 lignes sur 208 points (musée et maison des Illustres, bibliothèque et siège de son réseau) ; dédoublonnées par type et position (219 lignes de moins, environ 1 %).
+- Retenu : 22 440 équipements après dédoublonnage. La distance au plus proche vaut 0,8 à 1,8 km en médiane selon l'aire (les bibliothèques sont partout) : mesure de H4 = log(1 + nombre d'équipements à 5 km), comme pour le sport.

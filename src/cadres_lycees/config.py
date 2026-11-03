@@ -37,6 +37,8 @@ MESURES_H4 = {
     "Lycée privé sous contrat": ("dist_lyc_prive_min", -1),
     "Gare de voyageurs": ("dist_gare_min", -1),
     "Médecins généralistes (APL)": ("apl_mg", 1),
+    "Installations sportives": ("log_n_sport_5km", 1),
+    "Équipements culturels": ("log_n_culture_5km", 1),
 }
 
 # Sorties de `pipeline.construire_base` (PLAN §4, étape G)
@@ -66,6 +68,8 @@ VARIABLES_PAIRES_SANS_CADRES = (
     "expose_lyc_prive_10km",
     "dist_gare_min",
     "apl_mg",
+    "log_n_sport_5km",
+    "log_n_culture_5km",
 )
 VARIABLES_PAIRES = ("part_cadres_2022", *VARIABLES_PAIRES_SANS_CADRES)
 
@@ -135,6 +139,30 @@ FEUILLE_APL = "APL 2024"
 LIGNE_ENTETE_APL = 8
 COLONNE_CODE_APL = "Code commune INSEE"
 COLONNE_APL = "APL aux médecins généralistes"
+
+# Équipements sportifs, Data ES du ministère des Sports (source 15, H4) : export complet de l'API
+# nationale (la page data.gouv « …-pratiques-2 » du plan ne couvre que l'Île-de-France), mis à
+# jour chaque jour, gelé le 03/11/2026. Une ligne par équipement ; on compte les installations
+# (un lieu qui regroupe des équipements, 2 en moyenne) : sinon un club de 10 courts de tennis
+# pèserait 10 fois. Position en WGS84 dans `equip_x` et `equip_y`, sous forme de texte
+URL_EQUIPEMENTS_SPORTIFS = (
+    "https://equipements.sports.gouv.fr/api/explore/v2.1/catalog/datasets/data-es/exports/parquet"
+)
+CHEMIN_RAW_EQUIPEMENTS_SPORTIFS = "raw/equipements_sportifs_20261103.parquet"
+SHA256_EQUIPEMENTS_SPORTIFS = "c78cb234bb591f54660277c5720e5a8275ec26ffacf7120b141024cfba936eef"
+
+# Équipements culturels, BPE 2025 de l'Insee, fichier détail géolocalisé (source 14, H4). La
+# page data.gouv du plan est une republication de la BPE 2023 par l'Île-de-France : on prend le
+# fichier de l'Insee, actualisé chaque mois (anonymisation Sirene), gelé le 03/11/2026. Le serveur
+# coupe parfois le téléchargement sans erreur ni Content-Length : le gel contrôle le Parquet.
+# Culture : les 7 types du sous-domaine F3 (cinéma, conservatoire, bibliothèque, exposition,
+# patrimoine, archives, arts du spectacle) ; les librairies (B324) sont des commerces. Métropole :
+# coordonnées en Lambert 93 (EPSG 2154), celles des DROM sont dans d'autres projections
+URL_BPE = "https://www.insee.fr/fr/statistiques/fichier/8217525/BPE25.parquet"
+CHEMIN_RAW_BPE = "raw/bpe_2025_20261103.parquet"
+SHA256_BPE = "3bad0dc8b02eff0bee86832acf97fdeccef02116bbeb8a6dca2ad0e99d054f6a"
+SOUS_DOMAINE_CULTURE_BPE = "F3"
+EPSG_BPE_METROPOLE = "2154"
 # Délai d'attente de `requests` par lecture, pas durée totale (le téléchargement dure ~12 s)
 DELAI_TELECHARGEMENT_S = 120
 # Zonage en aires d'attraction des villes 2020 (source 8), géographie au 01/01/2025. Le zip de

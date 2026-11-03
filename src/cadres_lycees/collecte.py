@@ -51,6 +51,24 @@ def geler_apl(chemin: str) -> str:
     return hashlib.sha256(reponse.content).hexdigest()
 
 
+def geler_equipements_sportifs(chemin: str) -> str:
+    """Écrit à `chemin` l'export complet de Data ES et renvoie son sha256.
+
+    Produit la copie gelée du 03/11/2026 ; le rapport lit cette copie (`equipements_sportifs`).
+    Le serveur peut répondre 200 avec un flux tronqué par une erreur : le contrôle de
+    `_geler_export_parquet` le refuse.
+    """
+    return _geler_export_parquet(config.URL_EQUIPEMENTS_SPORTIFS, chemin)
+
+
+def geler_bpe(chemin: str) -> str:
+    """Écrit à `chemin` le fichier détail de la BPE 2025 et renvoie son sha256.
+
+    Produit la copie gelée du 03/11/2026 ; le rapport lit cette copie (`equipements_culturels`).
+    """
+    return _geler_export_parquet(config.URL_BPE, chemin)
+
+
 def _geler_export_parquet(url: str, chemin: str) -> str:
     """Écrit à `chemin` l'export Parquet téléchargé à `url` et renvoie son sha256."""
     # Un chemin daté déjà pris est une copie gelée, peut-être publique : on ne l'écrase jamais
@@ -332,3 +350,72 @@ def apl_medecins() -> pd.Series:
     assert apl.index.is_unique, "Code commune en double dans l'APL."
     assert apl.notna().all() and (apl >= 0).all(), "APL manquante ou négative."
     return apl.rename_axis("code_commune")
+
+
+def equipements_sportifs() -> gpd.GeoDataFrame:
+    """Renvoie les installations sportives en service de France métropolitaine, en Lambert 93.
+
+    Une ligne par installation (`id_installation`), placée au point de son premier équipement
+    dans l'ordre des numéros : les équipements d'une installation sont à 52 m les uns des autres
+    en médiane, mais une moyenne de leurs points tomberait n'importe où pour un sentier ou un
+    site de nature. Écartées : les installations hors service (`inst_hs_bool`, seul indicateur
+    de fermeture), les équipements sans coordonnées et l'outre-mer. Toutes les familles sont
+    gardées (H4, §5.7). Lu dans la copie gelée du 03/11/2026.
+    """
+    contenu = stockage.copie_controlee(
+        _copies_publiques(config.CHEMIN_RAW_EQUIPEMENTS_SPORTIFS),
+        config.CHEMIN_RAW_EQUIPEMENTS_SPORTIFS,
+        config.SHA256_EQUIPEMENTS_SPORTIFS,
+    )
+    colonnes = ["equip_numero", "inst_numero", "inst_hs_bool", "new_code", "equip_x", "equip_y"]
+    brut = pd.read_parquet(io.BytesIO(contenu), columns=colonnes)
+    assert brut["equip_numero"].is_unique, "Numéro d'équipement en double dans Data ES."
+    # Outre-mer : codes 97x et 98x ; deux équipements n'ont pas de code commune
+    metropole = brut["new_code"].notna() & ~brut["new_code"].str[:2].isin(["97", "98"])
+    en_service = brut["inst_hs_bool"] != "Oui"
+    situes = brut["equip_x"].notna() & brut["equip_y"].notna()
+    retenus = brut[metropole & en_service & situes].sort_values("equip_numero")
+    installations = retenus.drop_duplicates("inst_numero")
+    points = gpd.points_from_xy(
+        installations["equip_x"].astype(float), installations["equip_y"].astype(float), crs=4326
+    )
+    return gpd.GeoDataFrame(
+        {
+            "id_installation": installations["inst_numero"].to_numpy(),
+            "code_commune": installations["new_code"].to_numpy(),
+        },
+        geometry=points,
+    ).to_crs(config.CRS_CALCUL)
+
+
+def equipements_culturels() -> gpd.GeoDataFrame:
+    """Renvoie les équipements culturels de France métropolitaine de la BPE 2025, en Lambert 93.
+
+    Une ligne par type d'équipement et par point (`type_equipement`) : une même adresse porte
+    parfois deux labels du même type (un musée qui est aussi une maison des Illustres, une
+    bibliothèque et le siège de son réseau), comptés une fois. Tous les équipements culturels de
+    métropole sont géolocalisés, à 50 m près pour une qualité acceptable. Lu dans la copie gelée
+    du 03/11/2026.
+    """
+    contenu = stockage.copie_controlee(
+        _copies_publiques(config.CHEMIN_RAW_BPE), config.CHEMIN_RAW_BPE, config.SHA256_BPE
+    )
+    colonnes = ["SDOM", "TYPEQU", "DEPCOM", "EPSG", "LAMBERT_X", "LAMBERT_Y"]
+    bpe = pd.read_parquet(
+        io.BytesIO(contenu),
+        columns=colonnes,
+        filters=[("SDOM", "==", config.SOUS_DOMAINE_CULTURE_BPE)],
+    )
+    culture = bpe[bpe["EPSG"] == config.EPSG_BPE_METROPOLE]
+    assert culture[["LAMBERT_X", "LAMBERT_Y"]].notna().all().all(), (
+        "Équipement culturel de métropole sans coordonnées."
+    )
+    lieux = culture.drop_duplicates(["TYPEQU", "LAMBERT_X", "LAMBERT_Y"])
+    return gpd.GeoDataFrame(
+        {
+            "type_equipement": lieux["TYPEQU"].to_numpy(),
+            "code_commune": lieux["DEPCOM"].to_numpy(),
+        },
+        geometry=gpd.points_from_xy(lieux["LAMBERT_X"], lieux["LAMBERT_Y"]),
+        crs=config.CRS_CALCUL,
+    )

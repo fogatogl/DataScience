@@ -1,6 +1,7 @@
 """Construction de la base communale et des paires de communes contiguës (PLAN §4, étape G)."""
 
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 
 from cadres_lycees import accessibilite, analyse, collecte, config, geo, nettoyage, stockage
@@ -51,9 +52,10 @@ def _base_sans_cadres(referentiel: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame) -
     """Renvoie la base communale sans la part de cadres.
 
     Une ligne par commune du référentiel : accès aux lycées privés et publics (§2.4), nombre de
-    lycées et IVAL moyenne dans chaque rayon, population, densité, exposition 0/1, accès aux
-    gares et APL aux médecins généralistes (H4). Le tableau
-    de support n'utilise que cette partie : il ne lit aucune donnée sur les cadres (A3).
+    lycées et IVAL moyenne dans chaque rayon, population, densité, exposition 0/1, et pour H4
+    accès aux gares, aux installations sportives et aux équipements culturels, et APL aux
+    médecins généralistes. Le tableau de support n'utilise que cette partie : il ne lit aucune
+    donnée sur les cadres (A3).
     """
     acces_tous_lycees = accessibilite.indicateurs(
         referentiel, lycees, "lyc", attribut="ival", poids="poids_ival"
@@ -68,6 +70,8 @@ def _base_sans_cadres(referentiel: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame) -
         # H4 (§5.7) : la même fonction d'accès pour les gares ; l'APL est déjà un indicateur
         # d'accès, calculé par la DREES, et entre telle quelle
         accessibilite.indicateurs(referentiel, collecte.gares(), "gare"),
+        accessibilite.indicateurs(referentiel, collecte.equipements_sportifs(), "sport"),
+        accessibilite.indicateurs(referentiel, collecte.equipements_culturels(), "culture"),
         collecte.apl_medecins().to_frame(),
     ]
     base = referentiel
@@ -86,6 +90,13 @@ def _base_sans_cadres(referentiel: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame) -
         # pandas refuse la différence de deux booléens, que calcule `geo.paires_contigues`
         expose = base[f"n_lyc_prive_{rayon}km"] > 0
         base[f"expose_lyc_prive_{rayon}km"] = expose.astype(int)
+    # H4, sport et culture : presque chaque commune a une installation sportive ou une
+    # bibliothèque à moins de 2 km, la distance au plus proche ne distingue donc pas les communes ;
+    # on prend le nombre au rayon principal, très asymétrique (asymétrie de 3,3 à 4 selon l'aire),
+    # d'où le logarithme comme pour la densité (A7). log(1 + n) : des communes n'en ont aucun à 5 km
+    for equipement in ("sport", "culture"):
+        nombre = base[f"n_{equipement}_{config.RAYON_PRINCIPAL_KM}km"]
+        base[f"log_n_{equipement}_{config.RAYON_PRINCIPAL_KM}km"] = np.log1p(nombre)
     return base
 
 
