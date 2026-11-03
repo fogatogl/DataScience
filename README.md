@@ -46,12 +46,12 @@ Le plan complet et le journal des décisions sont dans [`docs/PLAN.md`](docs/PLA
 Python 3.13 et [uv](https://docs.astral.sh/uv/) sont nécessaires.
 
 ```bash
-uv sync                          # installe les dépendances figées dans uv.lock
+uv sync --locked                 # installe exactement les dépendances figées dans uv.lock
 uv run pre-commit install        # active nb-clean et ruff avant chaque commit
 uv run pytest                    # lance les tests
 ```
 
-Le rapport est `rapport.ipynb` (pour l'instant le plan du rapport, les Fig. 1 et 3 à 7, la carte à curseur de la part de cadres de 1999 à 2022, les verdicts de H1 et H3, le tableau de robustesse, l'indice de Moran et la carte IRIS  et un premier jet du texte, à reprendre par le groupe). Le site se construit avec [Quarto](https://quarto.org/), déjà installé sur le SSPCloud :
+Le rapport est `rapport.ipynb` : texte, figures et tableaux, recalculés à chaque exécution depuis les données brutes. Le site se construit avec [Quarto](https://quarto.org/), déjà installé sur le SSPCloud :
 
 ```bash
 uv run quarto render             # exécute rapport.ipynb et écrit le site dans _site/
@@ -74,7 +74,7 @@ Les données ne sont pas dans Git. `stockage.py` les lit et les écrit :
 
 ### Copies gelées des données
 
-Les sources qui changent sans prévenir sont lues dans une copie datée, jamais directement à leur API. Chaque copie est cherchée dans la release GitHub [`donnees-20261020`](https://github.com/gabrielwenger1-coder/DataScience/releases/tag/donnees-20261020) du dépôt, puis, si elle y manque ou diffère, dans le dossier public `https://minio.lab.sspcloud.fr/gfogato/projet-cadres-lycees/raw/`, avec un avertissement. Le code échoue si aucune des deux ne fournit un fichier au `sha256` attendu, et il recontrôle le `sha256` à chaque lecture d'une copie déjà téléchargée.
+Les sources qui changent sans prévenir sont lues dans une copie datée, jamais directement à leur API. Chaque copie est cherchée dans la release GitHub [`donnees-20261020`](https://github.com/gabrielwenger1-coder/DataScience/releases/tag/donnees-20261020) du dépôt, puis dans le dossier public `https://minio.lab.sspcloud.fr/gfogato/projet-cadres-lycees/raw/` du SSPCloud, avec un avertissement. Ce second hébergement n'est pas lisible publiquement aujourd'hui : la release est la seule source des copies gelées. Le code échoue si aucune des deux ne fournit un fichier au `sha256` attendu, et il recontrôle le `sha256` à chaque lecture d'une copie déjà téléchargée.
 
 | Copie | Date | Origine | `sha256` |
 |---|---|---|---|

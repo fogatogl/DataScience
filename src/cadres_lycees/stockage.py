@@ -104,7 +104,8 @@ def _telecharger(urls: list[str], sha256: str) -> bytes:
                 return reponse.content
             refus.append(f"{url} : HTTP {reponse.status_code}, sha256 {recu}")
             warnings.warn(refus[-1], stacklevel=2)
-            # Un refus net (404, 403) ne change pas d'un essai à l'autre ; un contenu tronqué si
+            # Un refus net (404, 403) ne change pas d'un essai à l'autre : on passe à l'URL
+            # suivante ; un contenu tronqué, lui, peut être complet au prochain essai
             if not reponse.ok:
                 break
     raise RuntimeError(f"Aucune source ne fournit le fichier de sha256 {sha256} : {refus}")
