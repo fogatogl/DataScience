@@ -2,7 +2,7 @@
 
 Tenu par l'agent pilote à chaque /pilotage. Les décisions elles-mêmes vont dans le journal de docs/PLAN.md (§13).
 
-Dernier point de pilotage : 2026-10-21
+Dernier point de pilotage : 2026-11-03
 
 ## Note prévisionnelle du correcteur
 | Date | Données /4 | Descriptif /4 | Démarche et repro /5 | Code /2 | Soutenance /5 | Total /20 |
@@ -14,24 +14,19 @@ Dernier point de pilotage : 2026-10-21
 | 20/10 plan exécuté avec A5 à A7, A9, A10 | 3,45 | 3,4 | 4,4 (3,1 si Git reste à un seul auteur) | 1,7 | 3,3 | environ 16,3 (fourchette 13 à 16,5), estimé sans A8 : le correcteur donnait 16,4 avec A8, dont +0,05 en Données et +0,1 en Soutenance |
 | 20/10 soir : état actuel → plan exécuté avec A13 à A15 | 2,0 → 3,4 | 0,5 → 3,1 | 1,0 → 4,2 (3,0 si Git reste à un seul auteur) | 1,4 → 1,7 | 1,5 → 3,2 (2,2 si deux membres n'ont rien écrit) | environ 6,4 sans la moyenne (compte neuf : `RuntimeError` dans `stockage._telecharger`, copies en 403 et 404) → environ 15,6 (fourchette 12,5 à 16,5) ; à part, risque de −1 à −3 pour usage abusif de l'IA (`CLAUDE.md` public) |
 | 21/10 : état actuel → plan exécuté (avis du 20/10 soir sur A16 à A18) | 2,2 → 3,4 | 0,5 → 3,0 | 1,2 → 4,0 (3,0 si Git reste à un seul auteur) | 1,4 → 1,6 | 1,5 → 3,0 (2,2 si deux membres n'ont pas écrit de code) | environ 6,8 sans la moyenne (compte neuf : `collecte.ips_lycees()` en 403 et 404) → environ 15,0 (fourchette 12 à 16) ; à part, −1 à −3 pour usage abusif de l'IA (traces de l'assistant dans le code) |
+| 03/11 : état actuel → plan exécuté (A19 à A21 appliqués) | 2,4 → 3,3 | 0,8 → 3,1 | 1,3 → 3,8 | 1,6 → 1,7 | 1,5 → 3,0 | environ 7,6 sans la moyenne (compte neuf : 5 copies du 03/11 en 404 et 403) → 12 à 16 ; à part, −1 à −3 pour usage abusif de l'IA (`CLAUDE.md` l. 18-19 public, journal en annexe avec les mentions d'agents, §12 public, pas de section IA au README) |
 
 ## Actions prioritaires
-Suivi au 21/10 : A1 à A18 appliqués (journal §13), A8 rejeté. A13 à A15 sont commités dans `392ca82` (la mention « non commités » du 20/10 était fausse) ; la fiabilité de l'IVAL (0,608, H3 testable), A16 à A18 et la ligne de T5 sont appliqués le 21/10 sur `feat/tableau-support`, non commités. Non faits : copies publiques (403 et 404), PR (0, `gh` non authentifié), tag, Git à trois (46 commits d'un seul auteur), section IA du README.
-1. Avant le 22/10, 1 h : copies gelées lisibles anonymement (S3 `raw/` public ou release `donnees-20261020` avec les 12 fichiers de `data/gel_20261020`), puis compte neuf sans `BUCKET_S3`. Condition de la moyenne.
-2. Aujourd'hui, après la poussée du commit de ce point : PR « socle » (relue par R3) et « choix » (relue par R2), au besoin par l'interface web ; fusion `--no-ff` ; tag `plan-fige` poussé au plus tard le 24/10.
-3. Transparence IA : section « Usage de l'IA générative » du README par R3 (PR du 22/10) ; Giulio tranche la règle anti-Co-Authored-By de `CLAUDE.md` ; traces de l'assistant retirées du code (« choix de l'étudiant du 20/10 » à `nettoyage.py` l.154 et `config.py` l.69-70, « bucket de Giulio »).
-4. T5 (ligne du 21/10) : `feat/tableau-support` fusionnée dans `feat/site-quarto`, T5 adapté à A17 commité par l'agent principal, relu par R2 dans la PR avant toute exécution ; exécution après le tag, au plus tard le 24/10 (le 25/10 si le tag manque ; R3 relit si R2 manque le 26/10).
-5. R3 écrit le §1, le §3.1 et le titre-message de la Fig. 1 avant le 1/11.
-6. Carte IRIS (A18, choix de Giulio) : après le tag, sans prendre sur 1 à 5 ni sur H1 à H4 ; fusionnée au plus tard le 19/11, sinon abandonnée.
+Suivi au 03/11 : décisions du 03/11 et A19 à A21 au journal (§13) ; choix figés modifiés : §1.2 (H4 descriptive), §2.4 (agricoles), §2.5 (DVF). Faits depuis le 21/10 : T5, H1 à H4, robustesse, Moran, Fig. 1 à 7, release `donnees-20261020` lisible, traces de l'assistant retirées du code. Non faits : tag ; relecture humaine des PR n° 2, 5 et 6, ouvertes le 21/10 (seul un robot a commenté ; la n° 7 est fusionnée) ; Git à trois (71 commits sur 73 de `fogatogl`) ; section IA du README ; aucune phrase dans le rapport ; §1 et §3.1 de R3 (dus le 1/11).
+1. A19, aujourd'hui : publier les 5 copies du 03/11 (gares, APL, Data ES, BPE, DVF) et pousser `feat/rapport`. Avant le 8/11 : compte neuf par R2 ou R3 ; PR n° 2 (R2), 5 (R3) et 6 (R2) relues ligne à ligne et fusionnées ; puis PR n° 8 `feat/rapport` (R2 `analyse.py`, R3 `figures.py` et le notebook, au moins une correction poussée par un relecteur) ; conflit README avec `main` résolu, « Projet cadres et lycées au 21 octobre.md » retiré de `main` ; tag annoté `plan-fige` sur `b782378`, renvoyant à la PR n° 2 et à la ligne « chiffres vus avant le tag ». Deuxième compte neuf vers le 22/11.
+2. A21 : R3 ouvre un brouillon de PR avec le §1.1 le 6/11, puis les sections 1 à 3, l'encadré 2.5 et la section IA du README le 10/11 (sinon R2 reprend) ; R2 la section 4 et les titres des Fig. 4 à 6 le 15/11 ; Giulio les sections 5 et 6, le résumé, le titre de la Fig. 7 et les « Résultats clés » le 18/11 ; fusion sous 48 h.
+3. Transparence IA : Giulio réécrit `CLAUDE.md` l. 18-19 (règle anti-mention dans les commits) ; il décide comment présenter le journal en annexe et le §12 du plan, publics.
 
 ## Points ouverts
-- Avant d'exécuter T5, sans cadres : listes d'UAI des 3 aires (A10), `assert` des comptes du tableau (§4 D) ; dénominateur 2011 (`C11_POP2554` − `CS7` − `CS8`) : noms et égalité à vérifier dans l'en-tête du fichier.
-- Verdict de H4 à fixer au point du 8/11, avant toute estimation de H4. Fig. 4 : panneau des anneaux presque vide (6 cellules), à revoir en S4. Soutenance : convergence entre communes, sans contrôle par `part_cadres_2011` (A16).
-- Code : commentaires défensifs très denses, `config.py` de 271 lignes (correcteur du 20/10), à alléger au fil des tickets et en S6.
-- Mise en forme Quarto encore cassée au §10 et au §12.2 ; « proposition A5 » de `docs/exploration_sources.md` §2 à renommer ; prénoms des membres au §9 ; jeton GitHub du reflog à révoquer ; `docs/prompt_evaluation_independante.md` hors de l'arborescence du §7.
+- Soutenance : savoir chiffrer le résultat nul de Lyon (intervalle de −0,53 à +0,21 point par km, soit −2,7 à +1,1 point sur 5 km) ; H3 « infirmée » alors que le test penche contre H3 (β_q atténué, β_n gonflé) ; Moran résiduel (0,31 à Lyon, intervalles des paires optimistes). Encadré 2.5 : fenêtre DVF postérieure à 2022, Strasbourg hors DVF, 15 lycées agricoles privés en Loire-Atlantique.
+- Écarts entre le plan et le code : robustesse « chef-lieu » (§2.4), robustesses de l'IVAL 2012-2025 et du taux de réussite (§3.2) et Filosofi descriptif (§3.1, §4 E) ne sont pas codés : les faire ou les abandonner au journal avant le 15/11.
+- 6 cellules d'anneaux estimables sur 12 : le panneau des anneaux de la Fig. 4 est presque vide. Code : `config.py` (563 lignes), `figures.py` (983) et `analyse.py` (901) à alléger en S6.
 
 ## Désaccords ouverts entre pilote et correcteur
-- A16 (e), mineur : le correcteur lit la variation de l'IVAL dans l'anneau 0-5 km entre aires (écart-type 0,71 contre 0,76 à 1,15) ; le pilote la lit à l'intérieur de chaque cellule aire × anneau (0,11 à 0,16 contre 0,41 à 1,29), seule à identifier β_q avec l'effet fixe. Le journal donne les chiffres par cellule.
-- Gel de la méthode après A16 et A17 jusqu'au 8/11, proposé par le correcteur et appuyé par le pilote : refusé par Giulio. Toute modification de méthode reste soumise au §5.8 et au journal.
-- Carte IRIS : pilote et correcteur la voulaient après le deuxième test complet ; Giulio l'a placée après le tag (A18).
-- Réglés le 21/10 : T5 exécuté après le tag (variante du correcteur) ; A17 tel quel ; MIGCOM en piste sans code, INDCVI écarté. Condition du haut de fourchette : PR relues et commits réels des deux autres membres, puis exécution complète par un autre membre sur son compte, sans `BUCKET_S3`, depuis les copies publiques, avant le 8/11.
+- A16 (e), mineur : variation de l'IVAL lue entre aires (correcteur) ou dans chaque cellule aire × anneau (pilote) ; le journal donne les chiffres par cellule.
+- Exécution du 03/11 avant le tag : décision de Giulio, contre l'avis commun du 20/10 et la ligne du 21/10 ; journalisée telle quelle.
