@@ -255,6 +255,40 @@ def prix_m2(dvf: pd.DataFrame, referentiel: gpd.GeoDataFrame) -> pd.DataFrame:
     )
 
 
+def parts_cadres_dates(
+    series: dict[int, pd.DataFrame], passage: pd.DataFrame, referentiel: gpd.GeoDataFrame
+) -> pd.DataFrame:
+    """Renvoie la part de cadres de 25 à 54 ans de chaque commune à plusieurs recensements.
+
+    `series` associe chaque année de `config.GEOGRAPHIE_SERIE_CSP` à la sortie de
+    `collecte.serie_csp_2554`, `passage` vient de `collecte.passage_communes`. Chaque date est
+    ramenée au COG 2025 en sommant les communes de sa géographie qui forment aujourd'hui une même
+    commune (fusions). Lyon reste entière (69123) : la série n'a pas ses arrondissements. Une
+    ligne par `code_parent` du référentiel ; colonnes `part_cadres_<année>` (fraction) et
+    `actifs_<année>`.
+    """
+    unites = pd.Index(referentiel["code_parent"].unique(), name="code_commune")
+    resultat = pd.DataFrame(index=unites)
+    for annee, effectifs in series.items():
+        colonne = config.GEOGRAPHIE_SERIE_CSP[annee]
+        filiations = passage[[colonne, "CODGEO_2025"]].dropna().drop_duplicates()
+        vers_les_unites = filiations[filiations["CODGEO_2025"].isin(unites)]
+        # Une commune scindée depuis répartirait ses actifs entre deux communes : il n'y en a
+        # pas dans les aires retenues, et le code le vérifie
+        scindees = vers_les_unites[colonne][vers_les_unites[colonne].duplicated()].tolist()
+        assert not scindees, f"Communes scindées depuis {annee} : {scindees}."
+        jointes = effectifs.merge(
+            vers_les_unites, left_on="code_commune", right_on=colonne, validate="one_to_one"
+        )
+        sommes = jointes.groupby("CODGEO_2025")[["cadres", "actifs"]].sum()
+        manquantes = sorted(set(unites) - set(sommes.index))
+        assert not manquantes, f"Communes sans effectifs en {annee} : {manquantes}."
+        assert (sommes["actifs"] > 0).all(), f"Commune sans actif en {annee}."
+        resultat[f"part_cadres_{annee}"] = sommes["cadres"] / sommes["actifs"]
+        resultat[f"actifs_{annee}"] = sommes["actifs"]
+    return resultat
+
+
 def _lignes_du_referentiel(
     fichier_insee: pd.DataFrame, referentiel: gpd.GeoDataFrame, colonnes: list[str]
 ) -> pd.DataFrame:
@@ -303,7 +337,7 @@ def part_cadres_iris(
 
     # Une filiation à case vide (commune créée ou disparue) ne dit rien d'une fusion entre 2013
     # et 2024 ; une commune peut avoir plusieurs lignes, d'où les paires uniques
-    filiations = passage.dropna().drop_duplicates()
+    filiations = passage[["CODGEO_2013", "CODGEO_2024"]].dropna().drop_duplicates()
     communes_2013 = filiations.groupby("CODGEO_2024")["CODGEO_2013"].nunique()
     fusionnees = communes_2013.index[communes_2013 > 1]
     # Dans une commune découpée, le territoire absorbé reçoit de nouveaux codes, déjà écartés

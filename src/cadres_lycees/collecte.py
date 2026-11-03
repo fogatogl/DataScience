@@ -369,8 +369,9 @@ def activite_iris_2011() -> pd.DataFrame:
 def passage_communes() -> pd.DataFrame:
     """Renvoie la table de passage annuelle des codes communes 2025 : une ligne par filiation.
 
-    Colonnes `CODGEO_2013` et `CODGEO_2024` (une case vide : la commune n'existait pas). Une
-    commune peut avoir plusieurs lignes : réduire aux paires uniques avant de compter.
+    Colonnes `CODGEO_<année>` des géographies dont le projet a besoin, de 2003 à 2025 (une case
+    vide : la commune n'existait pas). Une commune peut avoir plusieurs lignes : réduire aux
+    paires uniques des colonnes utiles avant de compter.
     """
     contenu = stockage.copie_controlee(
         [config.URL_PASSAGE_COG], config.CHEMIN_RAW_PASSAGE_COG, config.SHA256_PASSAGE_COG
@@ -387,7 +388,51 @@ def passage_communes() -> pd.DataFrame:
     assert len(table) == config.NB_LIGNES_PASSAGE_COG, (
         f"{len(table)} lignes dans la table de passage, {config.NB_LIGNES_PASSAGE_COG} attendues."
     )
-    return table[["CODGEO_2013", "CODGEO_2024"]]
+    geographies = sorted({*config.GEOGRAPHIE_SERIE_CSP.values(), "CODGEO_2025"})
+    return table[geographies]
+
+
+def serie_csp_2554(annee: int) -> pd.DataFrame:
+    """Renvoie les actifs de 25 à 54 ans par CSP de chaque commune au recensement `annee`.
+
+    Série historique de l'Insee (source 1), feuille `COM_<annee>`, dans la géographie de cette
+    date (`config.GEOGRAPHIE_SERIE_CSP`). Colonnes : `code_commune`, `cadres` (groupe 3, en
+    emploi et chômeurs) et `actifs` (somme des 6 groupes, en emploi et chômeurs). Une ligne
+    vide est une commune qui n'existait pas à cette date : elle est retirée. Le zip de l'Insee
+    est permanent : il est lu à son URL d'origine.
+    """
+    contenu = stockage.copie_controlee(
+        [config.URL_SERIE_CSP], config.CHEMIN_RAW_SERIE_CSP, config.SHA256_SERIE_CSP
+    )
+    with zipfile.ZipFile(io.BytesIO(contenu)) as archive:
+        classeur = io.BytesIO(archive.read(config.XLSX_SERIE_CSP))
+    feuille = pd.read_excel(
+        classeur,
+        sheet_name=f"COM_{annee}",
+        header=config.ENTETE_SERIE_CSP,
+        dtype=str,
+        engine="calamine",
+    )
+    # Les noms portent l'année : groupe {1..6} × position {1 : en emploi, 2 : chômeur}
+    colonnes = {
+        (groupe, position): f"csx_rec{groupe}taxtypac_rec{position}rpop{annee}"
+        for groupe in range(1, 7)
+        for position in (1, 2)
+    }
+    valeurs = feuille[list(colonnes.values())].astype(float)
+    renseignee = valeurs.notna().all(axis=1)
+    assert (renseignee | valeurs.isna().all(axis=1)).all(), "Ligne en partie vide dans la série."
+    # Code commune : département sur 2 caractères (Corse 2A, 2B), puis code dans le département
+    code = feuille["DR"].str[:2] + feuille["CR"]
+    effectifs = pd.DataFrame(
+        {
+            "code_commune": code,
+            "cadres": valeurs[colonnes[(3, 1)]] + valeurs[colonnes[(3, 2)]],
+            "actifs": valeurs.sum(axis=1),
+        }
+    )[renseignee]
+    assert effectifs["code_commune"].is_unique, f"Code commune en double dans COM_{annee}."
+    return effectifs.reset_index(drop=True)
 
 
 def contours_departements() -> gpd.GeoDataFrame:

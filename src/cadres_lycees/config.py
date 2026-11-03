@@ -250,6 +250,22 @@ ACTIFS_2554_2011 = (
 )
 CADRES_2554_2022 = "C22_POP2554_STAT_GSEC13_23"
 CADRES_2554_2011 = "C11_POP2554_CS3"
+# Carte à curseur de la part de cadres (source 1, exploration §9) : série historique des actifs
+# de 25 à 54 ans par CSP, une feuille par recensement, chacune dans la géographie de sa date. De
+# 1999 à 2022, la table de passage 2025 ramène chaque date au COG 2025 sans trou ; avant 1999, il
+# faudrait les événements du COG (exploration §9). Date -> colonne de la table de sa géographie
+URL_SERIE_CSP = "https://www.insee.fr/fr/statistiques/fichier/1893185/pop-act2554-csp-cd-6822.zip"
+CHEMIN_RAW_SERIE_CSP = "raw/pop-act2554-csp-cd-6822.zip"
+SHA256_SERIE_CSP = "cdbcb350a9c1315135471fc7f40e60e578428735eb6b1f8756ec26da82d4e168"
+XLSX_SERIE_CSP = "pop-act2554-csp-cd-6822.xlsx"
+ENTETE_SERIE_CSP = 15
+GEOGRAPHIE_SERIE_CSP = {
+    1999: "CODGEO_2003",
+    2006: "CODGEO_2008",
+    2011: "CODGEO_2013",
+    2016: "CODGEO_2018",
+    2022: "CODGEO_2024",
+}
 # Robustesse (§2.3, §5.6) : cadres parmi la population de 15 ans ou plus en 2022, inactifs et
 # retraités compris (`docs/exploration_sources.md`, « Évolution et structure »)
 CADRES_15P_2022 = "C22_POP15P_STAT_GSEC13_23"
@@ -491,11 +507,6 @@ LIBELLES_SECTEURS = {"public": "public", "prive": "privé sous contrat"}
 # des secteurs
 COULEURS_AIRES = {"Nantes": "#009e73", "Lyon": "#a2559c", "Strasbourg": "#9c6b1f"}
 
-# Fig. 2 : la courbe de chaque aire relie les parts moyennes des communes par tranche de distance
-# au centre, pondérées par les actifs (§3.2). Une tranche de 2,5 km découpe chaque anneau du §5.2
-# en deux au moins ; une tranche de moins de 5 communes n'a pas de point, trop bruité
-PAS_COURBE_FIG2_KM = 2.5
-MIN_COMMUNES_TRANCHE_FIG2 = 5
 
 # Fig. 3 : classes de distance au lycée privé le plus proche, par leurs bornes supérieures en km
 # (incluses). Les rayons du §2.4 en sont les premières bornes : être à 5 km ou moins du plus
@@ -546,6 +557,7 @@ FICHIERS_BRUTS = (
     (CHEMIN_RAW_PASSAGE_COG, SHA256_PASSAGE_COG),
     (CHEMIN_RAW_SERIE_RP2022, SHA256_SERIE_RP2022),
     (CHEMIN_RAW_EVOL_STRUCT_RP2022, SHA256_EVOL_STRUCT_RP2022),
+    (CHEMIN_RAW_SERIE_CSP, SHA256_SERIE_CSP),
     (CHEMIN_RAW_ACTIVITE_IRIS_2011, SHA256_ACTIVITE_IRIS_2011),
     (CHEMIN_RAW_ACTIVITE_IRIS_2022, SHA256_ACTIVITE_IRIS_2022),
 )

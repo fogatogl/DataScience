@@ -11,6 +11,7 @@ from collections.abc import Collection
 from pathlib import Path
 
 import folium
+import folium.plugins
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -233,112 +234,6 @@ def _aires_ordonnees(aires: Collection[str]) -> list[str]:
     return [aire for aire in config.COULEURS_AIRES if aire in presentes]
 
 
-def fig2(base: pd.DataFrame, titre: str) -> Figure:
-    """Fig. 2 : part de cadres de chaque commune selon sa distance au centre de l'aire.
-
-    Un point par commune et, par aire, une courbe qui relie la part de cadres de chaque tranche
-    de distance (`_courbe_tranches`). Les bornes des anneaux du §5.2 sont en pointillés : la
-    figure montre pourquoi on compare à distance égale (PLAN §5.1). `base` vient de
-    `pipeline.construire_base` ; `titre` est le message de la figure, écrit par le groupe
-    (PLAN §6). Une commune sans actif en 2022 n'a pas de part et n'est pas tracée (A17).
-    """
-    aires = _aires_ordonnees(base["aire"])
-    sans_part = base["part_cadres_2022"].isna()
-    communes = base[~sans_part]
-    texte = config.COULEUR_TEXTE
-
-    fig, ax = plt.subplots(figsize=(11, 6.2))
-    for borne in config.ANNEAUX_KM[1:]:
-        ax.axvline(borne, color=config.COULEUR_LIAISON, linestyle=":", linewidth=1, zorder=0)
-    ax.text(
-        config.ANNEAUX_KM[1],
-        1.0,
-        " bornes des anneaux",
-        transform=ax.get_xaxis_transform(),
-        va="top",
-        fontsize=8,
-        color=texte,
-    )
-    for aire in aires:
-        couleur = config.COULEURS_AIRES[aire]
-        communes_aire = communes[communes["aire"] == aire]
-        ax.scatter(
-            communes_aire["dist_centre_km"],
-            communes_aire["part_cadres_2022"] * 100,
-            s=12,
-            color=couleur,
-            alpha=0.3,
-            linewidth=0,
-            zorder=1,
-        )
-        courbe = _courbe_tranches(communes_aire)
-        ax.plot(
-            courbe["distance"],
-            courbe["part"] * 100,
-            color=couleur,
-            linewidth=2.2,
-            marker="o",
-            markersize=4,
-            zorder=2,
-            label=f"{aire} ({len(communes_aire)} communes)",
-        )
-
-    ax.set_ylim(bottom=0)
-    ax.set_xlim(left=0)
-    ax.set_xlabel("Distance au centre de l'aire (km)", color=texte)
-    ax.set_ylabel("Part de cadres parmi les actifs de 25 à 54 ans en 2022 (%)", color=texte)
-    ax.spines[["top", "right"]].set_visible(False)
-    ax.tick_params(colors=texte)
-    ax.grid(axis="y", color=config.COULEUR_GRILLE, linewidth=0.8)
-    ax.set_axisbelow(True)
-    ax.legend(frameon=False, loc="upper right")
-
-    fig.suptitle(titre, fontsize=13, x=0.01, ha="left")
-    pas = f"{config.PAS_COURBE_FIG2_KM:g}".replace(".", ",")
-    fig.text(
-        0.01,
-        0.01,
-        "Un point par commune (arrondissement à Lyon). Courbe : part de cadres de chaque tranche "
-        f"de {pas} km de distance au centre, toutes communes de la tranche réunies\n(moyenne "
-        "pondérée par les actifs), placée au milieu de la tranche ; pas de point pour une "
-        f"tranche de moins de {config.MIN_COMMUNES_TRANCHE_FIG2} communes. Distance à vol "
-        "d'oiseau entre centroïdes.\n"
-        f"Communes sans actif en 2022, non tracées : {sans_part.sum()}. Sources : Insee, "
-        "recensement 2022, « Évolution et structure de la population » ; aires d'attraction des "
-        "villes 2020 ; IGN.",
-        fontsize=8,
-        color=texte,
-    )
-    fig.tight_layout(rect=(0, 0.08, 1, 0.95))
-    plt.close(fig)
-    return fig
-
-
-def _courbe_tranches(communes: pd.DataFrame) -> pd.DataFrame:
-    """Part de cadres par tranche de distance au centre, pondérée par les actifs (Fig. 2).
-
-    La part d'une tranche est le total de ses cadres sur le total de ses actifs, soit la moyenne
-    des parts communales pondérée par `actifs_2022` (§3.2). Renvoie une ligne par tranche d'au
-    moins `config.MIN_COMMUNES_TRANCHE_FIG2` communes : `distance` (milieu de la tranche, km) et
-    `part` (fraction).
-    """
-    pas = config.PAS_COURBE_FIG2_KM
-    cadres = communes.assign(
-        tranche=communes["dist_centre_km"] // pas,
-        cadres=communes["part_cadres_2022"] * communes["actifs_2022"],
-    )
-    tranches = cadres.groupby("tranche").agg(
-        n=("cadres", "size"), cadres=("cadres", "sum"), actifs=("actifs_2022", "sum")
-    )
-    tranches = tranches[tranches["n"] >= config.MIN_COMMUNES_TRANCHE_FIG2]
-    return pd.DataFrame(
-        {
-            "distance": (tranches.index + 0.5) * pas,
-            "part": tranches["cadres"] / tranches["actifs"],
-        }
-    )
-
-
 def _libelle_cellule(bas_km: float, haut_km: float, rayon_km: int) -> str:
     """Nomme une cellule d'anneaux par ses bornes et son rayon : « 20-30 km, rayon 5 km »."""
     bornes = (
@@ -524,6 +419,101 @@ def fig5(paires: pd.DataFrame, pentes: pd.DataFrame, titre: str) -> Figure:
     fig.tight_layout(rect=(0, 0.1, 1, 0.94))
     plt.close(fig)
     return fig
+
+
+def carte_cadres_dates(communes: gpd.GeoDataFrame, parts: pd.DataFrame, titre: str) -> folium.Map:
+    """Carte à curseur de la part de cadres par commune, de 1999 à 2022, pour une aire.
+
+    `communes` : les communes d'une aire, issues de `pipeline.construire_base` ; les
+    arrondissements de Lyon sont réunis, la série n'ayant que Lyon entière. `parts` vient de
+    `nettoyage.parts_cadres_dates`. Mêmes classes et mêmes couleurs que la carte IRIS ; une
+    commune de moins de `config.ACTIFS_MIN_ROBUSTESSE` actifs à une date est pâle, sa part étant
+    peu précise (§3.2). Le curseur choisit le recensement ; le survol donne toutes les dates.
+    `titre` est le message de la carte, écrit par le groupe (PLAN §6).
+    """
+    annees = list(config.GEOGRAPHIE_SERIE_CSP)
+    unites = communes.dissolve("code_parent", as_index=False)[["code_parent", "geometry"]]
+    noms = communes.set_index("code_commune")["nom_commune"]
+    unites["nom"] = unites["code_parent"].map(noms).fillna("Lyon")
+    valeurs = parts.loc[unites["code_parent"]].reset_index(drop=True)
+    geometrie = unites.geometry.simplify_coverage(config.SIMPLIFICATION_CARTE_M)
+    affichage = gpd.GeoDataFrame(
+        {"nom": unites["nom"]}, geometry=geometrie, crs=communes.crs
+    ).to_crs(config.CRS_CARTES)
+    for annee in annees:
+        pourcentage = valeurs[f"part_cadres_{annee}"] * 100
+        affichage[str(annee)] = pourcentage.map(lambda p: f"{p:.1f} %".replace(".", ","))
+
+    bornes = [0, *config.BORNES_PART_CADRES_IRIS, 100.01]
+    styles = {}
+    for rang, ligne in valeurs.iterrows():
+        styles[str(rang)] = {}
+        for annee in annees:
+            # Borne basse incluse, comme dans la légende
+            classe = pd.cut(
+                [ligne[f"part_cadres_{annee}"] * 100], bornes, right=False, labels=False
+            )
+            petite = ligne[f"actifs_{annee}"] < config.ACTIFS_MIN_ROBUSTESSE
+            horodatage = str(int(pd.Timestamp(f"{annee}-01-01").timestamp()))
+            styles[str(rang)][horodatage] = {
+                "color": config.COULEURS_PART_CADRES_IRIS[int(classe[0])],
+                "opacity": 0.35 if petite else 0.85,
+            }
+
+    carte = folium.Map(tiles=None, control_scale=True)
+    for rang, (nom, fournisseur) in enumerate(config.FONDS_CARTE.items()):
+        folium.TileLayer(fournisseur, name=nom, show=(rang == 0)).add_to(carte)
+    ouest, sud, est, nord = affichage.total_bounds
+    carte.fit_bounds([[sud, ouest], [nord, est]])
+    folium.plugins.TimeSliderChoropleth(
+        affichage[["geometry"]].to_json(),
+        styledict=styles,
+        date_options="YYYY",
+        name="Part de cadres",
+        stroke_width=0.4,
+    ).add_to(carte)
+    # Couche transparente par-dessus, pour le survol : le curseur ne porte pas d'infobulle
+    folium.GeoJson(
+        affichage,
+        name="Valeurs aux cinq dates",
+        style_function=lambda _: {"fillOpacity": 0, "weight": 0},
+        tooltip=folium.GeoJsonTooltip(
+            fields=["nom", *[str(annee) for annee in annees]],
+            aliases=["Commune", *[f"Part de cadres en {annee}" for annee in annees]],
+        ),
+    ).add_to(carte)
+    folium.LayerControl(collapsed=True).add_to(carte)
+
+    libelles = [f"moins de {bornes[1]} %"]
+    libelles += [f"{bas} à {haut} %" for bas, haut in itertools.pairwise(bornes[1:-1])]
+    libelles.append(f"{bornes[-2]} % ou plus")
+    classes = "".join(
+        '<div><span style="display:inline-block;width:10px;height:10px;margin-right:6px;'
+        f'background:{couleur}"></span>{libelle}</div>'
+        for couleur, libelle in zip(config.COULEURS_PART_CADRES_IRIS, libelles, strict=True)
+    )
+    note = (
+        "Cadres et professions intellectuelles supérieures parmi les actifs de 25 à 54 ans "
+        "(en emploi ou chômeurs ayant déjà travaillé), communes du COG 2025 ; Lyon entière. "
+        f"Pâle : moins de {config.ACTIFS_MIN_ROBUSTESSE} actifs, part peu précise. Sources : "
+        "Insee, séries historiques du recensement 1999 à 2022 ; IGN."
+    )
+    legende = (
+        '<div style="position:fixed;bottom:28px;left:12px;z-index:1000;background:white;'
+        f'padding:8px;font:11px sans-serif;color:{config.COULEUR_TEXTE};width:230px">'
+        f"<b>Part de cadres</b>{classes}<p style='font-size:10px'>{note}</p></div>"
+    )
+    carte.get_root().html.add_child(folium.Element(legende))
+    # Le curseur du module s'affiche en haut à gauche, au-dessus de la carte : le titre passe
+    # dessous, et le curseur est élargi pour se manier sans viser
+    entete = (
+        "<style>input[type=range]{width:280px;vertical-align:middle}</style>"
+        '<div style="position:fixed;top:46px;left:56px;z-index:1000;background:white;'
+        f'padding:6px 10px;font:bold 14px sans-serif;color:{config.COULEUR_TEXTE};max-width:60%">'
+        f"{html.escape(titre)}</div>"
+    )
+    carte.get_root().html.add_child(folium.Element(entete))
+    return carte
 
 
 def _libelles_distance() -> list[str]:
