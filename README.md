@@ -45,7 +45,7 @@ uv run pre-commit install        # active nb-clean et ruff avant chaque commit
 uv run pytest                    # lance les tests
 ```
 
-Le rapport est `rapport.ipynb` (pour l'instant le plan du rapport, la Fig. 1 et la Fig. 3). Le site se construit avec [Quarto](https://quarto.org/), déjà installé sur le SSPCloud :
+Le rapport est `rapport.ipynb` (pour l'instant le plan du rapport, les Fig. 1, 3, 5 et 7, les tableaux de H1, H2 et H4 et la carte IRIS). Le site se construit avec [Quarto](https://quarto.org/), déjà installé sur le SSPCloud :
 
 ```bash
 uv run quarto render             # exécute rapport.ipynb et écrit le site dans _site/
@@ -87,6 +87,10 @@ Les fichiers de l'Insee (zonage en aires d'attraction, série historique du rece
 from cadres_lycees import collecte
 
 collecte.geler_annuaire("raw/annuaire_education_AAAAMMJJ.parquet")  # renvoie le sha256
+collecte.geler_gares("raw/gares_voyageurs_AAAAMMJJ.parquet")
+collecte.geler_apl("raw/apl_medecins_generalistes_AAAAMMJJ.xlsx")
+collecte.geler_equipements_sportifs("raw/equipements_sportifs_AAAAMMJJ.parquet")
+collecte.geler_bpe("raw/bpe_2025_AAAAMMJJ.parquet")
 collecte.geler_contours(
     "raw/contours_aav_013_AAAAMMJJ.parquet",
     valeur="013",
@@ -107,7 +111,7 @@ collecte.geler_contours(
 )
 ```
 
-Les deux fonctions refusent d'écraser un chemin existant. Il faut ensuite reporter le chemin et le `sha256` dans `config.py`, publier le fichier aux deux adresses ci-dessus et mettre à jour ce tableau.
+Ces fonctions refusent d'écraser un chemin existant. Il faut ensuite reporter le chemin et le `sha256` dans `config.py`, publier le fichier aux deux adresses ci-dessus et mettre à jour ce tableau.
 
 ## Organisation
 

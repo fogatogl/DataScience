@@ -90,10 +90,11 @@ def _base_sans_cadres(referentiel: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame) -
         # pandas refuse la différence de deux booléens, que calcule `geo.paires_contigues`
         expose = base[f"n_lyc_prive_{rayon}km"] > 0
         base[f"expose_lyc_prive_{rayon}km"] = expose.astype(int)
-    # H4, sport et culture : presque chaque commune a une installation sportive ou une
-    # bibliothèque à moins de 2 km, la distance au plus proche ne distingue donc pas les communes ;
-    # on prend le nombre au rayon principal, très asymétrique (asymétrie de 3,3 à 4 selon l'aire),
-    # d'où le logarithme comme pour la densité (A7). log(1 + n) : des communes n'en ont aucun à 5 km
+    # H4, sport et culture : la distance au plus proche distingue peu les communes (installation
+    # sportive à 2 km au plus pour 93 à 99 % d'entre elles selon l'aire ; équipement culturel à
+    # une distance médiane de 0,8 à 1,8 km). On prend le nombre au rayon principal, très
+    # asymétrique (asymétrie de 3,3 à 4 selon l'aire), d'où le logarithme comme pour la densité
+    # (A7). log(1 + n) : des communes n'en ont aucun à 5 km
     for equipement in ("sport", "culture"):
         nombre = base[f"n_{equipement}_{config.RAYON_PRINCIPAL_KM}km"]
         base[f"log_n_{equipement}_{config.RAYON_PRINCIPAL_KM}km"] = np.log1p(nombre)
@@ -172,18 +173,14 @@ def ecrire_tableau_support() -> None:
     config.CHEMIN_TABLEAU_SUPPORT.write_text(texte + "\n", encoding="utf-8")
 
 
-def copies_gelees() -> pd.DataFrame:
-    """Renvoie la liste des fichiers bruts que lit le projet, avec leur sha256 (PLAN §7).
+def fichiers_bruts() -> pd.DataFrame:
+    """Renvoie les fichiers bruts que lit le projet, avec leur sha256 (PLAN §7).
 
-    Tirée de `config.py`, qui associe chaque `CHEMIN_RAW_<X>` à son `SHA256_<X>` : la liste
-    reste ainsi celle du code. Un chemin qui dépend de l'aire (`{aav}`) donne une ligne par aire.
-    Colonnes `fichier` et `sha256`, pour la section 2.1 et l'annexe « Reproduire le projet ».
+    Liste de `config.FICHIERS_BRUTS` ; un chemin qui dépend de l'aire (`{aav}`) donne une ligne
+    par aire. Colonnes `fichier` et `sha256`, pour l'annexe « Reproduire le projet ».
     """
     lignes = []
-    for nom, chemin in vars(config).items():
-        if not nom.startswith("CHEMIN_RAW_"):
-            continue
-        sha256 = getattr(config, nom.replace("CHEMIN_RAW_", "SHA256_"))
+    for chemin, sha256 in config.FICHIERS_BRUTS:
         if isinstance(sha256, dict):
             lignes += [(chemin.format(aav=aav), valeur) for aav, valeur in sha256.items()]
         else:

@@ -387,15 +387,17 @@ def resume_acces(base: pd.DataFrame) -> pd.DataFrame:
     comptes sont très asymétriques.
     """
     rayon = config.RAYON_PRINCIPAL_KM
-    return base.groupby("aire").agg(
+    mesures = [
+        "dist_lyc_prive_min",
+        "dist_lyc_public_min",
+        "dist_gare_min",
+        "apl_mg",
+        f"n_sport_{rayon}km",
+        f"n_culture_{rayon}km",
+    ]
+    par_aire = base.groupby("aire")
+    effectifs = par_aire.agg(
         communes=("code_commune", "size"),
         part_exposees=(f"expose_lyc_prive_{rayon}km", "mean"),
-        dist_lyc_prive_km=("dist_lyc_prive_min", "median"),
-        dist_lyc_public_km=("dist_lyc_public_min", "median"),
-        dist_gare_km=("dist_gare_min", "median"),
-        apl_mg=("apl_mg", "median"),
-        **{
-            f"n_sport_{rayon}km": (f"n_sport_{rayon}km", "median"),
-            f"n_culture_{rayon}km": (f"n_culture_{rayon}km", "median"),
-        },
     )
+    return effectifs.join(par_aire[mesures].median())

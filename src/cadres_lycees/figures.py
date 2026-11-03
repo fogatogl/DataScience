@@ -217,6 +217,17 @@ def _panneau_ips(ax: plt.Axes, profil: pd.DataFrame, lycees: gpd.GeoDataFrame) -
     )
 
 
+def _aires_ordonnees(aires: Collection[str]) -> list[str]:
+    """Renvoie les aires présentes dans l'ordre de `config.COULEURS_AIRES`.
+
+    Échoue si une aire n'a pas de couleur : sinon elle disparaîtrait de la figure sans signal.
+    """
+    presentes = set(aires)
+    inconnues = sorted(presentes - set(config.COULEURS_AIRES))
+    assert not inconnues, f"Aires sans couleur dans config.COULEURS_AIRES : {inconnues}."
+    return [aire for aire in config.COULEURS_AIRES if aire in presentes]
+
+
 def fig2(base: pd.DataFrame, titre: str) -> Figure:
     """Fig. 2 : part de cadres de chaque commune selon sa distance au centre de l'aire.
 
@@ -226,8 +237,7 @@ def fig2(base: pd.DataFrame, titre: str) -> Figure:
     `pipeline.construire_base` ; `titre` est le message de la figure, écrit par le groupe
     (PLAN §6). Une commune sans actif en 2022 n'a pas de part et n'est pas tracée (A17).
     """
-    inconnues = sorted(set(base["aire"]) - set(config.COULEURS_AIRES))
-    assert not inconnues, f"Aires sans couleur dans config.COULEURS_AIRES : {inconnues}."
+    aires = _aires_ordonnees(base["aire"])
     sans_part = base["part_cadres_2022"].isna()
     communes = base[~sans_part]
     texte = config.COULEUR_TEXTE
@@ -244,10 +254,9 @@ def fig2(base: pd.DataFrame, titre: str) -> Figure:
         fontsize=8,
         color=texte,
     )
-    for aire, couleur in config.COULEURS_AIRES.items():
+    for aire in aires:
+        couleur = config.COULEURS_AIRES[aire]
         communes_aire = communes[communes["aire"] == aire]
-        if communes_aire.empty:
-            continue
         ax.scatter(
             communes_aire["dist_centre_km"],
             communes_aire["part_cadres_2022"] * 100,
@@ -334,9 +343,7 @@ def fig5(paires: pd.DataFrame, pentes: pd.DataFrame, titre: str) -> Figure:
     "d_dist_lyc_prive_min")` ; `titre` est le message de la figure, écrit par le groupe (PLAN §6).
     """
     acces = "d_dist_lyc_prive_min"
-    aires = [aire for aire in config.COULEURS_AIRES if aire in set(paires["aire"])]
-    inconnues = sorted(set(paires["aire"]) - set(aires))
-    assert not inconnues, f"Aires sans couleur dans config.COULEURS_AIRES : {inconnues}."
+    aires = _aires_ordonnees(paires["aire"])
     assert set(pentes.index) == set(aires), "Les pentes et les paires n'ont pas les mêmes aires."
     texte = config.COULEUR_TEXTE
 
@@ -378,12 +385,16 @@ def fig5(paires: pd.DataFrame, pentes: pd.DataFrame, titre: str) -> Figure:
             fontsize=8.5,
             color=texte,
         )
-        ax.set_xlabel("Écart de distance au lycée privé le plus proche (km)", color=texte)
+        ax.set_xlabel(
+            "Écart de distance au lycée privé le plus proche,\nà position égale (km)", color=texte
+        )
         ax.spines[["top", "right"]].set_visible(False)
         ax.tick_params(colors=texte)
         ax.grid(color=config.COULEUR_GRILLE, linewidth=0.8)
         ax.set_axisbelow(True)
-    axes[0][0].set_ylabel("Écart de part de cadres en 2022 (points)", color=texte)
+    axes[0][0].set_ylabel(
+        "Écart de part de cadres en 2022,\nà position égale (points)", color=texte
+    )
 
     fig.suptitle(titre, fontsize=13, x=0.01, ha="left")
     fig.text(
@@ -576,9 +587,7 @@ def fig7(pentes: pd.DataFrame, titre: str) -> Figure:
     pentes des aires), un point par aire avec son intervalle à 95 %. `pentes` vient de
     `analyse.pentes_h4` ; `titre` est le message de la figure, écrit par le groupe (PLAN §6).
     """
-    aires = [
-        aire for aire in config.COULEURS_AIRES if aire in set(pentes.index.get_level_values("aire"))
-    ]
+    aires = _aires_ordonnees(pentes.index.get_level_values("aire"))
     ordre = pentes["pente"].groupby(level="mesure").mean().sort_values().index
     texte = config.COULEUR_TEXTE
     # Les aires sont décalées verticalement dans chaque ligne, pour que leurs intervalles ne se

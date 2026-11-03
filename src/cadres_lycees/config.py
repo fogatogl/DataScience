@@ -483,3 +483,25 @@ COULEUR_IRIS_NON_COMPARABLE = "#e3e2de"
 # lire à l'échelle de l'aire. 9 km couvrent les communes-centres des 3 aires, Strasbourg compris
 # (17,3 km du nord au sud), et Villeurbanne avec Lyon
 ZOOM_IRIS_KM = 9
+
+# Fichiers bruts lus par le projet, avec leur sha256 contrôlé à chaque lecture : copies gelées et
+# zips de l'Insee, listés dans l'annexe « Reproduire le projet » (`pipeline.fichiers_bruts`). Un
+# chemin qui contient `{aav}` a un sha256 par aire
+FICHIERS_BRUTS = (
+    (CHEMIN_RAW_ANNUAIRE, SHA256_ANNUAIRE),
+    (CHEMIN_RAW_IPS, SHA256_IPS),
+    (CHEMIN_RAW_IVAL, SHA256_IVAL),
+    (CHEMIN_RAW_CONTOURS, SHA256_CONTOURS),
+    (CHEMIN_RAW_DEPARTEMENTS, SHA256_DEPARTEMENTS),
+    (CHEMIN_RAW_CONTOURS_IRIS, SHA256_CONTOURS_IRIS),
+    (CHEMIN_RAW_GARES, SHA256_GARES),
+    (CHEMIN_RAW_APL, SHA256_APL),
+    (CHEMIN_RAW_EQUIPEMENTS_SPORTIFS, SHA256_EQUIPEMENTS_SPORTIFS),
+    (CHEMIN_RAW_BPE, SHA256_BPE),
+    (CHEMIN_RAW_AAV, SHA256_AAV),
+    (CHEMIN_RAW_PASSAGE_COG, SHA256_PASSAGE_COG),
+    (CHEMIN_RAW_SERIE_RP2022, SHA256_SERIE_RP2022),
+    (CHEMIN_RAW_EVOL_STRUCT_RP2022, SHA256_EVOL_STRUCT_RP2022),
+    (CHEMIN_RAW_ACTIVITE_IRIS_2011, SHA256_ACTIVITE_IRIS_2011),
+    (CHEMIN_RAW_ACTIVITE_IRIS_2022, SHA256_ACTIVITE_IRIS_2022),
+)
