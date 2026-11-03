@@ -1,4 +1,9 @@
-"""Figures du rapport : une fonction par figure, avec les mêmes couleurs de secteur."""
+"""Figures du rapport : une fonction par figure, avec les mêmes couleurs de secteur.
+
+S'y ajoute `document_markdown`, qui met en forme les documents du dépôt affichés tels quels
+dans le rapport (tableau de support, dictionnaire, journal) : comme les figures, c'est ce que
+le rapport montre, et non un calcul.
+"""
 
 import html
 import itertools
@@ -760,7 +765,8 @@ def document_markdown(chemin: Path, apres: str | None = None) -> str:
 
     Le texte part de la ligne qui suit `apres`, ou de la deuxième ligne (après le titre du
     document) si `apres` est absent. Les titres sont descendus de deux niveaux (`##` devient
-    `####`) pour rester sous la section du rapport qui affiche le document.
+    `####`) pour rester sous la section du rapport qui affiche le document ; une ligne qui
+    commence par `#` dans un bloc de code est un commentaire et reste telle quelle.
     """
     texte = chemin.read_text(encoding="utf-8")
     if apres is None:
@@ -768,5 +774,12 @@ def document_markdown(chemin: Path, apres: str | None = None) -> str:
     else:
         assert apres in texte, f"« {apres} » absent de {chemin}."
         corps = texte.split(apres, maxsplit=1)[1]
-    lignes = ["##" + ligne if ligne.startswith("#") else ligne for ligne in corps.splitlines()]
+    lignes = []
+    dans_un_bloc_de_code = False
+    for ligne in corps.splitlines():
+        if ligne.startswith("```"):
+            dans_un_bloc_de_code = not dans_un_bloc_de_code
+        if ligne.startswith("#") and not dans_un_bloc_de_code:
+            ligne = "##" + ligne
+        lignes.append(ligne)
     return "\n".join(lignes)

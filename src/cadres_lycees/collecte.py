@@ -3,6 +3,7 @@
 import hashlib
 import io
 import zipfile
+from collections.abc import Callable
 
 import geopandas as gpd
 import pandas as pd
@@ -23,7 +24,7 @@ def geler_annuaire(chemin: str) -> str:
     Produit une copie gelée : celle du 13/10/2026 vient de là. Le rapport ne l'appelle pas, il
     lit la copie gelée (`annuaire_education`). Mode d'emploi dans le README.
     """
-    return _geler_export_parquet(config.URL_ANNUAIRE, chemin)
+    return _geler(config.URL_ANNUAIRE, chemin, _parquet_complet)
 
 
 def geler_gares(chemin: str) -> str:
@@ -32,7 +33,7 @@ def geler_gares(chemin: str) -> str:
     Produit la copie gelée du 03/11/2026 ; le rapport lit cette copie (`gares`). Mode d'emploi
     dans le README.
     """
-    return _geler_export_parquet(config.URL_GARES, chemin)
+    return _geler(config.URL_GARES, chemin, _parquet_complet)
 
 
 def geler_apl(chemin: str) -> str:
@@ -40,25 +41,17 @@ def geler_apl(chemin: str) -> str:
 
     Produit la copie gelée du 03/11/2026 ; le rapport lit cette copie (`apl_medecins`).
     """
-    assert not stockage.existe(chemin), f"{chemin} existe déjà : choisir un autre chemin daté."
-    reponse = requests.get(config.URL_APL, timeout=config.DELAI_TELECHARGEMENT_S)
-    reponse.raise_for_status()
-    # Un xlsx est une archive zip : testzip relit chaque fichier et échoue si l'archive est tronquée
-    assert zipfile.ZipFile(io.BytesIO(reponse.content)).testzip() is None, (
-        "Le fichier de l'APL est abîmé : rien n'a été enregistré."
-    )
-    stockage.ecrire_octets(reponse.content, chemin)
-    return hashlib.sha256(reponse.content).hexdigest()
+    return _geler(config.URL_APL, chemin, _xlsx_complet)
 
 
 def geler_equipements_sportifs(chemin: str) -> str:
     """Écrit à `chemin` l'export complet de Data ES et renvoie son sha256.
 
     Produit la copie gelée du 03/11/2026 ; le rapport lit cette copie (`equipements_sportifs`).
-    Le serveur peut répondre 200 avec un flux tronqué par une erreur : le contrôle de
-    `_geler_export_parquet` le refuse.
+    Le serveur peut répondre 200 avec un flux tronqué par une erreur : `_parquet_complet` le
+    refuse.
     """
-    return _geler_export_parquet(config.URL_EQUIPEMENTS_SPORTIFS, chemin)
+    return _geler(config.URL_EQUIPEMENTS_SPORTIFS, chemin, _parquet_complet)
 
 
 def geler_bpe(chemin: str) -> str:
@@ -66,21 +59,37 @@ def geler_bpe(chemin: str) -> str:
 
     Produit la copie gelée du 03/11/2026 ; le rapport lit cette copie (`equipements_culturels`).
     """
-    return _geler_export_parquet(config.URL_BPE, chemin)
+    return _geler(config.URL_BPE, chemin, _parquet_complet)
 
 
-def _geler_export_parquet(url: str, chemin: str) -> str:
-    """Écrit à `chemin` l'export Parquet téléchargé à `url` et renvoie son sha256."""
+def _geler(url: str, chemin: str, est_complet: Callable[[bytes], bool]) -> str:
+    """Écrit à `chemin` le fichier téléchargé à `url` et renvoie son sha256.
+
+    Une réponse 200 peut être tronquée : `est_complet` contrôle le contenu avant l'écriture.
+    """
     # Un chemin daté déjà pris est une copie gelée, peut-être publique : on ne l'écrase jamais
     assert not stockage.existe(chemin), f"{chemin} existe déjà : choisir un autre chemin daté."
     reponse = requests.get(url, timeout=config.DELAI_TELECHARGEMENT_S)
     reponse.raise_for_status()
-    # Une réponse 200 peut être tronquée ; "PAR1" ouvre et ferme tout fichier Parquet
-    assert reponse.content.startswith(b"PAR1") and reponse.content.endswith(b"PAR1"), (
-        f"L'export de {url} n'est pas un fichier Parquet complet : rien n'a été enregistré."
+    assert est_complet(reponse.content), (
+        f"Le fichier de {url} est incomplet : rien n'a été enregistré."
     )
     stockage.ecrire_octets(reponse.content, chemin)
     return hashlib.sha256(reponse.content).hexdigest()
+
+
+def _parquet_complet(contenu: bytes) -> bool:
+    """Dit si `contenu` est un fichier Parquet entier : "PAR1" l'ouvre et le ferme toujours."""
+    return contenu.startswith(b"PAR1") and contenu.endswith(b"PAR1")
+
+
+def _xlsx_complet(contenu: bytes) -> bool:
+    """Dit si `contenu` est un xlsx entier : une archive zip dont chaque fichier se relit.
+
+    Une archive tronquée fait échouer `zipfile` (BadZipFile) ; un fichier abîmé est renvoyé par
+    `testzip`.
+    """
+    return zipfile.ZipFile(io.BytesIO(contenu)).testzip() is None
 
 
 def annuaire_education() -> gpd.GeoDataFrame:

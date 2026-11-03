@@ -27,15 +27,22 @@ def construire_base(
 
     `aires` associe le nom de l'aire à son code AAV2020 (par exemple `config.AIRES_RETENUES`).
     La base a une ligne par commune du référentiel (arrondissements à Lyon) : les colonnes de
-    `_base_sans_cadres`, puis `part_cadres_2011`, `part_cadres_2022`, `evol_cadres_pts`,
-    `actifs_2011` et `actifs_2022` (§2.3). Les
-    sources sont lues dans leurs copies contrôlées (§7). Écrit `config.CHEMIN_BASE` et
+    `_base_sans_cadres`, celles de `_acces_autres_infrastructures` (H4), puis `part_cadres_2011`,
+    `part_cadres_2022`, `evol_cadres_pts`, `actifs_2011` et `actifs_2022` (§2.3). Les sources
+    sont lues dans leurs copies contrôlées (§7). Écrit `config.CHEMIN_BASE` et
     `config.CHEMIN_PAIRES`, décrits dans `docs/dictionnaire_variables.md`, et renvoie
     (base, lycées, paires).
     """
     referentiel = geo.referentiel_communes(aires)
     lycees = lycees_avec_aire(referentiel)
     base = _base_sans_cadres(referentiel, lycees)
+    base = base.merge(
+        _acces_autres_infrastructures(referentiel),
+        left_on="code_commune",
+        right_index=True,
+        how="left",
+        validate="one_to_one",
+    )
     cadres = nettoyage.part_cadres(collecte.evol_struct_rp2022(), referentiel)
     base = base.merge(
         cadres, left_on="code_commune", right_index=True, how="left", validate="one_to_one"
@@ -52,10 +59,9 @@ def _base_sans_cadres(referentiel: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame) -
     """Renvoie la base communale sans la part de cadres.
 
     Une ligne par commune du référentiel : accès aux lycées privés et publics (§2.4), nombre de
-    lycées et IVAL moyenne dans chaque rayon, population, densité, exposition 0/1, et pour H4
-    accès aux gares, aux installations sportives et aux équipements culturels, et APL aux
-    médecins généralistes. Le tableau de support n'utilise que cette partie : il ne lit aucune
-    donnée sur les cadres (A3).
+    lycées et IVAL moyenne dans chaque rayon, population, densité et exposition 0/1. Le tableau
+    de support n'utilise que cette partie : il ne lit aucune donnée sur les cadres (A3), ni les
+    sources de H4, gelées après lui.
     """
     acces_tous_lycees = accessibilite.indicateurs(
         referentiel, lycees, "lyc", attribut="ival", poids="poids_ival"
@@ -67,12 +73,6 @@ def _base_sans_cadres(referentiel: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame) -
         # au plus proche, tous secteurs confondus, n'entre dans aucune analyse du plan
         acces_tous_lycees.drop(columns="dist_lyc_min"),
         nettoyage.population(collecte.serie_historique_rp2022(), referentiel),
-        # H4 (§5.7) : la même fonction d'accès pour les gares ; l'APL est déjà un indicateur
-        # d'accès, calculé par la DREES, et entre telle quelle
-        accessibilite.indicateurs(referentiel, collecte.gares(), "gare"),
-        accessibilite.indicateurs(referentiel, collecte.equipements_sportifs(), "sport"),
-        accessibilite.indicateurs(referentiel, collecte.equipements_culturels(), "culture"),
-        collecte.apl_medecins().to_frame(),
     ]
     base = referentiel
     for bloc in blocs:
@@ -90,15 +90,38 @@ def _base_sans_cadres(referentiel: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame) -
         # pandas refuse la différence de deux booléens, que calcule `geo.paires_contigues`
         expose = base[f"n_lyc_prive_{rayon}km"] > 0
         base[f"expose_lyc_prive_{rayon}km"] = expose.astype(int)
-    # H4, sport et culture : la distance au plus proche distingue peu les communes (installation
+    return base
+
+
+def _acces_autres_infrastructures(referentiel: gpd.GeoDataFrame) -> pd.DataFrame:
+    """Renvoie l'accès de chaque commune aux autres infrastructures de H4 (§5.7).
+
+    Indexé par `code_commune` : comptes et distance au plus proche pour les gares, les
+    installations sportives et les équipements culturels (`accessibilite.indicateurs`), APL aux
+    médecins généralistes (`apl_mg`), et `log_n_sport_5km`, `log_n_culture_5km`.
+    """
+    blocs = [
+        accessibilite.indicateurs(referentiel, collecte.gares(), "gare"),
+        accessibilite.indicateurs(referentiel, collecte.equipements_sportifs(), "sport"),
+        accessibilite.indicateurs(referentiel, collecte.equipements_culturels(), "culture"),
+        # L'APL est déjà un indicateur d'accès, calculé par la DREES : elle entre telle quelle
+        collecte.apl_medecins().to_frame(),
+    ]
+    acces = pd.DataFrame(index=pd.Index(referentiel["code_commune"], name="code_commune"))
+    for bloc in blocs:
+        acces = acces.join(bloc, how="left", validate="one_to_one")
+    incompletes = acces.columns[acces.isna().any()].tolist()
+    assert not incompletes, f"Communes sans accès aux infrastructures de H4 dans {incompletes}."
+
+    # Sport et culture : la distance au plus proche distingue peu les communes (installation
     # sportive à 2 km au plus pour 93 à 99 % d'entre elles selon l'aire ; équipement culturel à
     # une distance médiane de 0,8 à 1,8 km). On prend le nombre au rayon principal, très
     # asymétrique (asymétrie de 3,3 à 4 selon l'aire), d'où le logarithme comme pour la densité
     # (A7). log(1 + n) : des communes n'en ont aucun à 5 km
     for equipement in ("sport", "culture"):
-        nombre = base[f"n_{equipement}_{config.RAYON_PRINCIPAL_KM}km"]
-        base[f"log_n_{equipement}_{config.RAYON_PRINCIPAL_KM}km"] = np.log1p(nombre)
-    return base
+        nombre = acces[f"n_{equipement}_{config.RAYON_PRINCIPAL_KM}km"]
+        acces[f"log_n_{equipement}_{config.RAYON_PRINCIPAL_KM}km"] = np.log1p(nombre)
+    return acces
 
 
 def ecrire_tableau_support() -> None:

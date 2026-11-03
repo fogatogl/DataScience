@@ -60,10 +60,10 @@ AIRES_OUEST = ("Nantes", "Rennes")
 # suit pas `RAYONS_KM` : le plan la fixe à 10 km
 AIRES_FRONTALIERES = ("Lille", "Strasbourg")
 DIST_FRONTIERE_KM = 10
-# Écarts calculés dans les paires de communes contiguës : accès principal et secondaire (§5.3),
-# contrôles (§2.5, A7), exposition 0/1 pour compter les paires de statut différent (§5.2, A6) et
-# accès aux autres infrastructures (H4, §5.7). Le tableau de support n'utilise que les six
-# premiers, sans la part de cadres (A3)
+# Écarts calculés dans les paires de communes contiguës. Sans la part de cadres, pour le tableau
+# de support (A3) : accès principal et secondaire (§5.3), contrôles (§2.5, A7) et exposition 0/1
+# pour compter les paires de statut différent (§5.2, A6). Puis l'accès aux autres
+# infrastructures (H4, §5.7), qui n'entre que dans la base des aires retenues
 VARIABLES_PAIRES_SANS_CADRES = (
     "dist_lyc_prive_min",
     "n_lyc_prive_5km",
@@ -71,12 +71,9 @@ VARIABLES_PAIRES_SANS_CADRES = (
     "log_densite",
     "expose_lyc_prive_5km",
     "expose_lyc_prive_10km",
-    "dist_gare_min",
-    "apl_mg",
-    "log_n_sport_5km",
-    "log_n_culture_5km",
 )
-VARIABLES_PAIRES = ("part_cadres_2022", *VARIABLES_PAIRES_SANS_CADRES)
+VARIABLES_PAIRES_H4 = ("dist_gare_min", "apl_mg", "log_n_sport_5km", "log_n_culture_5km")
+VARIABLES_PAIRES = ("part_cadres_2022", *VARIABLES_PAIRES_SANS_CADRES, *VARIABLES_PAIRES_H4)
 
 # Aires d'attraction des villes 2020 candidates : nom -> code AAV2020 (chaîne, le zéro compte)
 AIRES_CANDIDATES = {
