@@ -442,6 +442,11 @@ NB_LIGNES_IVAL = 32485
 PREMIERE_SESSION_IVAL = 2012
 DERNIERE_SESSION_IVAL = 2022
 NB_SESSIONS_MIN_IVAL = 5
+# Indicateur de valeur ajoutée de l'IVAL (§3.2) : taux d'accès de la seconde au bac ; le taux de
+# réussite et la période 2012-2025 servent en robustesse de H3
+INDICATEUR_IVAL = "va_acces_2nde"
+INDICATEUR_IVAL_ROBUSTESSE = "va_reu_total"
+DERNIERE_SESSION_IVAL_ROBUSTESSE = 2025
 # Test de fiabilité de l'IVAL (PLAN §3.2, A7) : les deux moitiés de la période et le nombre minimal
 # de sessions valides dans chacune
 MOITIES_IVAL = ((2012, 2017), (2018, 2022))

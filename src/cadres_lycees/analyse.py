@@ -763,6 +763,51 @@ def terciles_h3(population: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(lignes).set_index(["aire", "categorie"])
 
 
+def robustesse_h3(
+    base: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame, sessions_ival: pd.DataFrame
+) -> pd.DataFrame:
+    """Renvoie β_q, β_n et β_q − β_n de H3, toutes aires ensemble, dans ses robustesses (§3.2).
+
+    Spécification principale, puis l'IVAL moyenne sur 2012-2025 au lieu de 2012-2022, puis la
+    valeur ajoutée du taux de réussite au lieu du taux d'accès de la seconde au bac. Seule l'IVAL
+    des lycées change ; `ival_moy_5km`, la population, les grappes et l'estimation suivent les
+    mêmes règles (`population_h3`, `estimation_h3`). Index (`variante`, `coefficient`) ;
+    colonnes de `estimation_h3`.
+    """
+    rayon = config.RAYON_PRINCIPAL_KM
+    premiere, nb_min = config.PREMIERE_SESSION_IVAL, config.NB_SESSIONS_MIN_IVAL
+    variantes = {
+        "Spécification principale": (config.DERNIERE_SESSION_IVAL, config.INDICATEUR_IVAL),
+        f"IVAL de {premiere} à {config.DERNIERE_SESSION_IVAL_ROBUSTESSE}": (
+            config.DERNIERE_SESSION_IVAL_ROBUSTESSE,
+            config.INDICATEUR_IVAL,
+        ),
+        "Valeur ajoutée du taux de réussite": (
+            config.DERNIERE_SESSION_IVAL,
+            config.INDICATEUR_IVAL_ROBUSTESSE,
+        ),
+    }
+    resultats = {}
+    for nom, (derniere, indicateur) in variantes.items():
+        ival = nettoyage.ival_par_lycee(sessions_ival, premiere, derniere, nb_min, indicateur)
+        lycees_variante = lycees.drop(columns=["ival", "poids_ival"]).join(
+            ival, on="uai", how="left"
+        )
+        acces = accessibilite.indicateurs(
+            base, lycees_variante, "lyc", rayons=(rayon,), attribut="ival", poids="poids_ival"
+        )
+        base_variante = base.drop(columns=f"ival_moy_{rayon}km").merge(
+            acces[[f"ival_moy_{rayon}km"]],
+            left_on="code_commune",
+            right_index=True,
+            how="left",
+            validate="one_to_one",
+        )
+        estimation = estimation_h3(population_h3(base_variante, lycees_variante))
+        resultats[nom] = estimation.loc["ensemble"]
+    return pd.concat(resultats, names=["variante", "coefficient"])
+
+
 def _ecart_paires(paires: pd.DataFrame, base: pd.DataFrame, variable: str) -> pd.Series:
     """Renvoie l'écart i − j de `variable` dans les paires, comme `geo.paires_contigues`."""
     valeurs = base.set_index("code_commune")[variable]

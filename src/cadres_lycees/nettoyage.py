@@ -365,15 +365,20 @@ def _actifs_et_part(
 
 
 def ival_par_lycee(
-    sessions_ival: pd.DataFrame, premiere: int, derniere: int, nb_sessions_min: int
+    sessions_ival: pd.DataFrame,
+    premiere: int,
+    derniere: int,
+    nb_sessions_min: int,
+    indicateur: str = config.INDICATEUR_IVAL,
 ) -> pd.DataFrame:
     """Renvoie l'IVAL de chaque lycée sur les sessions `premiere` à `derniere`, indexée par `uai`.
 
-    `ival` est la moyenne simple des `va_acces_2nde` de ces sessions, pour les lycées qui en ont
-    au moins `nb_sessions_min` où la valeur ajoutée est renseignée ; `poids_ival` est la moyenne
-    de `presents_total` sur ces sessions. Les autres lycées sont absents du résultat. La règle A1
-    (PLAN §2.4) correspond aux valeurs de `config` ; le test de fiabilité (§3.2) l'applique à
-    chaque moitié. Les sessions des UAI de
+    `ival` est la moyenne simple de l'`indicateur` de valeur ajoutée de ces sessions (le taux
+    d'accès de la seconde au bac par défaut, le taux de réussite en robustesse, §3.2), pour les
+    lycées qui en ont au moins `nb_sessions_min` où la valeur ajoutée est renseignée ;
+    `poids_ival` est la moyenne de `presents_total` sur ces sessions. Les autres lycées sont
+    absents du résultat. La règle A1 (PLAN §2.4) correspond aux valeurs de `config` ; le test de
+    fiabilité (§3.2) l'applique à chaque moitié. Les sessions des UAI de
     `config.UAI_IVAL_RATTACHES` sont rattachées à l'UAI de l'annuaire : quand plusieurs sites
     publient la même session, elle vaut la valeur ajoutée moyenne des sites renseignés, pondérée
     par leurs présents, et ses présents sont ceux de ces sites additionnés.
@@ -385,16 +390,16 @@ def ival_par_lycee(
         {
             "uai": sessions_ival["uai"].replace(rattaches),
             "annee": sessions_ival["annee"].astype(int),
-            "va_acces_2nde": pd.to_numeric(sessions_ival["va_acces_2nde"]),
+            "va": pd.to_numeric(sessions_ival[indicateur]),
             "presents_total": pd.to_numeric(sessions_ival["presents_total"]),
         }
     )
     dans_la_periode = sessions["annee"].between(premiere, derniere)
-    valides = sessions[dans_la_periode & sessions["va_acces_2nde"].notna()].copy()
+    valides = sessions[dans_la_periode & sessions["va"].notna()].copy()
     assert (valides["presents_total"] > 0).all(), "Session valide sans présents."
 
     # Pour un lycée d'un seul site, la moyenne pondérée d'une session est sa valeur ajoutée
-    valides["va_x_presents"] = valides["va_acces_2nde"] * valides["presents_total"]
+    valides["va_x_presents"] = valides["va"] * valides["presents_total"]
     par_session = valides.groupby(["uai", "annee"])[["va_x_presents", "presents_total"]].sum()
     par_session["va"] = par_session["va_x_presents"] / par_session["presents_total"]
 

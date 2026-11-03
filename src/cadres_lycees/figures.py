@@ -931,31 +931,135 @@ def carte_iris(
     return fig
 
 
+def _nombre(valeur: float, facteur: float = 1, signe: bool = True) -> str:
+    """Écrit un nombre à deux décimales, à la française (virgule, vrai signe moins)."""
+    texte = f"{valeur * facteur:+.2f}" if signe else f"{valeur * facteur:.2f}"
+    return texte.replace(".", ",").replace("-", "−")
+
+
+def _estimation(ligne: pd.Series, valeur: str, facteur: float) -> str:
+    """Écrit « estimation [bas ; haut] », et les tirages écartés du bootstrap s'il y en a."""
+    ecartes = int(ligne["tirages_ecartes"])
+    estimation = _nombre(ligne[valeur], facteur)
+    if pd.isna(ligne["ic_bas"]):
+        return f"{estimation} (intervalle non rapporté, {ecartes} tirages écartés)"
+    texte = (
+        f"{estimation} [{_nombre(ligne['ic_bas'], facteur)} ; {_nombre(ligne['ic_haut'], facteur)}]"
+    )
+    if ecartes:
+        texte += f" ({ecartes} tirages écartés)"
+    return texte
+
+
 def tableau_robustesse(robustesse: pd.DataFrame) -> pd.DataFrame:
     """Met en forme le tableau de robustesse de H1 : une ligne par variante, une aire par colonne.
 
     Chaque case donne la pente en points, par km (ou par lycée pour les pentes secondaires), et
     son intervalle à 95 %, avec le nombre de tirages écartés s'il y en a. « — » : la variante ne
     concerne pas l'aire ; intervalle non rapporté au-delà de `config.MAX_TIRAGES_ECARTES`
-    tirages écartés. `robustesse` vient de
-    `analyse.robustesse_h1`.
+    tirages écartés. `robustesse` vient de `analyse.robustesse_h1`.
     """
-
-    def nombre(valeur: float) -> str:
-        return f"{valeur * 100:+.2f}".replace(".", ",").replace("-", "−")
-
-    def case(ligne: pd.Series) -> str:
-        ecartes = int(ligne["tirages_ecartes"])
-        if pd.isna(ligne["ic_bas"]):
-            return f"{nombre(ligne['pente'])} (intervalle non rapporté, {ecartes} tirages écartés)"
-        intervalle = f"[{nombre(ligne['ic_bas'])} ; {nombre(ligne['ic_haut'])}]"
-        if ecartes:
-            intervalle += f" ({ecartes} tirages écartés)"
-        return f"{nombre(ligne['pente'])} {intervalle}"
-
-    cases = robustesse.apply(case, axis=1).unstack("aire")
+    cases = robustesse.apply(_estimation, axis=1, valeur="pente", facteur=100).unstack("aire")
     aires = _aires_ordonnees(cases.columns)
     return cases.reindex(index=robustesse.index.unique("variante"), columns=aires).fillna("—")
+
+
+def tableau_h3(estimation: pd.DataFrame) -> pd.DataFrame:
+    """Met en forme les coefficients de H3 : une ligne par coefficient, une colonne par portée.
+
+    `estimation` vient de `analyse.estimation_h3` (index portée, coefficient) ou de
+    `analyse.robustesse_h3` (index variante, coefficient) : la colonne est le premier niveau.
+    Points de part de cadres, 2011-2022, pour un écart-type ; intervalle à 95 %.
+    """
+    cases = estimation.apply(_estimation, axis=1, valeur="estimation", facteur=1)
+    premier = estimation.index.names[0]
+    return cases.unstack(premier).reindex(
+        index=estimation.index.unique("coefficient"), columns=estimation.index.unique(premier)
+    )
+
+
+def tableau_acces(resume: pd.DataFrame) -> pd.DataFrame:
+    """Met en forme `analyse.resume_acces` : libellés en clair et unités, une aire par colonne."""
+    rayon = config.RAYON_PRINCIPAL_KM
+    libelles = {
+        "communes": "Communes",
+        "part_exposees": f"Part des communes avec un lycée privé sous contrat à {rayon} km (%)",
+        "dist_lyc_prive_min": "Distance au lycée privé sous contrat le plus proche (km, médiane)",
+        "dist_lyc_public_min": "Distance au lycée public le plus proche (km, médiane)",
+        "dist_gare_min": "Distance à la gare la plus proche (km, médiane)",
+        "apl_mg": "APL aux médecins généralistes (consultations par an et par habitant, médiane)",
+        f"n_sport_{rayon}km": f"Installations sportives à {rayon} km (médiane)",
+        f"n_culture_{rayon}km": f"Équipements culturels à {rayon} km (médiane)",
+    }
+    tableau = resume.copy()
+    tableau["part_exposees"] = tableau["part_exposees"] * 100
+    tableau = tableau[list(libelles)].rename(columns=libelles).T
+    texte = tableau.map(lambda valeur: _nombre(valeur, signe=False).removesuffix(",00"))
+    return texte[_aires_ordonnees(texte.columns)]
+
+
+def tableau_fiabilite(fiabilite: pd.DataFrame) -> pd.DataFrame:
+    """Met en forme `analyse.fiabilite_ival` : libellés en clair ; seule « ensemble » tranche H3."""
+    libelles = {
+        "r": "Corrélation des deux moitiés (r)",
+        "r_spearman_brown": "Fiabilité (Spearman-Brown)",
+        "n_communes_h3": "Communes de la population de H3",
+        "n_communes": "Communes renseignées dans les deux moitiés",
+        "n_lycees": "Lycées distincts à 5 km",
+    }
+    tableau = fiabilite[list(libelles)].rename(columns=libelles)
+    return tableau.round(3).rename(index={"ensemble": "Ensemble (tranche H3)"})
+
+
+def tableau_moran(moran: pd.DataFrame) -> pd.DataFrame:
+    """Met en forme `analyse.moran_part_cadres` : une ligne par aire, I et p-valeur par variable."""
+    variables = {
+        "part_cadres_2022": "part de cadres",
+        "ecart_anneau": "écart à la moyenne de l'anneau",
+    }
+    tableau = moran[["I", "p_valeur"]].unstack("variable")
+    tableau = tableau[
+        [(mesure, variable) for variable in variables for mesure in ("I", "p_valeur")]
+    ]
+    tableau.columns = [
+        f"{'I de Moran' if mesure == 'I' else 'p-valeur'}, {variables[variable]}"
+        for mesure, variable in tableau.columns
+    ]
+    return tableau.round(3).loc[_aires_ordonnees(tableau.index)]
+
+
+def tableau_hypotheses(verdict_h1: pd.DataFrame, verdict_h3: pd.DataFrame) -> pd.DataFrame:
+    """Renvoie le tableau des hypothèses du §6 : verdicts de H1 et H3, H2 et H4 descriptives.
+
+    `verdict_h1` et `verdict_h3` viennent de `analyse.verdict_h1` et `analyse.verdict_h3`. Les
+    verdicts suivent les règles écrites avant les résultats (§5.3, §5.5) ; H2 et H4 n'en ont
+    pas (§5.4, §5.7, A20).
+    """
+    lignes = [
+        {
+            "Hypothèse": "H1",
+            "Portée": aire,
+            "Verdict": ligne["verdict"],
+            "Mention": ligne["mention"],
+        }
+        for aire, ligne in verdict_h1.loc[_aires_ordonnees(verdict_h1.index)].iterrows()
+    ]
+    lignes.append(
+        {"Hypothèse": "H2", "Portée": "3 aires", "Verdict": "descriptive", "Mention": "§5.4"}
+    )
+    fiabilite = _nombre(verdict_h3.loc["ensemble", "fiabilite"], signe=False)
+    lignes.append(
+        {
+            "Hypothèse": "H3",
+            "Portée": "3 aires ensemble",
+            "Verdict": verdict_h3.loc["ensemble", "verdict"],
+            "Mention": f"fiabilité de l'IVAL {fiabilite}",
+        }
+    )
+    lignes.append(
+        {"Hypothèse": "H4", "Portée": "3 aires", "Verdict": "descriptive", "Mention": "A20"}
+    )
+    return pd.DataFrame(lignes).set_index(["Hypothèse", "Portée"])
 
 
 def document_markdown(chemin: Path, apres: str | None = None) -> str:
