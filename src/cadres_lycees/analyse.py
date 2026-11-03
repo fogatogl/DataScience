@@ -319,3 +319,37 @@ def pentes_paires_par_aire(paires: pd.DataFrame, acces: str) -> pd.DataFrame:
             "n_communes": len(communes),
         }
     return pd.DataFrame.from_dict(lignes, orient="index").rename_axis("aire")
+
+
+def nuage_paires(paires: pd.DataFrame, acces: str) -> pd.DataFrame:
+    """Renvoie le nuage par classes des paires d'une aire, à contrôles donnés (Fig. 5, §5.3).
+
+    On retire à `d_part_cadres_2022` et à l'écart d'accès `acces` leur partie expliquée par les
+    écarts de `config.CONTROLES_PAIRES` (régressions sans constante, comme `pente_paires`). Par
+    le théorème de Frisch-Waugh-Lovell, la pente des résidus de l'un sur les résidus de l'autre
+    est exactement celle de `pente_paires` : les points et la droite de la figure disent la même
+    chose. Les paires sont symétrisées (chaque paire dans les deux sens, A6), ce qui centre le
+    nuage sur zéro sans changer la pente, puis réparties en `config.NB_CLASSES_FIG5` classes
+    d'effectifs égaux de l'écart d'accès résiduel. Une ligne par classe : `acces_residuel` et
+    `cadres_residuel` (moyennes de la classe ; fraction pour les cadres) et `n_paires`.
+    """
+    controles = paires[list(config.CONTROLES_PAIRES)].to_numpy(dtype=float)
+    residus = {}
+    for nom, colonne in (("acces_residuel", acces), ("cadres_residuel", "d_part_cadres_2022")):
+        y = paires[colonne].to_numpy(dtype=float)
+        coefficients, _, rang, _ = np.linalg.lstsq(controles, y, rcond=None)
+        assert rang == controles.shape[1], f"Contrôles colinéaires dans les paires (rang {rang})."
+        residus[nom] = y - controles @ coefficients
+    residus = pd.DataFrame(residus)
+    assert residus.notna().all().all(), "Écart manquant dans les paires."
+    symetrisees = pd.concat([residus, -residus], ignore_index=True)
+    classe = pd.qcut(symetrisees["acces_residuel"], config.NB_CLASSES_FIG5, labels=False)
+    return (
+        symetrisees.groupby(classe)
+        .agg(
+            acces_residuel=("acces_residuel", "mean"),
+            cadres_residuel=("cadres_residuel", "mean"),
+            n_paires=("acces_residuel", "size"),
+        )
+        .rename_axis("classe")
+    )

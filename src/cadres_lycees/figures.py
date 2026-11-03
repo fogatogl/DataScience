@@ -11,7 +11,7 @@ import pandas as pd
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 
-from cadres_lycees import config
+from cadres_lycees import analyse, config
 
 
 def fig1(
@@ -321,6 +321,86 @@ def _courbe_tranches(communes: pd.DataFrame) -> pd.DataFrame:
             "part": tranches["cadres"] / tranches["actifs"],
         }
     )
+
+
+def fig5(paires: pd.DataFrame, pentes: pd.DataFrame, titre: str) -> Figure:
+    """Fig. 5 : écart de part de cadres et écart de distance au lycée privé dans les paires.
+
+    Un panneau par aire : le nuage par classes de `analyse.nuage_paires` et la droite de pente
+    principale de H1, sans constante, avec son intervalle à 95 % (§5.3). `paires` vient de
+    `pipeline.construire_base`, `pentes` de `analyse.pentes_paires_par_aire(paires,
+    "d_dist_lyc_prive_min")` ; `titre` est le message de la figure, écrit par le groupe (PLAN §6).
+    """
+    acces = "d_dist_lyc_prive_min"
+    aires = [aire for aire in config.COULEURS_AIRES if aire in set(paires["aire"])]
+    inconnues = sorted(set(paires["aire"]) - set(aires))
+    assert not inconnues, f"Aires sans couleur dans config.COULEURS_AIRES : {inconnues}."
+    assert set(pentes.index) == set(aires), "Les pentes et les paires n'ont pas les mêmes aires."
+    texte = config.COULEUR_TEXTE
+
+    fig, axes = plt.subplots(1, len(aires), figsize=(14, 5.4), sharey=True, squeeze=False)
+    for ax, aire in zip(axes[0], aires, strict=True):
+        couleur = config.COULEURS_AIRES[aire]
+        nuage = analyse.nuage_paires(paires[paires["aire"] == aire], acces)
+        ligne = pentes.loc[aire]
+        ax.axhline(0, color=config.COULEUR_LIAISON, linewidth=0.8, zorder=0)
+        ax.axvline(0, color=config.COULEUR_LIAISON, linewidth=0.8, zorder=0)
+        ax.scatter(
+            nuage["acces_residuel"],
+            nuage["cadres_residuel"] * 100,
+            s=28,
+            color=couleur,
+            edgecolor="white",
+            zorder=2,
+        )
+        bornes_x = [nuage["acces_residuel"].min(), nuage["acces_residuel"].max()]
+        ax.plot(
+            bornes_x,
+            [ligne["pente"] * 100 * x for x in bornes_x],
+            color=couleur,
+            linewidth=1.8,
+            zorder=1,
+        )
+        pente, bas, haut = (
+            f"{ligne[cle] * 100:+.2f}".replace(".", ",") for cle in ("pente", "ic_bas", "ic_haut")
+        )
+        # Les statistiques vont au-dessus du panneau : dedans, elles pourraient cacher des points
+        ax.set_title(aire, loc="left", fontsize=11, color=couleur, fontweight="bold", pad=34)
+        ax.text(
+            0,
+            1.02,
+            f"pente : {pente} point par km, intervalle à 95 % : [{bas} ; {haut}]\n"
+            f"{int(ligne['n_paires'])} paires, {int(ligne['n_communes'])} communes",
+            transform=ax.transAxes,
+            va="bottom",
+            fontsize=8.5,
+            color=texte,
+        )
+        ax.set_xlabel("Écart de distance au lycée privé le plus proche (km)", color=texte)
+        ax.spines[["top", "right"]].set_visible(False)
+        ax.tick_params(colors=texte)
+        ax.grid(color=config.COULEUR_GRILLE, linewidth=0.8)
+        ax.set_axisbelow(True)
+    axes[0][0].set_ylabel("Écart de part de cadres en 2022 (points)", color=texte)
+
+    fig.suptitle(titre, fontsize=13, x=0.01, ha="left")
+    fig.text(
+        0.01,
+        0.01,
+        "Paires de communes contiguës d'une même aire, chacune comptée dans les deux sens. Les "
+        "deux écarts sont pris à écarts de distance au centre et de log-densité donnés (résidus "
+        "des régressions sur ces\ncontrôles, sans constante) ; chaque point est la moyenne d'une "
+        f"des {config.NB_CLASSES_FIG5} classes d'effectifs égaux de l'écart de distance. Droite : "
+        "pente principale de H1 ; intervalle par bootstrap des communes "
+        f"({config.NB_TIRAGES_BOOTSTRAP} tirages).\nSources : Insee, recensement 2022, "
+        f"« Évolution et structure de la population » ; annuaire de l'éducation "
+        f"({config.DATE_ANNUAIRE}) ; IGN.",
+        fontsize=8,
+        color=texte,
+    )
+    fig.tight_layout(rect=(0, 0.1, 1, 0.94))
+    plt.close(fig)
+    return fig
 
 
 def _libelles_distance() -> list[str]:

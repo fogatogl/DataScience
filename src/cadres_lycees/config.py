@@ -24,6 +24,10 @@ ECART_DIST_MAX_KM = 2
 CONTROLES_PAIRES = ("d_dist_centre_km", "d_log_densite")
 NB_TIRAGES_BOOTSTRAP = 1000
 GRAINE_BOOTSTRAP = 20261021
+# Fig. 5 : nombre de classes d'effectifs égaux du nuage par classes, dans chaque aire. Avec 20
+# classes, une classe réunit environ 30 paires symétrisées dans l'aire qui en a le moins (Nantes,
+# 301 paires, 602 symétrisées)
+NB_CLASSES_FIG5 = 20
 
 # Sorties de `pipeline.construire_base` (PLAN §4, étape G)
 CHEMIN_BASE = "final/base_communale.parquet"
