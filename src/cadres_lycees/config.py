@@ -24,10 +24,10 @@ ECART_DIST_MAX_KM = 2
 CONTROLES_PAIRES = ("d_dist_centre_km", "d_log_densite")
 NB_TIRAGES_BOOTSTRAP = 1000
 GRAINE_BOOTSTRAP = 20261021
-# Fig. 5 : nombre de classes d'effectifs égaux du nuage par classes, dans chaque aire. Avec 20
+# `fig_paires` : nombre de classes d'effectifs égaux du nuage par classes, dans chaque aire. Avec 20
 # classes, une classe réunit environ 30 paires symétrisées dans l'aire qui en a le moins (Nantes,
 # 301 paires, 602 symétrisées)
-NB_CLASSES_FIG5 = 20
+NB_CLASSES_NUAGE_PAIRES = 20
 
 # H4 (§5.7) : mesures d'accès comparées, avec leur sens. Le sens -1 retourne les distances pour
 # que, pour toutes les mesures, une pente positive dise « plus d'accès, plus de cadres » : être
@@ -423,7 +423,7 @@ URL_IPS = (
 SHA256_IPS = "31b2aafd8fb4597608c55f8f78f7144444a350df795111a651fb5222ee9c8aa7"
 CHEMIN_RAW_IPS = "raw/ips_lycees_20261013.csv"
 NB_LIGNES_IPS = 10905
-# Rentrée et mesure de l'écart d'IPS public/privé (Fig. 1, critère (b) du §2.2) : la rentrée la
+# Rentrée et mesure de l'écart d'IPS public/privé (`fig_aires`, critère (b) du §2.2) : la rentrée la
 # plus récente, et `ips_voie_gt` pour rester sur la voie générale et technologique
 RENTREE_IPS = "2025-2026"
 COLONNE_IPS = "ips_voie_gt"
@@ -475,8 +475,8 @@ SEUIL_FIABILITE_IVAL = 0.5
 # l'intervalle n'est pas rapporté. Règle de H3 (§5.5, A16, verdict alors « non concluante »),
 # reprise pour les pentes des paires, où seule une robustesse peut écarter des tirages
 MAX_TIRAGES_ECARTES = 50
-# Fig. 6 : les trois tiers d'IVAL de chaque aire, puis les communes sans IVAL
-CATEGORIES_FIG6 = ("1er tiers", "2e tiers", "3e tiers", "sans IVAL")
+# `fig_h3` : les trois tiers d'IVAL de chaque aire, puis les communes sans IVAL
+CATEGORIES_TIERS_IVAL = ("1er tiers", "2e tiers", "3e tiers", "sans IVAL")
 # Robustesse (§5.6) : seuil des petites communes, en actifs de 25 à 54 ans en 2022 (§3.2), et
 # nombre de permutations de l'indice de Moran (p-valeur à 1/1000 près)
 ACTIFS_MIN_ROBUSTESSE = 200
@@ -520,7 +520,7 @@ COULEUR_TEXTE = "#52514e"
 COULEUR_LIAISON = "#c3c2b7"
 # Grille des axes, très claire pour rester en arrière-plan
 COULEUR_GRILLE = "#ececea"
-# Bande de fond qui met en avant les aires retenues parmi les candidates (Fig. 1, PLAN §5.1)
+# Bande de fond qui met en avant les aires retenues parmi les candidates (`fig_aires`, PLAN §5.1)
 COULEUR_FOND_RETENUES = "#f0efec"
 # Date de l'annuaire de l'éducation affichée dans la source des figures
 DATE_ANNUAIRE = "13/10/2026"
@@ -532,10 +532,10 @@ LIBELLES_SECTEURS = {"public": "public", "prive": "privé sous contrat"}
 COULEURS_AIRES = {"Nantes": "#009e73", "Lyon": "#a2559c", "Strasbourg": "#9c6b1f"}
 
 
-# Fig. 3 : classes de distance au lycée privé le plus proche, par leurs bornes supérieures en km
-# (incluses). Les rayons du §2.4 en sont les premières bornes : être à 5 km ou moins du plus
-# proche, c'est avoir au moins un lycée privé dans le rayon de 5 km. Au-delà de 20 km, les
-# communes les plus éloignées sont regroupées
+# `carte_acces` : classes de distance au lycée privé le plus proche, par leurs bornes
+# supérieures en km (incluses). Les rayons du §2.4 en sont les premières bornes : être à 5 km
+# ou moins du plus proche, c'est avoir au moins un lycée privé dans le rayon de 5 km. Au-delà
+# de 20 km, les communes les plus éloignées sont regroupées
 BORNES_DISTANCE_KM = (*RAYONS_KM, 20)
 # Palette ColorBrewer « Greens » à 5 classes, du plus proche (foncé) au plus loin (clair) : une
 # seule teinte, ni bleu ni orange, réservés aux secteurs des lycées
@@ -553,7 +553,7 @@ FONDS_CARTE = {"Fond gris (Esri)": "Esri.WorldGrayCanvas", "Plan IGN": "Geoporta
 # Carte IRIS (A18) : classes de la part de cadres parmi les actifs de 15 à 64 ans, en %, par
 # leurs bornes (basse incluse), les mêmes pour 2011 et 2022 et fixées sans regarder les aires
 # retenues ; palette ColorBrewer « Purples » à 6 classes, une seule teinte, ni bleu ni orange
-# (secteurs) ni vert (Fig. 3). Les IRIS non comparables sont hachurés en gris
+# (secteurs) ni vert (`carte_acces`). Les IRIS non comparables sont hachurés en gris
 BORNES_PART_CADRES_IRIS = (10, 20, 30, 40, 50)
 COULEURS_PART_CADRES_IRIS = ("#f2f0f7", "#dadaeb", "#bcbddc", "#9e9ac8", "#756bb1", "#54278f")
 COULEUR_IRIS_NON_COMPARABLE = "#e3e2de"

@@ -13,9 +13,9 @@ from pandas.io.formats.style import Styler
 from cadres_lycees import config, figures
 
 
-def _nombre(valeur: float, facteur: float = 1, signe: bool = True) -> str:
-    """Écrit un nombre à deux décimales, à la française (virgule, vrai signe moins)."""
-    texte = f"{valeur * facteur:+.2f}" if signe else f"{valeur * facteur:.2f}"
+def _nombre(valeur: float, facteur: float = 1, signe: bool = True, decimales: int = 2) -> str:
+    """Écrit un nombre à la française (virgule, vrai signe moins), à `decimales` décimales."""
+    texte = f"{valeur * facteur:{'+' if signe else ''}.{decimales}f}"
     return texte.replace(".", ",").replace("-", "−")
 
 
@@ -60,9 +60,15 @@ def tableau_h3(estimation: pd.DataFrame) -> Styler:
     """
     cases = estimation.apply(_estimation, axis=1, valeur="estimation", facteur=1)
     premier = estimation.index.names[0]
-    tableau = cases.unstack(premier).reindex(
-        index=estimation.index.unique("coefficient"), columns=estimation.index.unique(premier)
+    # « Ensemble » d'abord, puis les aires dans l'ordre de la charte
+    portees = [p for p in estimation.index.unique(premier) if p not in config.COULEURS_AIRES]
+    colonnes = portees + figures.aires_ordonnees(
+        [p for p in estimation.index.unique(premier) if p in config.COULEURS_AIRES]
     )
+    tableau = cases.unstack(premier).reindex(
+        index=estimation.index.unique("coefficient"), columns=colonnes
+    )
+    tableau = tableau.rename(columns={"ensemble": "Ensemble"})
     beta = {"q": "β<sub>q</sub>", "n": "β<sub>n</sub>"}
     libelles = {
         "β_q": f'<span class="grec">{beta["q"]}</span> (qualité)',
@@ -88,7 +94,15 @@ def tableau_acces(resume: pd.DataFrame) -> pd.DataFrame:
     tableau = resume.copy()
     tableau["part_exposees"] = tableau["part_exposees"] * 100
     tableau = tableau[list(libelles)].rename(columns=libelles).T
-    texte = tableau.map(lambda valeur: _nombre(valeur, signe=False).removesuffix(",00"))
+    # Comptes sans décimale ; parts, distances et APL à une décimale, leur précision réelle
+    texte = tableau.apply(
+        lambda ligne: ligne.map(
+            lambda valeur: _nombre(
+                valeur, signe=False, decimales=0 if (ligne % 1 == 0).all() else 1
+            )
+        ),
+        axis=1,
+    )
     return texte[figures.aires_ordonnees(texte.columns)].rename_axis(index=None, columns=None)
 
 
@@ -140,7 +154,7 @@ def tableau_gradient(parts: pd.DataFrame) -> pd.DataFrame:
     """
     cases = parts.apply(
         lambda ligne: (
-            f"{_nombre(ligne['part_cadres_2022'], 100, signe=False)} % "
+            f"{_nombre(ligne['part_cadres_2022'], 100, signe=False, decimales=1)} % "
             f"({int(ligne['communes'])} communes)"
         ),
         axis=1,

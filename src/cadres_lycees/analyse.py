@@ -344,14 +344,14 @@ def pentes_paires_par_aire(
 
 
 def nuage_paires(paires: pd.DataFrame, acces: str) -> pd.DataFrame:
-    """Renvoie le nuage par classes des paires d'une aire, à contrôles donnés (Fig. 5, §5.3).
+    """Renvoie le nuage par classes des paires d'une aire, à contrôles donnés (`fig_paires`, §5.3).
 
     On retire à `d_part_cadres_2022` et à l'écart d'accès `acces` leur partie expliquée par les
     écarts de `config.CONTROLES_PAIRES` (régressions sans constante, comme `pente_paires`). Par
     le théorème de Frisch-Waugh-Lovell, la pente des résidus de l'un sur les résidus de l'autre
     est exactement celle de `pente_paires` : les points et la droite de la figure disent la même
     chose. Les paires sont symétrisées (chaque paire dans les deux sens, A6), ce qui centre le
-    nuage sur zéro sans changer la pente, puis réparties en `config.NB_CLASSES_FIG5` classes
+    nuage sur zéro sans changer la pente, puis réparties en `config.NB_CLASSES_NUAGE_PAIRES` classes
     d'effectifs égaux de l'écart d'accès résiduel. Une ligne par classe : `acces_residuel` et
     `cadres_residuel` (moyennes de la classe ; fraction pour les cadres) et `n_paires`.
     """
@@ -365,7 +365,7 @@ def nuage_paires(paires: pd.DataFrame, acces: str) -> pd.DataFrame:
     residus = pd.DataFrame(residus)
     assert residus.notna().all().all(), "Écart manquant dans les paires."
     symetrisees = pd.concat([residus, -residus], ignore_index=True)
-    classe = pd.qcut(symetrisees["acces_residuel"], config.NB_CLASSES_FIG5, labels=False)
+    classe = pd.qcut(symetrisees["acces_residuel"], config.NB_CLASSES_NUAGE_PAIRES, labels=False)
     return (
         symetrisees.groupby(classe)
         .agg(
@@ -745,7 +745,7 @@ def verdict_h3(estimation: pd.DataFrame, fiabilite: float) -> pd.DataFrame:
 
 
 def terciles_h3(population: pd.DataFrame) -> pd.DataFrame:
-    """Renvoie la moyenne de `evol_cadres_pts` par tiers d'IVAL de chaque aire (Fig. 6, §5.5).
+    """Renvoie la moyenne de `evol_cadres_pts` par tiers d'IVAL de chaque aire (`fig_h3`, §5.5).
 
     Tiers de `ival_moy_5km` calculés dans chaque aire sur les communes avec IVAL, plus la
     catégorie « sans IVAL ». Moyennes simples, intervalles à 95 % par `_tirages_grappes` sur
@@ -759,10 +759,10 @@ def terciles_h3(population: pd.DataFrame) -> pd.DataFrame:
     tiers = (
         communes[communes["avec_ival"]]
         .groupby("aire")["ival_moy_5km"]
-        .transform(lambda ival: pd.qcut(ival, 3, labels=config.CATEGORIES_FIG6[:3]))
+        .transform(lambda ival: pd.qcut(ival, 3, labels=config.CATEGORIES_TIERS_IVAL[:3]))
     )
     communes["categorie"] = (
-        tiers.astype(str).reindex(communes.index).fillna(config.CATEGORIES_FIG6[3])
+        tiers.astype(str).reindex(communes.index).fillna(config.CATEGORIES_TIERS_IVAL[3])
     )
     tirages = _tirages_grappes(population)
     lignes = []

@@ -12,7 +12,7 @@ def lycees_avec_aire(referentiel: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
 
     `referentiel` vient de `geo.referentiel_communes`. `aire` est manquante pour les lycées hors
     du référentiel : ils sont gardés, car ils comptent dans l'accès des communes du bord (effet de
-    bord, §2.4). Sans construire la base, cela suffit à la Fig. 1, qui montre les 8 candidates
+    bord, §2.4). Sans construire la base, cela suffit à la `fig_aires`, qui montre les 8 candidates
     alors que la base ne porte que sur les aires retenues.
     """
     return nettoyage.lycees_geo(

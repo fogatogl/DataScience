@@ -13,6 +13,40 @@ import pandas as pd
 
 from cadres_lycees import config
 
+
+def _carte_cadree(affichage: gpd.GeoDataFrame) -> folium.Map:
+    """Renvoie une carte vide cadrée sur `affichage`, avec les fonds de `config.FONDS_CARTE`.
+
+    Le premier fond s'affiche, les autres se choisissent dans le sélecteur de couches.
+    """
+    carte = folium.Map(tiles=None, control_scale=True)
+    for rang, (nom, fournisseur) in enumerate(config.FONDS_CARTE.items()):
+        folium.TileLayer(fournisseur, name=nom, show=(rang == 0)).add_to(carte)
+    ouest, sud, est, nord = affichage.total_bounds
+    carte.fit_bounds([[sud, ouest], [nord, est]])
+    return carte
+
+
+def _poser_legende_et_titre(carte: folium.Map, legende: str, largeur_px: int, titre: str) -> None:
+    """Pose la légende (HTML) en bas à gauche de la carte et le titre en haut, après le zoom.
+
+    folium n'a pas de légende par classes : elle est écrite en HTML, fixée au-dessus du fond.
+    """
+    cadre = f"z-index:1000;background:white;color:{config.COULEUR_TEXTE};font-family:sans-serif"
+    carte.get_root().html.add_child(
+        folium.Element(
+            f'<div style="position:fixed;bottom:28px;left:12px;{cadre};padding:8px;'
+            f'font-size:11px;width:{largeur_px}px">{legende}</div>'
+        )
+    )
+    carte.get_root().html.add_child(
+        folium.Element(
+            f'<div style="position:fixed;top:10px;left:56px;{cadre};padding:6px 10px;'
+            f'font-size:14px;font-weight:bold;max-width:45%">{html.escape(titre)}</div>'
+        )
+    )
+
+
 # Curseur des recensements de `carte_cadres_dates` : un contrôle Leaflet qui recolore la couche
 # des communes avec les couleurs de chaque année, rangées dans leurs propriétés (`couleur_<année>`).
 # Du JavaScript simple, sans bibliothèque : le module à curseur de folium dépend de d3 et de
@@ -102,11 +136,7 @@ def carte_cadres_dates(communes: gpd.GeoDataFrame, parts: pd.DataFrame, titre: s
         petite = valeurs[f"actifs_{annee}"] < config.ACTIFS_MIN_ROBUSTESSE
         affichage[f"opacite_{annee}"] = petite.map({True: 0.35, False: 0.85})
 
-    carte = folium.Map(tiles=None, control_scale=True)
-    for rang, (nom, fournisseur) in enumerate(config.FONDS_CARTE.items()):
-        folium.TileLayer(fournisseur, name=nom, show=(rang == 0)).add_to(carte)
-    ouest, sud, est, nord = affichage.total_bounds
-    carte.fit_bounds([[sud, ouest], [nord, est]])
+    carte = _carte_cadree(affichage)
     derniere = annees[-1]
     couche = folium.GeoJson(
         affichage,
@@ -144,18 +174,8 @@ def carte_cadres_dates(communes: gpd.GeoDataFrame, parts: pd.DataFrame, titre: s
         f"Actifs de 25 à 54 ans ; Lyon entière. Pâle : moins de {config.ACTIFS_MIN_ROBUSTESSE} "
         "actifs. Sources : Insee, séries historiques du recensement ; IGN."
     )
-    legende = (
-        '<div style="position:fixed;bottom:28px;left:12px;z-index:1000;background:white;'
-        f'padding:8px;font:11px sans-serif;color:{config.COULEUR_TEXTE};width:170px">'
-        f"<b>Part de cadres</b>{classes}<p style='font-size:10px'>{note}</p></div>"
-    )
-    carte.get_root().html.add_child(folium.Element(legende))
-    entete = (
-        '<div style="position:fixed;top:10px;left:56px;z-index:1000;background:white;'
-        f'padding:6px 10px;font:bold 14px sans-serif;color:{config.COULEUR_TEXTE};max-width:45%">'
-        f"{html.escape(titre)}</div>"
-    )
-    carte.get_root().html.add_child(folium.Element(entete))
+    legende = f"<b>Part de cadres</b>{classes}<p style='font-size:10px'>{note}</p>"
+    _poser_legende_et_titre(carte, legende, 170, titre)
     return carte
 
 
@@ -168,8 +188,8 @@ def _libelles_distance() -> list[str]:
     return libelles
 
 
-def fig3(communes: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame, titre: str) -> folium.Map:
-    """Fig. 3 : carte interactive de la distance au lycée privé sous contrat le plus proche.
+def carte_acces(communes: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame, titre: str) -> folium.Map:
+    """`carte_acces` : carte interactive de la distance au lycée privé sous contrat le plus proche.
 
     `communes` et `lycees` sont la base et les lycées de `pipeline.construire_base`. Les communes
     sont colorées par classe de distance, les lycées sont des points colorés par secteur. Les
@@ -187,7 +207,7 @@ def fig3(communes: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame, titre: str) -> fo
     # Bornes supérieures incluses, comme dans les indicateurs : « 5 km ou moins » équivaut à
     # au moins un lycée privé dans le rayon de 5 km
     classe = pd.cut(communes["dist_lyc_prive_min"], bornes, labels=False, include_lowest=True)
-    assert classe.notna().all(), "Distance hors des classes de la Fig. 3."
+    assert classe.notna().all(), "Distance hors des classes de la `carte_acces`."
     # Seules les colonnes affichées partent dans la page : la seconde géométrie (`centroide`)
     # ferait échouer l'export GeoJSON, et les autres colonnes l'alourdiraient
     affichage = gpd.GeoDataFrame(
@@ -215,12 +235,7 @@ def fig3(communes: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame, titre: str) -> fo
     plus_proches = gpd.sjoin_nearest(centroides, prives)["index_right"]
     affiches = lycees[dans_la_zone | lycees.index.isin(plus_proches)].to_crs(config.CRS_CARTES)
 
-    carte = folium.Map(tiles=None, control_scale=True)
-    for rang, (nom, fournisseur) in enumerate(config.FONDS_CARTE.items()):
-        # Le premier fond s'affiche, les autres se choisissent dans le sélecteur de couches
-        folium.TileLayer(fournisseur, name=nom, show=(rang == 0)).add_to(carte)
-    ouest, sud, est, nord = affichage.total_bounds
-    carte.fit_bounds([[sud, ouest], [nord, est]])
+    carte = _carte_cadree(affichage)
     folium.GeoJson(
         affichage,
         name="Distance au lycée privé sous contrat le plus proche",
@@ -277,7 +292,6 @@ def fig3(communes: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame, titre: str) -> fo
         groupe.add_to(carte)
     folium.LayerControl(collapsed=True).add_to(carte)
 
-    # folium n'a pas de légende par classes : elle est écrite en HTML, fixée au-dessus du fond
     pastille = (
         '<span style="display:inline-block;width:10px;height:10px;margin-right:6px;'
         f"border:1px solid {config.COULEUR_LIAISON};border-radius:{{arrondi}};"
@@ -306,18 +320,9 @@ def fig3(communes: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame, titre: str) -> fo
         f"COG {config.ANNEE_COG})."
     )
     legende = (
-        '<div style="position:fixed;bottom:28px;left:12px;z-index:1000;background:white;'
-        f'padding:8px;font:11px sans-serif;color:{config.COULEUR_TEXTE};width:250px">'
         "<b>Distance au lycée privé sous contrat le plus proche</b>"
         f"{classes}{points}"
-        f"<p style='font-size:10px'>{note}</p><p style='font-size:10px'>{source}</p></div>"
+        f"<p style='font-size:10px'>{note}</p><p style='font-size:10px'>{source}</p>"
     )
-    carte.get_root().html.add_child(folium.Element(legende))
-    # À droite des boutons de zoom, en haut à gauche de la carte
-    entete = (
-        '<div style="position:fixed;top:10px;left:56px;z-index:1000;background:white;'
-        f'padding:6px 10px;font:bold 14px sans-serif;color:{config.COULEUR_TEXTE};max-width:60%">'
-        f"{html.escape(titre)}</div>"
-    )
-    carte.get_root().html.add_child(folium.Element(entete))
+    _poser_legende_et_titre(carte, legende, 250, titre)
     return carte

@@ -18,10 +18,10 @@ from matplotlib.ticker import FuncFormatter, ScalarFormatter
 from cadres_lycees import analyse, config
 
 
-def fig1(
+def fig_aires(
     profil: pd.DataFrame, lycees: gpd.GeoDataFrame, titre: str, aires_retenues: Collection[str]
 ) -> Figure:
-    """Fig. 1 : pour chaque aire, la prévalence du privé sous contrat et la composition sociale.
+    """Profil des aires : prévalence du privé sous contrat et composition sociale des lycées.
 
     À gauche, la part du privé en nombre de lycées et en candidats au bac ; à droite, l'IPS de
     chaque lycée par secteur, avec la moyenne simple du secteur et l'écart privé moins public :
@@ -75,7 +75,7 @@ def fig1(
         f"{n_sans_ips} lycées sans IPS. En gras sur fond gris : les aires retenues.\n"
         "Sources : annuaire de l'éducation, DEPP (IPS, IVAL), Insee (aires d'attraction des "
         "villes 2020), IGN.",
-        fontsize=8,
+        fontsize=9,
         color=texte,
     )
     fig.tight_layout(rect=(0, 0.07, 1, 0.95))
@@ -86,7 +86,7 @@ def fig1(
 
 
 def _panneau_prevalence(ax: plt.Axes, profil: pd.DataFrame) -> None:
-    """Fig. 1, gauche : part du privé en lycées et en candidats au bac, une ligne par aire."""
+    """`fig_aires`, gauche : part du privé en lycées et en candidats au bac, une ligne par aire."""
     positions = range(len(profil))
     couleur_prive = config.COULEURS_SECTEURS["prive"]
     en_lycees = profil["part_prive"] * 100
@@ -128,7 +128,7 @@ def _panneau_prevalence(ax: plt.Axes, profil: pd.DataFrame) -> None:
 
 
 def _panneau_ips(ax: plt.Axes, profil: pd.DataFrame, lycees: gpd.GeoDataFrame) -> None:
-    """Fig. 1, droite : IPS de chaque lycée par secteur, moyenne du secteur et écart, par aire."""
+    """Panneau de droite de `fig_aires` : IPS de chaque lycée, moyenne et écart par secteur."""
     rang = {aire: position for position, aire in enumerate(profil.index)}
     avec_ips = lycees[lycees["aire"].notna() & lycees["ips"].notna()]
     assert set(avec_ips["aire"]) == set(profil.index), (
@@ -252,10 +252,10 @@ def _libelle_cellule(bas_km: float, haut_km: float, rayon_km: int) -> str:
     return f"{bornes}, rayon {rayon_km} km"
 
 
-def fig4(
+def fig_h1(
     principale: pd.DataFrame, secondaire: pd.DataFrame, anneaux: pd.DataFrame, titre: str
 ) -> Figure:
-    """Fig. 4 : estimations de H1 par aire, en points avec leurs intervalles à 95 % (§5.2).
+    """`fig_h1` : estimations de H1 par aire, en points avec leurs intervalles à 95 % (§5.2).
 
     Trois panneaux à axes propres, les aires sur la même ligne de l'un à l'autre (H2, §5.4) :
     pente principale et pente secondaire des paires (`analyse.pentes_paires_par_aire`), écarts
@@ -350,8 +350,8 @@ def fig4(
     return fig
 
 
-def fig5(paires: pd.DataFrame, pentes: pd.DataFrame, titre: str) -> Figure:
-    """Fig. 5 : écart de part de cadres et écart de distance au lycée privé dans les paires.
+def fig_paires(paires: pd.DataFrame, pentes: pd.DataFrame, titre: str) -> Figure:
+    """`fig_paires` : écart de part de cadres et écart de distance au lycée privé dans les paires.
 
     Un panneau par aire : le nuage par classes de `analyse.nuage_paires` et la droite de pente
     principale de H1, sans constante, avec son intervalle à 95 % (§5.3). `paires` vient de
@@ -430,12 +430,12 @@ def fig5(paires: pd.DataFrame, pentes: pd.DataFrame, titre: str) -> Figure:
         "Paires de communes contiguës d'une même aire, chacune comptée dans les deux sens. Les "
         "deux écarts sont pris à écarts de distance au centre et de log-densité donnés (résidus "
         "des régressions sur ces\ncontrôles, sans constante) ; chaque point est la moyenne d'une "
-        f"des {config.NB_CLASSES_FIG5} classes d'effectifs égaux de l'écart de distance. Droite : "
-        "pente principale de H1 ; intervalle par bootstrap des communes "
+        f"des {config.NB_CLASSES_NUAGE_PAIRES} classes d'effectifs égaux de l'écart de distance. "
+        "Droite : pente principale de H1 ; intervalle par bootstrap des communes "
         f"({config.NB_TIRAGES_BOOTSTRAP} tirages).\nSources : Insee, recensement 2022, "
         f"« Évolution et structure de la population » ; annuaire de l'éducation "
         f"({config.DATE_ANNUAIRE}) ; IGN.",
-        fontsize=8,
+        fontsize=9,
         color=texte,
     )
     fig.tight_layout(rect=(0, 0.1, 1, 0.94))
@@ -444,10 +444,10 @@ def fig5(paires: pd.DataFrame, pentes: pd.DataFrame, titre: str) -> Figure:
     return fig
 
 
-def fig6(terciles: pd.DataFrame, titre: str) -> Figure:
-    """Fig. 6 : évolution de la part de cadres par tiers d'IVAL de chaque aire (H3, §5.5).
+def fig_h3(terciles: pd.DataFrame, titre: str) -> Figure:
+    """`fig_h3` : évolution de la part de cadres par tiers d'IVAL de chaque aire (H3, §5.5).
 
-    Un point par aire et par catégorie (`config.CATEGORIES_FIG6`), avec son intervalle à 95 %
+    Un point par aire et par catégorie (`config.CATEGORIES_TIERS_IVAL`), avec son intervalle à 95 %
     par bootstrap des grappes ; la catégorie « sans IVAL » est à part. `terciles` vient de
     `analyse.terciles_h3`, dont les tirages écartés sont nommés en note ; `titre` est le message
     de la figure, écrit par le groupe (PLAN §6). Elle décrit : le verdict de H3 se lit sur β_q
@@ -457,8 +457,8 @@ def fig6(terciles: pd.DataFrame, titre: str) -> Figure:
     texte = config.COULEUR_TEXTE
     decalages = {aire: 0.22 * (k - (len(aires) - 1) / 2) for k, aire in enumerate(aires)}
     # La catégorie « sans IVAL » est séparée des tiers par un intervalle plus large
-    positions = {categorie: k for k, categorie in enumerate(config.CATEGORIES_FIG6[:3])}
-    positions[config.CATEGORIES_FIG6[3]] = 3.6
+    positions = {categorie: k for k, categorie in enumerate(config.CATEGORIES_TIERS_IVAL[:3])}
+    positions[config.CATEGORIES_TIERS_IVAL[3]] = 3.6
 
     fig, ax = plt.subplots(figsize=(10, 5.6))
     ax.axvline(3.3, color=config.COULEUR_LIAISON, linewidth=1, linestyle=":")
@@ -512,7 +512,7 @@ def fig6(terciles: pd.DataFrame, titre: str) -> Figure:
         "seconde au bac, moyenne des sessions 2012 à 2022, lycées d'au moins 5 sessions.\n"
         "Sources : Insee, recensements 2011 et 2022, « Évolution et structure de la population » ; "
         f"DEPP, IVAL ; annuaire de l'éducation ({config.DATE_ANNUAIRE}) ; IGN.",
-        fontsize=8,
+        fontsize=9,
         color=texte,
     )
     fig.tight_layout(rect=(0, 0.17, 1, 0.95))
@@ -577,7 +577,7 @@ def fig_robustesse(robustesse: pd.DataFrame, titre: str) -> Figure:
         "dans une aire n'a pas de point : prix au m² à Lyon et Nantes (Alsace-Moselle hors DVF),\n"
         "frontière à Strasbourg. Sources : Insee, recensement 2022 ; annuaire de l'éducation ; "
         "DVF (Etalab) ; IGN.",
-        fontsize=8,
+        fontsize=9,
         color=texte,
     )
     fig.tight_layout(rect=(0, 0.12, 1, 0.95))
@@ -586,8 +586,8 @@ def fig_robustesse(robustesse: pd.DataFrame, titre: str) -> Figure:
     return fig
 
 
-def fig7(pentes: pd.DataFrame, titre: str) -> Figure:
-    """Fig. 7 : association de la part de cadres avec l'accès à chaque infrastructure (H4).
+def fig_h4(pentes: pd.DataFrame, titre: str) -> Figure:
+    """`fig_h4` : association de la part de cadres avec l'accès à chaque infrastructure (H4).
 
     Une ligne par mesure d'accès, de la plus forte à la plus faible association (moyenne des
     pentes des aires), un point par aire avec son intervalle à 95 %. `pentes` vient de
@@ -644,7 +644,7 @@ def fig7(pentes: pd.DataFrame, titre: str) -> Figure:
         "Sources : Insee, recensement 2022 et BPE 2025 ; annuaire de l'éducation "
         f"({config.DATE_ANNUAIRE}) ; SNCF Gares & Connexions ; ministère des Sports (Data ES) ;\n"
         "copies du 03/11/2026 pour la BPE, les gares et Data ES ; DREES, APL 2024 ; IGN.",
-        fontsize=8,
+        fontsize=9,
         color=texte,
     )
     fig.tight_layout(rect=(0, 0.13, 1, 0.95))
@@ -753,7 +753,7 @@ def carte_iris(
         "(échantillon). Sources : Insee, recensements 2011 et 2022, bases infracommunales "
         "« Activité des résidents » ; contours IRIS de l'IGN (cartiflette, "
         f"COG {config.ANNEE_COG}).",
-        fontsize=8,
+        fontsize=9,
         color=config.COULEUR_TEXTE,
     )
     fig.tight_layout(rect=(0, 0.05, 0.85, 0.97))
