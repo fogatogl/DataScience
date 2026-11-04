@@ -22,9 +22,9 @@ def _distances_groupes(
 
 
 def cellules_anneaux(communes: pd.DataFrame, rayon: int) -> pd.DataFrame:
-    """Renvoie, aire par aire, les cellules d'anneaux de distance au centre après fusion (§5.2).
+    """Renvoie, aire par aire, les cellules d'anneaux de distance au centre après fusion.
 
-    Règles fixées par A6 avant tout calcul. Une cellule remplit la condition si les communes
+    Une cellule remplit la condition si les communes
     exposées (`expose_lyc_prive_<rayon>km` vaut 1) et les non exposées sont chacune au moins
     `config.EFFECTIF_MIN_GROUPE`. Tant qu'une cellule échoue, la plus proche du centre est
     fusionnée avec sa voisine qui compte le moins de communes, la plus proche du centre à
@@ -96,15 +96,15 @@ def pente_paires(
     poids: pd.Series | None = None,
     controles: tuple[str, ...] = config.CONTROLES_PAIRES,
 ) -> float | None:
-    """Renvoie la pente de `d_part_cadres_2022` sur l'écart d'accès `acces` dans les paires (§5.3).
+    """Renvoie la pente de `d_part_cadres_2022` sur l'écart d'accès `acces` dans les paires.
 
-    Moindres carrés sans constante, avec les écarts de `controles` en contrôle (ceux du §2.5
-    par défaut ; la robustesse « sans contrôle de densité » retire `d_log_densite`). Le
-    sens i − j suit l'ordre des codes : changer le signe de toutes les colonnes d'une paire ne
-    change pas cette pente, alors qu'une constante en dépendrait (A6). `poids`, aligné sur
+    Moindres carrés sans constante, avec les écarts de `controles` en contrôle (ceux de
+    `config.CONTROLES_PAIRES` par défaut ; la robustesse « sans contrôle de densité » retire
+    `d_log_densite`). Le sens i − j suit l'ordre des codes : changer le signe de toutes les colonnes
+    d'une paire ne change pas cette pente, alors qu'une constante en dépendrait. `poids`, aligné sur
     `paires`, pondère les paires (bootstrap) ; sans poids, chaque paire compte une fois. Renvoie
-    None si les régresseurs sont colinéaires : un tirage du bootstrap peut ne garder aucune paire
-    où l'accès diffère.
+    None si les régresseurs sont colinéaires : un tirage du bootstrap peut ne garder aucune paire où
+    l'accès diffère.
     """
     colonnes = [acces, *controles]
     x = paires[colonnes].to_numpy(dtype=float)
@@ -128,7 +128,7 @@ def pente_paires(
 
 
 def poids_bootstrap(paires: pd.DataFrame, tirage: pd.Series) -> pd.Series:
-    """Renvoie le poids de chaque paire dans un tirage du bootstrap par commune (§5.3).
+    """Renvoie le poids de chaque paire dans un tirage du bootstrap par commune.
 
     `tirage` donne, par code commune, le nombre de fois que la commune est tirée. Une même commune
     est dans plusieurs paires, qui ne sont donc pas indépendantes : on tire les communes, et une
@@ -145,7 +145,7 @@ def poids_bootstrap(paires: pd.DataFrame, tirage: pd.Series) -> pd.Series:
 def pentes_paires_par_aire(
     paires: pd.DataFrame, acces: str, controles: tuple[str, ...] = config.CONTROLES_PAIRES
 ) -> pd.DataFrame:
-    """Renvoie, aire par aire, la pente des paires et son intervalle à 95 % (§5.3).
+    """Renvoie, aire par aire, la pente des paires et son intervalle à 95 %.
 
     `paires` vient de `pipeline.construire_base` ; `controles` est passé à `pente_paires`.
     Intervalle : percentiles 2,5 et 97,5 des pentes de `config.NB_TIRAGES_BOOTSTRAP` tirages
@@ -153,7 +153,7 @@ def pentes_paires_par_aire(
     `config.GRAINE_BOOTSTRAP` est remise à chaque appel : le résultat est reproductible, et deux
     appels sur les mêmes paires (principale et secondaire, lycées et autres équipements pour H4)
     voient les mêmes tirages. Les tirages d'une aire dépendent des aires traitées avant elle.
-    Un tirage de régresseurs colinéaires est écarté et compté, comme pour H3 (A16) ; au-delà de
+    Un tirage de régresseurs colinéaires est écarté et compté, comme pour H3 ; au-delà de
     `config.MAX_TIRAGES_ECARTES`, l'intervalle n'est pas rapporté. Colonnes : `pente`, `ic_bas`,
     `ic_haut`, `n_paires`, `n_communes`, `tirages_ecartes` ; index : l'aire.
     """
@@ -186,13 +186,13 @@ def pentes_paires_par_aire(
 
 
 def nuage_paires(paires: pd.DataFrame, acces: str) -> pd.DataFrame:
-    """Renvoie le nuage par classes des paires d'une aire, à contrôles donnés (`fig_paires`, §5.3).
+    """Renvoie le nuage par classes des paires d'une aire, à contrôles donnés (`fig_paires`).
 
     On retire à `d_part_cadres_2022` et à l'écart d'accès `acces` leur partie expliquée par les
     écarts de `config.CONTROLES_PAIRES` (régressions sans constante, comme `pente_paires`). Par
     le théorème de Frisch-Waugh-Lovell, la pente des résidus de l'un sur les résidus de l'autre
     est exactement celle de `pente_paires` : les points et la droite de la figure disent la même
-    chose. Les paires sont symétrisées (chaque paire dans les deux sens, A6), ce qui centre le
+    chose. Les paires sont symétrisées (chaque paire dans les deux sens), ce qui centre le
     nuage sur zéro sans changer la pente, puis réparties en `config.NB_CLASSES_NUAGE_PAIRES` classes
     d'effectifs égaux de l'écart d'accès résiduel. Une ligne par classe : `acces_residuel` et
     `cadres_residuel` (moyennes de la classe ; fraction pour les cadres) et `n_paires`.
@@ -220,7 +220,7 @@ def nuage_paires(paires: pd.DataFrame, acces: str) -> pd.DataFrame:
 
 
 def pentes_h4(base: pd.DataFrame, paires: pd.DataFrame) -> pd.DataFrame:
-    """Renvoie, pour chaque mesure d'accès de H4 et chaque aire, la pente des paires (§5.7).
+    """Renvoie, pour chaque mesure d'accès de H4 et chaque aire, la pente des paires.
 
     Chaque mesure de `config.MESURES_H4` est centrée réduite dans chaque aire (moyenne et
     écart-type simples des communes de `base`), puis orientée par son sens : la pente se lit en
@@ -246,8 +246,8 @@ def ecart_cellule(cellule: pd.DataFrame, colonne_exposition: str, poids: pd.Seri
     """Renvoie l'écart de part de cadres entre communes exposées et non exposées d'une cellule.
 
     Coefficient de `colonne_exposition` (0/1) dans la régression de `part_cadres_2022` sur
-    l'exposition, `dist_centre_km` et `log_densite` avec constante, pondérée par `poids` (§5.2,
-    A6). Dans une cellule, la constante est sans danger : il n'y a pas de sens i − j.
+    l'exposition, `dist_centre_km` et `log_densite` avec constante, pondérée par `poids`.
+    Dans une cellule, la constante est sans danger : il n'y a pas de sens i − j.
     """
     colonnes = [colonne_exposition, "dist_centre_km", "log_densite"]
     x = np.column_stack([np.ones(len(cellule)), cellule[colonnes].to_numpy(dtype=float)])
@@ -264,7 +264,7 @@ def ecart_cellule(cellule: pd.DataFrame, colonne_exposition: str, poids: pd.Seri
 def _ic_ecart_cellule(
     communes: pd.DataFrame, colonne_exposition: str, generateur: np.random.Generator
 ) -> tuple[float, float]:
-    """Renvoie l'intervalle à 95 % de `ecart_cellule` par bootstrap dans chaque groupe (§5.2).
+    """Renvoie l'intervalle à 95 % de `ecart_cellule` par bootstrap dans chaque groupe.
 
     `config.NB_TIRAGES_BOOTSTRAP` tirages avec remise des communes exposées parmi les exposées,
     et des non exposées parmi les non exposées : les deux effectifs restent ceux de la cellule.
@@ -284,7 +284,7 @@ def _ic_ecart_cellule(
 
 
 def ecarts_anneaux(base: pd.DataFrame) -> pd.DataFrame:
-    """Renvoie l'écart avec/sans lycée privé de chaque cellule d'anneaux, à 5 et 10 km (§5.2).
+    """Renvoie l'écart avec/sans lycée privé de chaque cellule d'anneaux, à 5 et 10 km.
 
     Cellules de `cellules_anneaux`, les mêmes que celles du tableau de support. Dans chaque
     cellule estimable : `ecart`, l'écart à contrôles donnés pondéré par `actifs_2022`
@@ -320,7 +320,7 @@ def ecarts_anneaux(base: pd.DataFrame) -> pd.DataFrame:
 
 
 def _concordent(a: pd.Series, b: pd.Series) -> bool:
-    """Dit si deux estimations concordent : même signe et intervalles qui se recoupent (§5.3)."""
+    """Dit si deux estimations concordent : même signe et intervalles qui se recoupent."""
     meme_signe = np.sign(a["ecart"]) == np.sign(b["ecart"])
     return bool(meme_signe and a["ic_bas"] <= b["ic_haut"] and b["ic_bas"] <= a["ic_haut"])
 
@@ -328,7 +328,7 @@ def _concordent(a: pd.Series, b: pd.Series) -> bool:
 def verdict_h1(
     principale: pd.DataFrame, secondaire: pd.DataFrame, anneaux: pd.DataFrame
 ) -> pd.DataFrame:
-    """Renvoie le verdict de H1 dans chaque aire, par les règles du §5.3 (A4, A13).
+    """Renvoie le verdict de H1 dans chaque aire, par les règles du plan.
 
     `principale` et `secondaire` viennent de `pentes_paires_par_aire` sur `d_dist_lyc_prive_min`
     et `d_n_lyc_prive_5km`, `anneaux` de `ecarts_anneaux`. Sens de H1 : pente principale

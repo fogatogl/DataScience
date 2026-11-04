@@ -167,11 +167,11 @@ def tableau_gradient(parts: pd.DataFrame) -> pd.DataFrame:
 
 
 def tableau_hypotheses(verdict_h1: pd.DataFrame, verdict_h3: pd.DataFrame) -> Styler:
-    """Renvoie le tableau des hypothèses du §6 : verdicts de H1 et H3, H2 et H4 descriptives.
+    """Renvoie le tableau des hypothèses : verdicts de H1 et H3, H2 et H4 descriptives.
 
     `verdict_h1` et `verdict_h3` viennent de `h1.verdict_h1` et `h3.verdict_h3`. Les
-    verdicts suivent les règles écrites avant les résultats (§5.3, §5.5) ; H2 et H4 n'en ont
-    pas (§5.4, §5.7, A20).
+    verdicts suivent les règles écrites avant les résultats ; H2 et H4 n'en ont
+    pas.
     """
     lignes = [
         {

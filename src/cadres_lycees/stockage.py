@@ -39,7 +39,7 @@ def _systeme_fichiers(chemin: str) -> tuple[AbstractFileSystem, str]:
     Les valeurs des identifiants ne sont jamais lues ici : s3fs les prend dans l'environnement.
     S3 n'est utilisé que si les identifiants AWS et le nom du bucket sont tous définis ; sinon
     le code continue en local avec un avertissement, pour qu'un compte sans BUCKET_S3 ne plante
-    pas (PLAN §7).
+    pas.
     """
     variables_s3 = (*config.VARIABLES_AWS, config.VARIABLE_BUCKET_S3)
     manquantes = [variable for variable in variables_s3 if variable not in os.environ]
@@ -71,7 +71,7 @@ def ecrire_parquet(df: pd.DataFrame, chemin: str) -> None:
 
 
 def existe(chemin: str) -> bool:
-    """Indique si le fichier `chemin` existe, pour ne pas retélécharger une source (PLAN §8.2)."""
+    """Indique si le fichier `chemin` existe, pour ne pas retélécharger une source."""
     systeme, complet = _systeme_fichiers(chemin)
     return systeme.exists(complet)
 
@@ -80,11 +80,10 @@ def _telecharger(urls: list[str], sha256: str) -> bytes:
     """Renvoie le contenu de la première des `urls` qui fournit le fichier attendu (même sha256).
 
     Une URL injoignable, ou qui fournit un autre contenu, laisse la place à la suivante, avec un
-    avertissement : une copie principale en panne ne doit pas passer inaperçue. Une connexion
-    coupée en cours de route est retentée `config.NB_ESSAIS_TELECHARGEMENT` fois : les serveurs
-    de l'Insee coupent parfois un gros fichier (exploration_sources, « Évolution et
-    structure »), et un compte neuf télécharge tout. Si aucune URL ne convient, tous les refus
-    sont dans le message d'erreur. Une URL mal écrite fait échouer.
+    avertissement : une copie principale en panne ne doit pas passer inaperçue. Une connexion coupée
+    en cours de route est retentée `config.NB_ESSAIS_TELECHARGEMENT` fois : les serveurs de l'Insee
+    coupent parfois un gros fichier, et un compte neuf télécharge tout. Si aucune URL ne convient,
+    tous les refus sont dans le message d'erreur. Une URL mal écrite fait échouer.
     """
     refus = []
     for url in urls:
@@ -116,7 +115,7 @@ def copie_controlee(urls: list[str], chemin: str, sha256: str) -> bytes:
 
     S'il n'est pas encore stocké, il est téléchargé à la première des `urls` qui le fournit à
     l'identique, puis enregistré. Le sha256 est contrôlé aussi à la relecture : le projet ne lit
-    jamais d'autres données que celles qu'il a fixées (PLAN §7), même si une copie locale a été
+    jamais d'autres données que celles qu'il a fixées, même si une copie locale a été
     abîmée ou remplacée.
     """
     if not existe(chemin):

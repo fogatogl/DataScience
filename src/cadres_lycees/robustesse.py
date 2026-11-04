@@ -12,13 +12,13 @@ from cadres_lycees import accessibilite, analyse, config, geo, h1, h3, nettoyage
 def robustesse_h3(
     base: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame, sessions_ival: pd.DataFrame
 ) -> pd.DataFrame:
-    """Renvoie β_q, β_n et β_q − β_n de H3, toutes aires ensemble, dans ses robustesses (§3.2).
+    """Renvoie β_q, β_n et β_q − β_n de H3, toutes aires ensemble, dans ses robustesses.
 
     Spécification principale, puis l'IVAL moyenne sur 2012-2025 au lieu de 2012-2022, puis la
     valeur ajoutée du taux de réussite au lieu du taux d'accès de la seconde au bac. Seule l'IVAL
     des lycées change ; `ival_moy_5km`, la population, les grappes et l'estimation suivent les
-    mêmes règles (`population_h3`, `estimation_h3`). Index (`variante`, `coefficient`) ;
-    colonnes de `estimation_h3`.
+    mêmes règles (`h3.population_h3`, `h3.estimation_h3`). Index (`variante`, `coefficient`) ;
+    colonnes de `h3.estimation_h3`.
     """
     rayon = config.RAYON_PRINCIPAL_KM
     premiere, nb_min = config.PREMIERE_SESSION_IVAL, config.NB_SESSIONS_MIN_IVAL
@@ -85,9 +85,9 @@ def robustesse_h1(
     prives_elargis: gpd.GeoDataFrame,
     chefs_lieux: gpd.GeoDataFrame,
 ) -> pd.DataFrame:
-    """Renvoie les pentes de H1 dans chaque variante de robustesse du §5.6, aire par aire.
+    """Renvoie les pentes de H1 dans chaque variante de robustesse, aire par aire.
 
-    Dans l'ordre du §5.6, après la spécification principale : pente secondaire à 3 et 10 km (le
+    Dans l'ordre du plan, après la spécification principale : pente secondaire à 3 et 10 km (le
     rayon de 5 km est la secondaire) ; avec le logarithme du prix au m² en contrôle, sur les
     paires dont les deux communes ont un prix, hors de `config.AIRES_HORS_DVF` ; part de cadres
     parmi les 15 ans ou plus en 2022 ; distance au lycée privé le plus proche parmi
@@ -95,8 +95,8 @@ def robustesse_h1(
     inclus) ; sans la commune-centre ; sans les communes de moins de
     `config.ACTIFS_MIN_ROBUSTESSE` actifs en 2022 ; sans les communes à moins de
     `config.DIST_FRONTIERE_KM` km du contour national, dans les aires frontalières seulement ;
-    sans contrôle de densité. Même estimation et même bootstrap que `pentes_paires_par_aire`.
-    Index (`variante`, `aire`) ; colonnes de `pentes_paires_par_aire`, en fraction par km ou par
+    sans contrôle de densité. Même estimation et même bootstrap que `h1.pentes_paires_par_aire`.
+    Index (`variante`, `aire`) ; colonnes de `h1.pentes_paires_par_aire`, en fraction par km ou par
     lycée.
     """
     principale = "d_dist_lyc_prive_min"
@@ -109,7 +109,7 @@ def robustesse_h1(
             paires.assign(**{colonne: ecart}), colonne
         )
 
-    # Prix au m² (§2.5) : paires dont les deux communes ont un prix, hors des aires sans DVF
+    # Prix au m² : paires dont les deux communes ont un prix, hors des aires sans DVF
     ecart_prix = _ecart_paires(paires, base, "log_prix_m2")
     avec_prix = paires.assign(d_log_prix_m2=ecart_prix)
     avec_prix = avec_prix[ecart_prix.notna() & ~paires["aire"].isin(config.AIRES_HORS_DVF)]
@@ -130,7 +130,7 @@ def robustesse_h1(
         paires.assign(d_dist_lyc_prive_min=ecart_elargi), principale
     )
 
-    # Chef-lieu (§2.4) : la distance au lycée privé est mesurée depuis la mairie
+    # Chef-lieu : la distance au lycée privé est mesurée depuis la mairie
     # (`collecte.chefs_lieux`) au lieu du centroïde ; contrôles et part de cadres restent les mêmes
     mairies = base[["code_commune"]].merge(chefs_lieux, on="code_commune", validate="one_to_one")
     assert len(mairies) == len(base), "Commune sans chef-lieu dans ADMIN EXPRESS."
@@ -170,11 +170,11 @@ def robustesse_h1(
 
 
 def moran_part_cadres(base: gpd.GeoDataFrame) -> pd.DataFrame:
-    """Renvoie l'indice I de Moran de la part de cadres dans chaque aire (§5.6).
+    """Renvoie l'indice I de Moran de la part de cadres dans chaque aire.
 
     Contiguïté Queen, la même que celle des paires.
     Deux variables : `part_cadres_2022`, puis l'écart restant après la comparaison par
-    anneaux, c'est-à-dire la part moins la moyenne simple de son anneau (§5.2, sans fusion). La
+    anneaux, c'est-à-dire la part moins la moyenne simple de son anneau, sans fusion. La
     p-valeur vient de `config.NB_PERMUTATIONS_MORAN` permutations, avec la graine du bootstrap.
     Index (`aire`, `variable`) ; colonnes `I`, `p_valeur`, `n_communes`.
     """

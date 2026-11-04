@@ -10,11 +10,11 @@ from cadres_lycees import accessibilite, analyse, config, nettoyage
 def fiabilite_ival(
     base: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame, sessions_ival: pd.DataFrame
 ) -> pd.DataFrame:
-    """Renvoie la fiabilité de `ival_moy_5km` (PLAN §3.2, A7), toutes aires ensemble puis par aire.
+    """Renvoie la fiabilité de `ival_moy_5km`, toutes aires ensemble puis par aire.
 
     `base` et `lycees` viennent de `pipeline.construire_base`, sur les 3 aires retenues. Pour
-    chaque moitié de `config.MOITIES_IVAL`, `ival_moy_5km` est recalculée avec les lycées de la
-    règle A1 qui ont assez de sessions dans les deux moitiés, et leurs poids A1. Colonnes : `r`
+    chaque moitié de `config.MOITIES_IVAL`, `ival_moy_5km` est recalculée avec les lycées qui
+    ont une IVAL et assez de sessions dans les deux moitiés, et leurs poids. Colonnes : `r`
     (Pearson, après centrage par aire), `r_spearman_brown` (manquante si `r` est négatif),
     `n_communes_h3` (population de H3), `n_communes` (renseignées dans les deux moitiés) et
     `n_lycees` (lycées distincts à 5 km de ces communes). Seule la ligne « ensemble » tranche H3.
@@ -76,13 +76,13 @@ def fiabilite_ival(
 
 
 def population_h3(base: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame) -> pd.DataFrame:
-    """Renvoie la population de H3 (§5.5, A16), une ligne par commune, indexée par son code.
+    """Renvoie la population de H3, une ligne par commune, indexée par son code.
 
     Les communes qui ont au moins un lycée retenu à 5 km. `avec_ival` dit si `ival_moy_5km` est
     renseignée (sinon, catégorie « sans IVAL », hors de l'estimation). Ajoute :
     `log_n_lyc_ival_5km` (logarithme du nombre de lycées à 5 km qui ont une IVAL) et
     `ival_reduite`, `log_n_reduit`, ces deux variables centrées réduites une seule fois dans
-    chaque aire sur les communes avec IVAL ; `anneau`, l'anneau du §5.2 sans fusion ; `grappe`,
+    chaque aire sur les communes avec IVAL ; `anneau`, l'anneau sans fusion ; `grappe`,
     l'UAI du lycée avec IVAL le plus proche du centroïde, unité du bootstrap.
     """
     rayon = config.RAYON_PRINCIPAL_KM
@@ -123,7 +123,7 @@ def population_h3(base: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame) -> pd.DataFr
 
 
 def _tirages_grappes(communes_h3: pd.DataFrame) -> list[pd.Series]:
-    """Renvoie les poids des communes dans chaque tirage du bootstrap par grappes de H3 (A16).
+    """Renvoie les poids des communes dans chaque tirage du bootstrap par grappes de H3.
 
     Dans chaque aire, les grappes de `communes_h3` sont tirées avec remise, autant que l'aire en
     compte ; une commune pèse le nombre de fois que sa grappe est tirée. La graine est remise à
@@ -147,7 +147,7 @@ def _coefficients_h3(echantillon: pd.DataFrame, poids: pd.Series) -> np.ndarray 
     Moindres carrés pondérés par `poids` (1 sans bootstrap) de `evol_cadres_pts` sur
     `ival_reduite`, `log_n_reduit`, `dist_centre_km`, `log_densite` et un effet fixe par
     aire × anneau, sans constante (les effets fixes en tiennent lieu). Seules les cellules
-    présentes dans le tirage ont un effet fixe (A16).
+    présentes dans le tirage ont un effet fixe.
     """
     gardees = echantillon[poids.loc[echantillon.index] > 0]
     cellule = gardees["aire"] + " " + gardees["anneau"].astype(str)
@@ -163,7 +163,7 @@ def _coefficients_h3(echantillon: pd.DataFrame, poids: pd.Series) -> np.ndarray 
 
 
 def estimation_h3(population: pd.DataFrame) -> pd.DataFrame:
-    """Renvoie β_q, β_n et β_q − β_n de H3 avec leurs intervalles (§5.5, A16).
+    """Renvoie β_q, β_n et β_q − β_n de H3 avec leurs intervalles.
 
     `population` vient de `population_h3`. Estimation sur les communes avec IVAL, les 3 aires
     ensemble puis chaque aire (descriptif), sur les mêmes tirages des grappes de ces communes
@@ -208,7 +208,7 @@ def estimation_h3(population: pd.DataFrame) -> pd.DataFrame:
 
 
 def verdict_h3(estimation: pd.DataFrame, fiabilite: float) -> pd.DataFrame:
-    """Renvoie le verdict de H3, toutes aires ensemble, par les règles du §5.5 (A1, A7, A16).
+    """Renvoie le verdict de H3, toutes aires ensemble, par les règles du plan.
 
     `estimation` vient de `estimation_h3`, `fiabilite` est la valeur après Spearman-Brown de la
     ligne « ensemble » de `fiabilite_ival`. Première règle vérifiée, dans l'ordre du plan. Une
@@ -233,7 +233,7 @@ def verdict_h3(estimation: pd.DataFrame, fiabilite: float) -> pd.DataFrame:
 
 
 def terciles_h3(population: pd.DataFrame) -> pd.DataFrame:
-    """Renvoie la moyenne de `evol_cadres_pts` par tiers d'IVAL de chaque aire (`fig_h3`, §5.5).
+    """Renvoie la moyenne de `evol_cadres_pts` par tiers d'IVAL de chaque aire (`fig_h3`).
 
     Tiers de `ival_moy_5km` calculés dans chaque aire sur les communes avec IVAL, plus la
     catégorie « sans IVAL ». Moyennes simples, intervalles à 95 % par `_tirages_grappes` sur

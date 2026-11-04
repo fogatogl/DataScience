@@ -28,7 +28,7 @@ def lycees_geo(
 def lycees_prives(annuaire: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """Renvoie les lycées privés de l'annuaire filtré, un par UAI, en Lambert 93.
 
-    Pour la robustesse « lycées professionnels et privé hors contrat inclus » (§5.6), qui n'a
+    Pour la robustesse « lycées professionnels et privé hors contrat inclus », qui n'a
     besoin que des positions : ni aire, ni IPS, ni IVAL. Les lycées sans coordonnées de
     `config.UAI_SANS_POSITION_ROBUSTESSE` sont écartés.
     """
@@ -137,7 +137,7 @@ def _ajouter_ips(
 def _ajouter_ival(
     lycees: gpd.GeoDataFrame, sessions_ival: pd.DataFrame, referentiel: gpd.GeoDataFrame
 ) -> gpd.GeoDataFrame:
-    """Ajoute `ival` et `poids_ival` (voir `ival_par_lycee`) ; manquants hors de la règle A1."""
+    """Ajoute `ival` et `poids_ival` (voir `ival_par_lycee`) ; manquants sans assez de sessions."""
     ival = ival_par_lycee(
         sessions_ival,
         config.PREMIERE_SESSION_IVAL,
@@ -168,8 +168,8 @@ def population(serie: pd.DataFrame, referentiel: gpd.GeoDataFrame) -> pd.DataFra
 
     `serie` vient de `collecte.serie_historique_rp2022`. `densite` est en habitants par km², avec
     `SUPERF`, la superficie de l'Insee, et non la surface des contours : même source que la
-    population (journal du 20/10). `log_densite` est la forme sous laquelle la
-    densité sert de contrôle (A7), tant sa distribution est asymétrique. Les communes sont celles
+    population. `log_densite` est la forme sous laquelle la
+    densité sert de contrôle, tant sa distribution est asymétrique. Les communes sont celles
     du référentiel, au grain des arrondissements à Lyon : la commune parente 69123 n'est jamais
     lue, ce qui évite de compter Lyon deux fois. Le résultat se joint par `code_commune`.
     """
@@ -190,15 +190,13 @@ def part_cadres(effectifs: pd.DataFrame, referentiel: gpd.GeoDataFrame) -> pd.Da
 
     `effectifs` vient de `collecte.evol_struct_rp2022`. La part est le groupe 3 (cadres et
     professions intellectuelles supérieures) divisé par la somme des 6 groupes, c'est-à-dire les
-    actifs occupés et les chômeurs ayant déjà travaillé (PLAN §2.3, A11) : une fraction entre 0
+    actifs occupés et les chômeurs ayant déjà travaillé : une fraction entre 0
     et 1. `evol_cadres_pts` est la part de 2022 moins celle de 2011, en points de pourcentage.
-    `actifs_2022` sert de poids (§3.2) ; le seuil de 200 actifs de H3 se lit sur le plus petit de
-    `actifs_2011` et `actifs_2022` (A17). `part_cadres_15p_2022`, les cadres parmi la population
-    de 15 ans ou plus en 2022, sert à la robustesse (§2.3). Lyon est lue au grain de ses
-    arrondissements, comme dans `population`. Une commune sans actif à une date n'a pas de part à
-    cette date : A17 veut ces communes nommées dans `config`, mais aucune des aires retenues
-    n'est dans ce cas (voir `config.ACTIFS_2554_2011`) ; une commune sans actif fait donc
-    échouer. Le résultat se joint par `code_commune`.
+    `actifs_2022` sert de poids ; le seuil de 200 actifs de H3 se lit sur le plus petit de
+    `actifs_2011` et `actifs_2022`. `part_cadres_15p_2022`, les cadres parmi la population
+    de 15 ans ou plus en 2022, sert à la robustesse. Lyon est lue au grain de ses
+    arrondissements, comme dans `population`. Aucune commune des aires retenues n'est sans actif
+    à une date : une telle commune fait échouer. Le résultat se joint par `code_commune`.
     """
     colonnes = [
         *config.ACTIFS_2554_2011,
@@ -212,8 +210,7 @@ def part_cadres(effectifs: pd.DataFrame, referentiel: gpd.GeoDataFrame) -> pd.Da
     actifs_2022 = actifs[list(config.ACTIFS_2554_2022)].sum(axis=1)
     sans_actif = sorted(actifs.index[(actifs_2011 <= 0) | (actifs_2022 <= 0)])
     assert not sans_actif, (
-        f"Communes sans actif de 25 à 54 ans en 2011 ou 2022, à nommer dans config (A17) : "
-        f"{sans_actif}"
+        f"Communes sans actif de 25 à 54 ans en 2011 ou 2022, à nommer dans config : {sans_actif}"
     )
 
     part_2011 = actifs[config.CADRES_2554_2011] / actifs_2011
@@ -236,11 +233,11 @@ def part_cadres(effectifs: pd.DataFrame, referentiel: gpd.GeoDataFrame) -> pd.Da
 
 
 def prix_m2(dvf: pd.DataFrame, referentiel: gpd.GeoDataFrame) -> pd.DataFrame:
-    """Renvoie le prix médian au m² de chaque commune, et son logarithme (§3.2, robustesse).
+    """Renvoie le prix médian au m² de chaque commune, et son logarithme (robustesse).
 
     `dvf` vient de `collecte.statistiques_dvf`. `prix_m2_med` est manquant sous
     `config.MIN_VENTES_DVF` ventes (appartements et maisons), et pour toute l'Alsace-Moselle,
-    absente de DVF. `log_prix_m2` sert de contrôle, comme `log_densite` (A7). Indexé par
+    absente de DVF. `log_prix_m2` sert de contrôle, comme `log_densite`. Indexé par
     `code_commune` ; toute commune du référentiel doit être dans le fichier.
     """
     par_code = dvf.set_index("code_geo")
@@ -309,13 +306,13 @@ def part_cadres_iris(
     """Renvoie la part de cadres parmi les actifs de 15 à 64 ans par IRIS, en 2011 et en 2022.
 
     Une ligne par IRIS de 2022 (index `iris`, codes de la géographie 2024). La part est le groupe
-    3 sur la somme des 6 groupes, comme pour la commune (§2.3), mais sur les 15-64 ans, seule
+    3 sur la somme des 6 groupes, comme pour la commune, mais sur les 15-64 ans, seule
     tranche que les bases IRIS croisent avec la CSP. Elle manque sans actif (IRIS d'activité ou de
-    loisirs, ce qui n'est pas une erreur, contrairement à une commune sans actif en T5), et en 2011
+    loisirs, ce qui n'est pas une erreur, contrairement à une commune sans actif), et en 2011
     si le code n'existait pas. `comparable` est vrai si l'IRIS a le même code et une part aux
     deux dates, sauf l'IRIS unique (commune + 0000) d'une commune non découpée qui en a absorbé
     une autre entre les géographies 2013 et 2024 : il garde son code, mais pas son territoire
-    (A18). Les arguments viennent de `collecte.activite_iris_2011`, `collecte.activite_iris_2022`
+    Les arguments viennent de `collecte.activite_iris_2011`, `collecte.activite_iris_2022`
     et `collecte.passage_communes`.
     """
     actifs_2011, part_2011 = _actifs_et_part(
@@ -374,11 +371,11 @@ def ival_par_lycee(
     """Renvoie l'IVAL de chaque lycée sur les sessions `premiere` à `derniere`, indexée par `uai`.
 
     `ival` est la moyenne simple de l'`indicateur` de valeur ajoutée de ces sessions (le taux
-    d'accès de la seconde au bac par défaut, le taux de réussite en robustesse, §3.2), pour les
+    d'accès de la seconde au bac par défaut, le taux de réussite en robustesse), pour les
     lycées qui en ont au moins `nb_sessions_min` où la valeur ajoutée est renseignée ;
     `poids_ival` est la moyenne de `presents_total` sur ces sessions. Les autres lycées sont
-    absents du résultat. La règle A1 (PLAN §2.4) correspond aux valeurs de `config` ; le test de
-    fiabilité (§3.2) l'applique à chaque moitié. Les sessions des UAI de
+    absents du résultat. Les valeurs de `config` donnent l'IVAL principale ; le test de
+    fiabilité applique la même règle à chaque moitié. Les sessions des UAI de
     `config.UAI_IVAL_RATTACHES` sont rattachées à l'UAI de l'annuaire : quand plusieurs sites
     publient la même session, elle vaut la valeur ajoutée moyenne des sites renseignés, pondérée
     par leurs présents, et ses présents sont ceux de ces sites additionnés.

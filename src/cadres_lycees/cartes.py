@@ -129,9 +129,9 @@ def carte_cadres_dates(communes: gpd.GeoDataFrame, parts: pd.DataFrame, titre: s
     arrondissements de Lyon sont réunis, la série n'ayant que Lyon entière. `parts` vient de
     `nettoyage.parts_cadres_dates`. Mêmes classes et mêmes couleurs que la carte IRIS ; une
     commune de moins de `config.ACTIFS_MIN_ROBUSTESSE` actifs à une date est pâle, sa part étant
-    peu précise (§3.2). Le curseur, un petit contrôle Leaflet (`_CURSEUR_JS`), recolore les
+    peu précise. Le curseur, un petit contrôle Leaflet (`_CURSEUR_JS`), recolore les
     communes selon le recensement choisi ; le survol donne toutes les dates. `titre` est le
-    message de la carte, écrit par le groupe (PLAN §6).
+    message de la carte, écrit par le groupe.
     """
     annees = list(config.GEOGRAPHIE_SERIE_CSP)
     unites = communes.dissolve("code_parent", as_index=False)[["code_parent", "geometry"]]
@@ -211,7 +211,7 @@ def carte_acces(communes: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame, titre: str
     `communes` et `lycees` sont la base et les lycées de `pipeline.construire_base`. Les communes
     sont colorées par classe de distance, les lycées sont des points colorés par secteur. Les
     contours sont simplifiés pour l'affichage seulement. `titre` est le message de la carte,
-    écrit par le groupe (PLAN §6) ; la légende en décrit le contenu.
+    écrit par le groupe ; la légende en décrit le contenu.
     """
     assert communes.crs == config.CRS_CALCUL and lycees.crs == config.CRS_CALCUL, (
         f"Communes en {communes.crs}, lycées en {lycees.crs} : EPSG:{config.CRS_CALCUL} attendu."

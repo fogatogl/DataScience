@@ -16,7 +16,7 @@ def indicateurs(
 ) -> pd.DataFrame:
     """Renvoie, pour chaque commune, le nombre de points par rayon et la distance au plus proche.
 
-    Distances à vol d'oiseau depuis le centroïde de la commune (PLAN §2.4), en Lambert 93.
+    Distances à vol d'oiseau depuis le centroïde de la commune, en Lambert 93.
     `n_<prefixe>_<r>km` compte les points à r km ou moins, bord compris. `dist_<prefixe>_min`
     est la distance en km au point le plus proche parmi tous les points : `points` doit couvrir
     bien au-delà des communes (toute la métropole pour les lycées), sinon les comptes et la
@@ -24,7 +24,7 @@ def indicateurs(
 
     Avec `attribut` et `poids`, deux colonnes de `points`, `<attribut>_moy_<r>km` est la moyenne
     de `attribut` pondérée par `poids` sur les points du rayon où `attribut` est renseigné (l'IVAL
-    du §2.4) : un point sans valeur reste compté dans `n_*` mais sort de la moyenne, et une
+    du lycée) : un point sans valeur reste compté dans `n_*` mais sort de la moyenne, et une
     commune sans valeur dans le rayon a une moyenne manquante.
 
     `communes` a les colonnes `code_commune` et `centroide` (sortie de

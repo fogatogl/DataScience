@@ -16,9 +16,8 @@ from cadres_lycees import config, stockage
 def _copies_publiques(chemin: str) -> list[str]:
     """Renvoie les URL publiques d'une copie gelée : la release GitHub, puis le bucket du projet.
 
-    La release d'abord : elle est lisible sans compte, alors que le dossier public du bucket
-    répond 403 depuis le 20/10 ; dans l'autre ordre, chaque lecture sur un compte neuf
-    imprimerait un avertissement de repli dans le rapport.
+    La release d'abord : le dossier public du bucket refuse la lecture anonyme (403), et chaque
+    repli imprimerait un avertissement dans le rapport.
     """
     return [config.URL_COPIES_RELEASE + chemin.removeprefix("raw/"), config.URL_COPIES_S3 + chemin]
 
@@ -26,8 +25,8 @@ def _copies_publiques(chemin: str) -> list[str]:
 def geler_annuaire(chemin: str) -> str:
     """Écrit à `chemin` l'export complet de l'annuaire par l'API et renvoie son sha256.
 
-    Produit une copie gelée : celle du 13/10/2026 vient de là. Le rapport ne l'appelle pas, il
-    lit la copie gelée (`annuaire_education`). Mode d'emploi dans le README.
+    Le rapport ne l'appelle pas, il lit la copie gelée (`annuaire_education`). Mode d'emploi dans
+    le README.
     """
     return _geler(config.URL_ANNUAIRE, chemin, _parquet_complet)
 
@@ -35,7 +34,7 @@ def geler_annuaire(chemin: str) -> str:
 def geler_gares(chemin: str) -> str:
     """Écrit à `chemin` l'export complet des gares de voyageurs et renvoie son sha256.
 
-    Produit la copie gelée du 03/11/2026 ; le rapport lit cette copie (`gares`). Mode d'emploi
+    Le rapport lit la copie gelée (`gares`). Mode d'emploi
     dans le README.
     """
     return _geler(config.URL_GARES, chemin, _parquet_complet)
@@ -44,7 +43,7 @@ def geler_gares(chemin: str) -> str:
 def geler_apl(chemin: str) -> str:
     """Écrit à `chemin` le fichier de l'APL aux médecins généralistes et renvoie son sha256.
 
-    Produit la copie gelée du 03/11/2026 ; le rapport lit cette copie (`apl_medecins`).
+    Le rapport lit la copie gelée (`apl_medecins`).
     """
     return _geler(config.URL_APL, chemin, _xlsx_complet)
 
@@ -52,7 +51,7 @@ def geler_apl(chemin: str) -> str:
 def geler_equipements_sportifs(chemin: str) -> str:
     """Écrit à `chemin` l'export complet de Data ES et renvoie son sha256.
 
-    Produit la copie gelée du 03/11/2026 ; le rapport lit cette copie (`equipements_sportifs`).
+    Le rapport lit la copie gelée (`equipements_sportifs`).
     Le serveur peut répondre 200 avec un flux tronqué par une erreur : `_parquet_complet` le
     refuse.
     """
@@ -62,7 +61,7 @@ def geler_equipements_sportifs(chemin: str) -> str:
 def geler_bpe(chemin: str) -> str:
     """Écrit à `chemin` le fichier détail de la BPE 2025 et renvoie son sha256.
 
-    Produit la copie gelée du 03/11/2026 ; le rapport lit cette copie (`equipements_culturels`).
+    Le rapport lit la copie gelée (`equipements_culturels`).
     """
     return _geler(config.URL_BPE, chemin, _parquet_complet)
 
@@ -70,7 +69,7 @@ def geler_bpe(chemin: str) -> str:
 def geler_dvf(chemin: str) -> str:
     """Écrit à `chemin` les statistiques DVF d'Etalab par commune et renvoie son sha256.
 
-    Produit la copie gelée du 03/11/2026 ; le rapport lit cette copie (`statistiques_dvf`).
+    Le rapport lit la copie gelée (`statistiques_dvf`).
     """
     return _geler(config.URL_DVF, chemin, _csv_complet)
 
@@ -80,7 +79,7 @@ def geler_chefs_lieux(chemin: str) -> str:
 
     Lit page par page les couches WFS de `config.COUCHES_CHEFS_LIEUX` (IGN, ADMIN EXPRESS COG
     2025) et en fait un Parquet à deux colonnes, `code_commune` et `geometry` (Lambert 93).
-    Produit la copie gelée du 03/11/2026 ; le rapport lit cette copie (`chefs_lieux`).
+    Le rapport lit la copie gelée (`chefs_lieux`).
     """
     assert not stockage.existe(chemin), f"{chemin} existe déjà : choisir un autre chemin daté."
     morceaux = []
@@ -111,7 +110,7 @@ def geler_chefs_lieux(chemin: str) -> str:
 def chefs_lieux() -> gpd.GeoDataFrame:
     """Renvoie le point du chef-lieu de chaque commune et arrondissement (IGN, COG 2025).
 
-    Colonnes `code_commune` et `geometry` (Lambert 93). Lu dans la copie gelée du 03/11/2026.
+    Colonnes `code_commune` et `geometry` (Lambert 93). Lu dans la copie gelée.
     """
     contenu = stockage.copie_controlee(
         _copies_publiques(config.CHEMIN_RAW_CHEFS_LIEUX),
@@ -162,13 +161,12 @@ def annuaire_education(
 ) -> gpd.GeoDataFrame:
     """Renvoie les lycées de France métropolitaine de l'annuaire de l'éducation.
 
-    Par défaut, lycées généraux, technologiques et polyvalents, publics ou privés sous contrat
-    (PLAN §2.4), repérés par `code_nature` car les `voie_*` de l'annuaire sont trop souvent
-    vides ; la robustesse du §5.6 élargit `natures` et `contrats`. Toute la
-    métropole est gardée, pas seulement les aires et une marge autour : le lycée le plus proche
-    d'une commune du bord peut être bien au-delà de l'aire. Une ligne par site : un UAI
-    multi-sites apparaît plusieurs fois (dédoublonné au nettoyage). Lu dans la copie gelée du
-    13/10/2026, jamais dans l'API, qui change chaque jour.
+    Par défaut, lycées généraux, technologiques et polyvalents, publics ou privés sous contrat,
+    repérés par `code_nature` car les `voie_*` de l'annuaire sont trop souvent vides ; la robustesse
+    élargit `natures` et `contrats`. Toute la métropole est gardée, pas seulement les aires et une
+    marge autour : le lycée le plus proche d'une commune du bord peut être bien au-delà de l'aire.
+    Une ligne par site : un UAI multi-sites apparaît plusieurs fois (dédoublonné au nettoyage). Lu
+    dans la copie gelée, jamais dans l'API, qui change chaque jour.
     """
     contenu = stockage.copie_controlee(
         _copies_publiques(config.CHEMIN_RAW_ANNUAIRE),
@@ -296,7 +294,7 @@ def evol_struct_rp2022() -> pd.DataFrame:
 def ival_lycees() -> pd.DataFrame:
     """Renvoie les indicateurs de valeur ajoutée des lycées GT : une ligne par lycée et session.
 
-    Lu dans la copie gelée du 20/10/2026 de l'export de l'API (`config.URL_IVAL`). Tout est lu en
+    Lu dans la copie gelée de l'export de l'API (`config.URL_IVAL`). Tout est lu en
     chaîne, pour garder les codes communes tels quels (« 2A004 », zéros
     en tête) : la conversion des valeurs se fait au nettoyage.
     """
@@ -316,11 +314,10 @@ def geler_contours(chemin: str, valeur: str, maille: str, filtre: str) -> str:
     """Écrit à `chemin` des contours téléchargés par cartiflette et renvoie leur sha256.
 
     `valeur`, `maille` et `filtre` sont les arguments `values`, `borders` et `filter_by` de
-    `carti_download` : un code d'aire, "COMMUNE_ARRONDISSEMENT" et "AIRE_ATTRACTION_VILLES" pour
-    les contours d'une aire ; "France", "DEPARTEMENT" et "FRANCE_ENTIERE" pour les départements ;
-    un code d'aire, "IRIS" et "AIRE_ATTRACTION_VILLES" pour les IRIS d'une aire (carte A18).
-    Produit une copie gelée : celles des 13, 20 et 21/10/2026 viennent de là. Le rapport ne
-    l'appelle pas, il lit la copie gelée. Le sha256 fige une sérialisation (versions de geopandas
+    `carti_download` : un code d'aire, "COMMUNE_ARRONDISSEMENT" et "AIRE_ATTRACTION_VILLES" pour les
+    contours d'une aire ; "France", "DEPARTEMENT" et "FRANCE_ENTIERE" pour les départements ; un
+    code d'aire, "IRIS" et "AIRE_ATTRACTION_VILLES" pour les IRIS d'une aire. Le rapport ne
+    l'appelle pas, il lit les copies gelées. Le sha256 fige une sérialisation (versions de geopandas
     et de pyarrow comprises), pas seulement des données. Mode d'emploi dans le README.
     """
     assert not stockage.existe(chemin), f"{chemin} existe déjà : choisir un autre chemin daté."
@@ -340,7 +337,7 @@ def contours_aire(code_aav: str) -> gpd.GeoDataFrame:
 
     Les arrondissements municipaux remplacent leur commune parente (Lyon 69123 devient 69381 à
     69389) ; `INSEE_COM` garde le code de la commune parente et `INSEE_COG` celui de l'unité. Lu
-    dans la copie gelée du 13/10/2026.
+    dans la copie gelée.
     """
     chemin = config.CHEMIN_RAW_CONTOURS.format(aav=code_aav)
     contenu = stockage.copie_controlee(
@@ -353,7 +350,7 @@ def contours_iris(code_aav: str) -> gpd.GeoDataFrame:
     """Renvoie les contours des IRIS d'une aire d'attraction, en WGS84 (COG 2025).
 
     `CODE_IRIS` identifie l'IRIS ; à Lyon, `INSEE_COM` vaut 69123 et `INSEE_COG` l'arrondissement.
-    Lu dans la copie gelée du 21/10/2026.
+    Lu dans la copie gelée.
     """
     chemin = config.CHEMIN_RAW_CONTOURS_IRIS.format(aav=code_aav)
     contenu = stockage.copie_controlee(
@@ -490,7 +487,7 @@ def contours_departements() -> gpd.GeoDataFrame:
     """Renvoie les contours des départements, DOM compris, en WGS84 (COG 2025).
 
     Leur union donne le contour de la France métropolitaine (`geo.distance_contour_national_km`).
-    Lu dans la copie gelée du 20/10/2026.
+    Lu dans la copie gelée.
     """
     contenu = stockage.copie_controlee(
         _copies_publiques(config.CHEMIN_RAW_DEPARTEMENTS),
@@ -503,7 +500,7 @@ def contours_departements() -> gpd.GeoDataFrame:
 def ips_lycees() -> pd.DataFrame:
     """Renvoie l'IPS des lycées : une ligne par lycée et par rentrée, de 2023-2024 à 2025-2026.
 
-    Lu dans la copie gelée du 13/10/2026 de l'export de l'API (`config.URL_IPS`). Tout est lu en
+    Lu dans la copie gelée de l'export de l'API (`config.URL_IPS`). Tout est lu en
     chaîne, la conversion en nombres se fait au nettoyage.
     """
     contenu = stockage.copie_controlee(
@@ -519,13 +516,12 @@ def ips_lycees() -> pd.DataFrame:
 
 
 def gares() -> gpd.GeoDataFrame:
-    """Renvoie les gares de voyageurs de SNCF Gares & Connexions, en Lambert 93 (H4, §5.7).
+    """Renvoie les gares de voyageurs de SNCF Gares & Connexions, en Lambert 93 (H4).
 
-    Une ligne par gare (`id_gare`), avec `nom_gare`, `code_commune` et `segment_drg` (A nationale,
-    B régionale, C locale ; plusieurs lettres pour une gare à plusieurs codes UIC). Toutes les
-    gares sont gardées, comme les lycées : la gare la plus proche d'une commune du bord peut être
-    hors de l'aire. Le fichier ne dit pas si une gare est fermée aux voyageurs. Lu dans la copie
-    gelée du 03/11/2026.
+    Une ligne par gare (`id_gare`), avec `nom_gare`, `code_commune` et `segment_drg` (A nationale, B
+    régionale, C locale ; plusieurs lettres pour une gare à plusieurs codes UIC). Toutes les gares
+    sont gardées, comme les lycées : la gare la plus proche d'une commune du bord peut être hors de
+    l'aire. Le fichier ne dit pas si une gare est fermée aux voyageurs. Lu dans la copie gelée.
     """
     contenu = stockage.copie_controlee(
         _copies_publiques(config.CHEMIN_RAW_GARES), config.CHEMIN_RAW_GARES, config.SHA256_GARES
@@ -551,11 +547,11 @@ def gares() -> gpd.GeoDataFrame:
 
 
 def apl_medecins() -> pd.Series:
-    """Renvoie l'APL 2024 aux médecins généralistes, tous âges, par commune (H4, §5.7).
+    """Renvoie l'APL 2024 aux médecins généralistes, tous âges, par commune (H4).
 
     Index `code_commune`, arrondissements municipaux à la place de leur commune parente, comme
-    dans le référentiel. Indicateur déjà calculé par la DREES, utilisé tel quel (§5.7). Lu dans la
-    copie gelée du 03/11/2026.
+    dans le référentiel. Indicateur déjà calculé par la DREES, utilisé tel quel. Lu dans la
+    copie gelée.
     """
     contenu = stockage.copie_controlee(
         _copies_publiques(config.CHEMIN_RAW_APL), config.CHEMIN_RAW_APL, config.SHA256_APL
@@ -582,7 +578,7 @@ def equipements_sportifs() -> gpd.GeoDataFrame:
     en médiane, mais une moyenne de leurs points tomberait n'importe où pour un sentier ou un
     site de nature. Écartées : les installations hors service (`inst_hs_bool`, seul indicateur
     de fermeture), les équipements sans coordonnées et l'outre-mer. Toutes les familles sont
-    gardées (H4, §5.7). Lu dans la copie gelée du 03/11/2026.
+    gardées (H4). Lu dans la copie gelée.
     """
     contenu = stockage.copie_controlee(
         _copies_publiques(config.CHEMIN_RAW_EQUIPEMENTS_SPORTIFS),
@@ -615,8 +611,8 @@ def statistiques_dvf() -> pd.DataFrame:
 
     Lignes de l'échelle « commune » seulement (le fichier mêle sections, EPCI et départements),
     avec `code_geo` en chaîne. Les arrondissements de Lyon y sont, et aussi Lyon entière (69123).
-    La médiane est renseignée dès une vente : le seuil du §3.2 s'applique au nettoyage. Lu dans
-    la copie gelée du 03/11/2026.
+    La médiane est renseignée dès une vente : le seuil de ventes s'applique au nettoyage. Lu dans
+    la copie gelée.
     """
     contenu = stockage.copie_controlee(
         _copies_publiques(config.CHEMIN_RAW_DVF), config.CHEMIN_RAW_DVF, config.SHA256_DVF
@@ -634,8 +630,7 @@ def equipements_culturels() -> gpd.GeoDataFrame:
     Une ligne par type d'équipement et par point (`type_equipement`) : une même adresse porte
     parfois deux labels du même type (un musée qui est aussi une maison des Illustres, une
     bibliothèque et le siège de son réseau), comptés une fois. Tous les équipements culturels de
-    métropole sont géolocalisés, à 50 m près pour une qualité acceptable. Lu dans la copie gelée
-    du 03/11/2026.
+    métropole sont géolocalisés, à 50 m près pour une qualité acceptable. Lu dans la copie gelée.
     """
     contenu = stockage.copie_controlee(
         _copies_publiques(config.CHEMIN_RAW_BPE), config.CHEMIN_RAW_BPE, config.SHA256_BPE

@@ -26,9 +26,9 @@ def fig_aires(
 
     À gauche, la part du privé en nombre de lycées et en candidats au bac ; à droite, l'IPS de
     chaque lycée par secteur, avec la moyenne simple du secteur et l'écart privé moins public :
-    les deux dimensions du critère (b) du choix des aires (PLAN §2.2, §5.1). `profil` vient de
+    les deux dimensions du critère (b) du choix des aires. `profil` vient de
     `analyse.profil_aires`, `lycees` de `nettoyage.lycees_geo` ; `titre` est le message de la
-    figure, écrit par le groupe (PLAN §6). Les aires sont triées par écart d'IPS, le plus fort
+    figure, écrit par le groupe. Les aires sont triées par écart d'IPS, le plus fort
     en haut ; celles de `aires_retenues` sont mises en avant, nom en gras sur une bande grise.
     """
     inconnues = sorted(set(aires_retenues) - set(profil.index))
@@ -274,13 +274,13 @@ def _libelle_cellule(bas_km: float, haut_km: float, rayon_km: int) -> str:
 def fig_h1(
     principale: pd.DataFrame, secondaire: pd.DataFrame, anneaux: pd.DataFrame, titre: str
 ) -> Figure:
-    """`fig_h1` : estimations de H1 par aire, en points avec leurs intervalles à 95 % (§5.2).
+    """`fig_h1` : estimations de H1 par aire, en points avec leurs intervalles à 95 %.
 
-    Trois panneaux à axes propres, les aires sur la même ligne de l'un à l'autre (H2, §5.4) :
+    Trois panneaux à axes propres, les aires sur la même ligne de l'un à l'autre (H2) :
     pente principale et pente secondaire des paires (`h1.pentes_paires_par_aire`), écarts
     des cellules estimables à 5 et à 10 km (`h1.ecarts_anneaux`), chacune nommée par ses
     bornes. Les cellules non estimables sont nommées en note. `titre` est le message de la
-    figure, écrit par le groupe (PLAN §6).
+    figure, écrit par le groupe.
     """
     aires = aires_ordonnees(principale.index)
     assert set(secondaire.index) == set(aires), "Les deux pentes n'ont pas les mêmes aires."
@@ -367,9 +367,9 @@ def fig_paires(paires: pd.DataFrame, pentes: pd.DataFrame, titre: str) -> Figure
     """`fig_paires` : écart de part de cadres et écart de distance au lycée privé dans les paires.
 
     Un panneau par aire : le nuage par classes de `h1.nuage_paires` et la droite de pente
-    principale de H1, sans constante, avec son intervalle à 95 % (§5.3). `paires` vient de
+    principale de H1, sans constante, avec son intervalle à 95 %. `paires` vient de
     `pipeline.construire_base`, `pentes` de `h1.pentes_paires_par_aire(paires,
-    "d_dist_lyc_prive_min")` ; `titre` est le message de la figure, écrit par le groupe (PLAN §6).
+    "d_dist_lyc_prive_min")` ; `titre` est le message de la figure, écrit par le groupe.
     """
     acces = "d_dist_lyc_prive_min"
     aires = aires_ordonnees(paires["aire"])
@@ -453,12 +453,12 @@ def fig_paires(paires: pd.DataFrame, pentes: pd.DataFrame, titre: str) -> Figure
 
 
 def fig_h3(terciles: pd.DataFrame, titre: str) -> Figure:
-    """`fig_h3` : évolution de la part de cadres par tiers d'IVAL de chaque aire (H3, §5.5).
+    """`fig_h3` : évolution de la part de cadres par tiers d'IVAL de chaque aire (H3).
 
     Un point par aire et par catégorie (`config.CATEGORIES_TIERS_IVAL`), avec son intervalle à 95 %
     par bootstrap des grappes ; la catégorie « sans IVAL » est à part. `terciles` vient de
     `h3.terciles_h3`, dont les tirages écartés sont nommés en note ; `titre` est le message
-    de la figure, écrit par le groupe (PLAN §6). Elle décrit : le verdict de H3 se lit sur β_q
+    de la figure, écrit par le groupe. Elle décrit : le verdict de H3 se lit sur β_q
     et β_n.
     """
     aires = aires_ordonnees(terciles.index.get_level_values("aire"))
@@ -524,12 +524,12 @@ def fig_h3(terciles: pd.DataFrame, titre: str) -> Figure:
 
 
 def fig_robustesse(robustesse: pd.DataFrame, titre: str) -> Figure:
-    """Pente principale de H1 dans chaque variante de robustesse, par aire (§5.6).
+    """Pente principale de H1 dans chaque variante de robustesse, par aire.
 
     Une ligne par variante en points par km (les pentes secondaires, en points par lycée, restent
     dans le tableau), un point par aire avec son intervalle à 95 % ; la spécification principale
     en haut, sur fond gris, sert de repère. `robustesse` vient de `robustesse.robustesse_h1` ;
-    `titre` est le message de la figure (PLAN §6).
+    `titre` est le message de la figure.
     """
     en_km = robustesse[~robustesse.index.get_level_values("variante").str.contains("secondaire")]
     variantes = list(en_km.index.unique("variante"))
@@ -587,7 +587,7 @@ def fig_h4(pentes: pd.DataFrame, titre: str) -> Figure:
 
     Une ligne par mesure d'accès, de la plus forte à la plus faible association (moyenne des
     pentes des aires), un point par aire avec son intervalle à 95 %. `pentes` vient de
-    `h1.pentes_h4` ; `titre` est le message de la figure, écrit par le groupe (PLAN §6).
+    `h1.pentes_h4` ; `titre` est le message de la figure, écrit par le groupe.
     """
     aires = aires_ordonnees(pentes.index.get_level_values("aire"))
     ordre = pentes["pente"].groupby(level="mesure").mean().sort_values().index
@@ -646,15 +646,15 @@ def fig_h4(pentes: pd.DataFrame, titre: str) -> Figure:
 def carte_iris(
     contours: gpd.GeoDataFrame, parts: pd.DataFrame, code_centre: str, titre: str
 ) -> Figure:
-    """Carte statique de la part de cadres par IRIS d'une aire, en 2011 puis en 2022 (A18).
+    """Carte statique de la part de cadres par IRIS d'une aire, en 2011 puis en 2022.
 
     `contours` vient de `collecte.contours_iris`, `parts` de `nettoyage.part_cadres_iris`. En haut,
     l'aire entière ; en bas, un zoom sur un carré de `config.ZOOM_IRIS_KM` km de demi-côté autour
     du centroïde de la commune-centre `code_centre` (Lyon : 69123, ses arrondissements réunis),
     où ses IRIS deviennent lisibles. Les quatre panneaux ont les mêmes classes ; les IRIS non
     comparables (code ou territoire changé depuis 2011) sont hachurés en gris. C'est une
-    exploration (§5.8) : ni lycées ni test. `titre` est le message de la carte, écrit par le
-    groupe (PLAN §6).
+    exploration : ni lycées ni test. `titre` est le message de la carte, écrit par le
+    groupe.
     """
     codes = contours["CODE_IRIS"].replace(config.IRIS_RECODES_2025_2024)
     # Dans les deux sens : un IRIS de 2022 sans contour disparaîtrait de la carte sans signal

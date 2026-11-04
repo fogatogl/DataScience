@@ -52,11 +52,11 @@ def referentiel_communes(aires: dict[str, str]) -> gpd.GeoDataFrame:
     """Renvoie une ligne par commune des aires demandées, en Lambert 93.
 
     `aires` associe le nom de l'aire à son code AAV2020 (par exemple `config.AIRES_CANDIDATES`).
-    Les arrondissements municipaux remplacent leur commune parente (PLAN §2.1) : `code_parent`
+    Les arrondissements municipaux remplacent leur commune parente : `code_parent`
     donne la commune parente, celle des sources qui ignorent les arrondissements.
 
     Colonnes : `code_commune`, `code_parent`, `nom_commune`, `aire`, `pole_couronne`,
-    `geometry` (contour), `centroide` (point de référence de la commune, PLAN §2.4) et
+    `geometry` (contour), `centroide` (point de référence de la commune) et
     `dist_centre_km`, la distance en kilomètres entre ce centroïde et celui de la
     commune-centre de l'aire.
     """
@@ -79,7 +79,7 @@ def paires_contigues(communes: gpd.GeoDataFrame, variables: list[str]) -> pd.Dat
     """Renvoie une ligne par paire de communes contiguës d'une même aire, avec leurs écarts.
 
     Contiguïté « Queen » : deux communes sont voisines si leurs contours se touchent, par un
-    bord ou par un seul point, comme pour l'indice de Moran (PLAN §5.6). Une paire n'apparaît
+    bord ou par un seul point, comme pour l'indice de Moran. Une paire n'apparaît
     qu'une fois, avec `code_commune_i` < `code_commune_j`, et `d_<v>` vaut la valeur de i moins
     celle de j pour chaque variable v de `variables` (manquant si l'une des deux manque). Ce sens
     suit l'ordre des codes, il est donc arbitraire : seules une pente estimée sans constante ou
@@ -96,9 +96,7 @@ def paires_contigues(communes: gpd.GeoDataFrame, variables: list[str]) -> pd.Dat
     meme_aire = contacts["aire_i"] == contacts["aire_j"]
     paires = contacts.loc[une_fois & meme_aire, ["code_commune_i", "code_commune_j", "aire_i"]]
     paires = paires.rename(columns={"aire_i": "aire"}).reset_index(drop=True)
-    assert not paires.duplicated(["code_commune_i", "code_commune_j"]).any(), (
-        "Paire en double (PLAN §4 F)."
-    )
+    assert not paires.duplicated(["code_commune_i", "code_commune_j"]).any(), "Paire en double."
     # Une commune sans voisine dans son aire disparaîtrait des paires sans aucun signal
     dans_une_paire = set(paires["code_commune_i"]) | set(paires["code_commune_j"])
     isolees = sorted(set(communes["code_commune"]) - dans_une_paire)
@@ -118,7 +116,7 @@ def distance_contour_national_km(communes: gpd.GeoDataFrame) -> pd.Series:
 
     Le contour est celui de l'union des départements métropolitains : il suit la frontière
     terrestre et le littoral. Il ne mesure donc la distance à la frontière que loin des côtes,
-    ce qui est le cas de Lille et de Strasbourg, les seules aires où elle sert (A6). Le résultat
+    ce qui est le cas de Lille et de Strasbourg, les seules aires où elle sert. Le résultat
     est indexé par `code_commune`.
     """
     departements = collecte.contours_departements().to_crs(config.CRS_CALCUL)

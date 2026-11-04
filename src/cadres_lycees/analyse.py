@@ -56,16 +56,16 @@ def profil_aires(lycees: gpd.GeoDataFrame) -> pd.DataFrame:
 def tableau_support(
     base: gpd.GeoDataFrame, paires: pd.DataFrame, cellules: pd.DataFrame
 ) -> pd.DataFrame:
-    """Renvoie le support de l'exposition, une ligne par aire et par rayon (§2.2 e, §5.2).
+    """Renvoie le support de l'exposition, une ligne par aire et par rayon.
 
     `base` et `paires` viennent de `pipeline.ecrire_tableau_support` : base sans la part de
-    cadres, paires sur `config.VARIABLES_PAIRES_SANS_CADRES` (A3) ; `cellules` vient de
+    cadres, paires sur `config.VARIABLES_PAIRES_SANS_CADRES` ; `cellules` vient de
     `cellules_anneaux`, avec une colonne `rayon_km`, pour chaque rayon de
     `config.RAYONS_SUPPORT_KM`. Colonnes : `communes`, `exposees` et `part_exposees` (au moins un
     lycée privé sous contrat dans le rayon), `cellules_estimables`, `paires_statut_different`
     (l'exposition 0/1 diffère entre les deux voisines) et `correlation_non_centree` entre
     `d_dist_lyc_prive_min` et `d_dist_centre_km` dans les paires : sans centrage, elle ne
-    dépend pas du sens i − j, qui suit l'ordre des codes (A6).
+    dépend pas du sens i − j, qui suit l'ordre des codes.
     """
     x, y = paires["d_dist_lyc_prive_min"], paires["d_dist_centre_km"]
     produits = pd.DataFrame({"xy": x * y, "xx": x**2, "yy": y**2, "aire": paires["aire"]})
@@ -124,9 +124,9 @@ def resume_acces(base: pd.DataFrame) -> pd.DataFrame:
 
 
 def parts_par_anneau(base: pd.DataFrame) -> pd.DataFrame:
-    """Renvoie la part de cadres de chaque anneau de distance au centre, aire par aire (§3.2).
+    """Renvoie la part de cadres de chaque anneau de distance au centre, aire par aire.
 
-    Anneaux du §5.2 sans fusion ; part de l'anneau = cadres sur actifs de ses communes réunies,
+    Anneaux sans fusion ; part de l'anneau = cadres sur actifs de ses communes réunies,
     soit la moyenne des parts pondérée par `actifs_2022`. Index (`aire`, `anneau`) ; colonnes
     `part_cadres_2022` (fraction) et `communes`. Décrit le gradient centre-périphérie, qui
     justifie de comparer les communes à distance égale du centre.
@@ -143,7 +143,7 @@ def parts_par_anneau(base: pd.DataFrame) -> pd.DataFrame:
 
 
 def anneau(dist_centre_km: pd.Series) -> pd.Series:
-    """Renvoie l'anneau du §5.2, sans fusion, de chaque distance au centre (catégorie ordonnée).
+    """Renvoie l'anneau, sans fusion, de chaque distance au centre (catégorie ordonnée).
 
     Libellés « 0-5 km » … « 30 km et plus », borne basse incluse.
     """
