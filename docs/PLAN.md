@@ -337,7 +337,7 @@ projet-cadres-lycees/
 ├── uv.lock
 ├── .gitignore                 # data/, .env, __pycache__, _site/, .ipynb_checkpoints
 ├── .pre-commit-config.yaml    # nb-clean : retire les sorties des notebooks
-├── _quarto.yml                # rendu du rapport en site web (GitHub Pages)
+├── _quarto.yml                # rendu du rapport en site web (GitHub Pages), avec un lien vers la présentation
 ├── rapport.ipynb              # LE notebook rendu, exécutable de bout en bout
 ├── src/cadres_lycees/
 │   ├── __init__.py
@@ -356,6 +356,9 @@ projet-cadres-lycees/
 │   ├── cartes.py              # cartes folium : une fonction par carte (accès aux lycées, carte à curseur de la part de cadres)
 │   ├── tableaux.py            # mise en forme des tableaux du rapport et des documents Markdown affichés en annexe
 │   └── pipeline.py            # construire_base() enchaîne les étapes A à G
+├── presentation/              # présentation interactive de soutenance, publiée avec le site
+│   ├── page.html              # gabarit HTML, CSS et JavaScript (Leaflet)
+│   └── construire.py          # recalcule les résultats depuis les copies gelées, écrit _site/presentation.html
 ├── tests/
 │   ├── test_accessibilite.py
 │   ├── test_analyse.py        # fonctions de `h1.py`, 4 tests au plus : fusion des anneaux, poids du bootstrap par commune, invariance au sens i − j, verdict de H1
@@ -387,7 +390,7 @@ projet-cadres-lycees/
 ### 8.2 Code
 
 - Python 3.13 et dépendances déclarées dans `pyproject.toml`. Gestion avec `uv`, comme dans l'environnement du cours.
-- Dépendances principales : `pandas`, `geopandas`, `pyarrow`, `s3fs`, `requests`, `python-calamine`, `cartiflette`, `libpysal`, `esda`, `matplotlib`, `folium`, `jupyter`, `nb-clean`, `pytest`, `tabulate`. `duckdb` vient avec `cartiflette` ; `tabulate` sert seulement à `DataFrame.to_markdown`, qui écrit le tableau de support ; `libpysal` et `esda` sont retirés si l'indice de Moran est sacrifié (§10).
+- Dépendances principales : `pandas`, `geopandas`, `pyarrow`, `s3fs`, `requests`, `python-calamine`, `cartiflette`, `libpysal`, `esda`, `matplotlib`, `folium`, `jupyter`, `nb-clean`, `pytest`, `tabulate`, `pillow`. `duckdb` vient avec `cartiflette` ; `tabulate` sert seulement à `DataFrame.to_markdown`, qui écrit le tableau de support ; `pillow` sert seulement à assembler les fonds de carte IGN de la présentation ; `libpysal` et `esda` sont retirés si l'indice de Moran est sacrifié (§10).
 - Fonctions documentées (docstring), annotations de type et noms en français cohérents avec le dictionnaire des variables.
 - Aucun chemin ni aucune URL en dur hors de `config.py`.
 - Les fonctions de collecte sont **idempotentes** : si le fichier brut est déjà sur S3, elles ne le retéléchargent pas.
@@ -396,7 +399,7 @@ projet-cadres-lycees/
 
 - Le cours autorise les assistants de code utilisés avec discernement, mais **interdit le vibe coding** et sanctionne les usages abusifs.
 - Chaque membre doit pouvoir expliquer, en soutenance, tout le code du dépôt, et en particulier `accessibilite.py`, `h1.py` et `h3.py`.
-- Le groupe est responsable du texte final du rapport et de toute interprétation. Le premier jet du texte du rapport et des sections « Résultats clés » et « Usage de l'IA générative » du README a été rédigé par l'assistant le 03/11, à la demande de Giulio (journal du 03/11) : chaque section est relue, reprise et appropriée par son auteur selon les échéances du §9 (R3 sections 1 à 3, R2 section 4, Giulio sections 5 et 6), et la section IA du README le déclare, ainsi que la présentation interactive de soutenance, hors dépôt.
+- Le groupe est responsable du texte final du rapport et de toute interprétation. Le premier jet du texte du rapport et des sections « Résultats clés » et « Usage de l'IA générative » du README a été rédigé par l'assistant le 03/11, à la demande de Giulio (journal du 03/11) : chaque section est relue, reprise et appropriée par son auteur selon les échéances du §9 (R3 sections 1 à 3, R2 section 4, Giulio sections 5 et 6), et la section IA du README le déclare, ainsi que la présentation interactive de soutenance, dans le dépôt (`presentation/`).
 
 ------------------------------------------------------------------------
 
@@ -429,7 +432,7 @@ projet-cadres-lycees/
 - Si H1 à H3 sont traitées et robustes, la semaine 5 couvre H4 en entier.
 - Sinon, la semaine 5 consolide d'abord H1 à H3, et H4 est réduite à deux infrastructures (gares et APL).
 
-**Soutenance (décembre-janvier).** Le support est construit autour des Fig. 1, 4, 5 et 7 ; la Fig. 2, devenue une carte interactive, est montrée sur le site ou en deux captures (1999 et 2022). Une répétition chronométrée est prévue, avec une liste de questions probables (pourquoi 5 km ? pourquoi pas de causalité ? que fait votre fonction d'accessibilité ? que vaut l'intervalle d'un résultat nul, en points de part de cadres sur 5 km ? pourquoi le test de H3 penche-t-il contre H3 ? que dit l'indice de Moran résiduel des intervalles ?).
+**Soutenance (décembre-janvier).** Le support est construit autour des Fig. 1, 4, 5 et 7 ; la Fig. 2, devenue une carte interactive, est montrée sur le site ou en deux captures (1999 et 2022) ; la présentation interactive (`presentation/`) est publiée avec le site. Une répétition chronométrée est prévue, avec une liste de questions probables (pourquoi 5 km ? pourquoi pas de causalité ? que fait votre fonction d'accessibilité ? que vaut l'intervalle d'un résultat nul, en points de part de cadres sur 5 km ? pourquoi le test de H3 penche-t-il contre H3 ? que dit l'indice de Moran résiduel des intervalles ?).
 
 ------------------------------------------------------------------------
 
@@ -577,3 +580,4 @@ Tu assistes un groupe de trois étudiants sur un projet noté. Le cours interdit
 | 03/11/2026 | `figures.py` (plus de 1 200 lignes) découpé en trois modules à rôle unique (commit `b8fe719`) : `figures.py` (figures matplotlib), `cartes.py` (cartes folium : accès aux lycées ; carte à curseur de la part de cadres, avec un curseur Leaflet écrit dans le module au lieu du module folium à curseur, qui dépendait de d3 et de moment.js) et `tableaux.py` (mise en forme des tableaux, `document_markdown`) ; arborescence du §7 et règles du §6 alignées (une fonction par figure ou par carte) | Lisibilité du code, demandée par le correcteur du 03/11 : 1 283 lignes avant le découpage, 763, 323 et 221 après. Aucun calcul ne change. Le curseur écrit à la main retire deux bibliothèques JavaScript chargées par le site et que le groupe n'aurait pas su expliquer | pilote, validé par Giulio (délégation du 03/11) |
 | 03/11/2026 | Titre de la section 4 du rapport : « À position égale, un meilleur accès aux lycées va-t-il de pair avec plus de cadres ? » au lieu de « … l'accès aux lycées fait-il une différence ? » ; références bibliographiques ajoutées en tête des annexes (§6) | L'ancien titre se lisait de façon causale, ce que le projet s'interdit (§0, §1.3). Les références citées au §1.1 (Fack et Grenet, Black, DEPP) doivent figurer dans le rapport | pilote, validé par Giulio (délégation du 03/11) |
 | 04/11/2026 | Code découpé par rôle (commits `158ab85` à `9591222`) : `analyse.py` ne garde que le descriptif (profil des aires, tableau de support) ; `h1.py` (anneaux, pentes des paires et bootstrap, verdict de H1, pentes de H4), `h3.py` (fiabilité de l'IVAL, estimation et verdict de H3), `robustesse.py` (robustesses de H1 et de H3, indice de Moran), `charte.py` (habillage commun des figures : titre, note, ordre des aires, axes). La figure de robustesse ne montre plus que 6 variantes (`config.VARIANTES_FIGURE_ROBUSTESSE`), le tableau replié les garde toutes. §3.2, §5.6, §6, §7, §8.3 et §9 alignés | Lisibilité du code (correcteur du 03/11) : un module par hypothèse ou par rôle, que chaque membre peut défendre en soutenance. Aucun calcul changé, sorties identiques vérifiées. Une figure à 11 variantes par 3 aires se lisait mal ; aucune variante ne disparaît du rapport | pilote, validé par Giulio (délégation du 03/11) |
+| 04/11/2026 | Présentation interactive de soutenance entrée dans le dépôt (`presentation/`, commit `3e74e08`) et publiée avec le site Quarto (lien dans `_quarto.yml`) ; remplace sur ce point, sans l'effacer, la ligne du 03/11 « Livrable : … la présentation interactive, hors dépôt … ». Elle reste un support de soutenance, non noté comme rapport, déclaré dans la section IA du README ; `presentation/construire.py` la recalcule depuis les copies gelées avec les modules du projet (aucun chiffre écrit à la main) ; `pillow` ajouté pour assembler les fonds IGN (§7, §8.2, §8.3, §9) | Demande de Giulio : les co-équipiers doivent la voir sans compte Claude ni fichier HTML envoyé à part. Aucune donnée nouvelle ni changement de méthode | pilote, validé par Giulio (délégation du 03/11) |
