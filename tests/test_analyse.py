@@ -3,6 +3,7 @@
 Fusion des anneaux (`h1.cellules_anneaux`, §5.2, A6), poids du bootstrap par commune
 (`h1.poids_bootstrap`, §5.3), invariance de la pente des paires au sens i − j
 (`h1.pente_paires`, §5.3) et verdict de H1 (`h1.verdict_h1`, §5.3, A4, A13).
+Module `h3` : verdict de H3 (`h3.verdict_h3`, §5.5), avec le seuil de fiabilité de l'IVAL (§3.2).
 
 Fusion des anneaux : attendus calculés à la main avec les règles fixées par A6 : anneaux de départ
 `config.ANNEAUX_KM` (0, 5, 10, 20, 30 km), au moins `config.EFFECTIF_MIN_GROUPE` (15) communes
@@ -15,7 +16,7 @@ import math
 import pandas as pd
 import pytest
 
-from cadres_lycees import config, h1
+from cadres_lycees import config, h1, h3
 
 # Le rayon de 10 km et non 5 : une fonction qui lirait toujours la colonne à 5 km échouerait.
 RAYON = 10
@@ -298,3 +299,90 @@ def test_verdict_h1_anneaux_compares_et_contradictions() -> None:
         index=pd.Index(aires, name="aire"),
     )
     pd.testing.assert_frame_equal(obtenu, attendu, check_dtype=False, check_names=False)
+
+
+# β_n entièrement au-dessus de zéro dans tous les cas : une fonction qui lirait β_n à la place
+# de β_q − β_n donnerait « confirmée » au lieu de « nuancée », et manquerait « infirmée »
+# par l'écart.
+IC_BETA_N = (0.1, 0.3)
+
+
+def lignes_h3(portee: str, ic_q: tuple, ic_ecart: tuple, ecartes: int = 0) -> list[dict]:
+    """Lignes jouets de `h3.estimation_h3` pour une portée, estimation au milieu de l'intervalle.
+
+    Intervalle non rapporté (NaN) : l'estimation reste, positive, comme si elle confirmait.
+    """
+    lignes = []
+    for coefficient, (ic_bas, ic_haut) in [
+        ("β_q", ic_q),
+        ("β_n", IC_BETA_N),
+        ("β_q − β_n", ic_ecart),
+    ]:
+        estimation = 0.2 if math.isnan(ic_bas) else (ic_bas + ic_haut) / 2
+        lignes.append(
+            {
+                "portee": portee,
+                "coefficient": coefficient,
+                "estimation": estimation,
+                "ic_bas": ic_bas,
+                "ic_haut": ic_haut,
+                "n_communes": 268 if portee == "ensemble" else 75,
+                "n_grappes": 81 if portee == "ensemble" else 16,
+                "tirages_ecartes": ecartes,
+            }
+        )
+    return lignes
+
+
+AU_DESSUS = (0.1, 0.5)
+SOUS_ZERO = (-0.4, -0.05)
+AVEC_ZERO = (-0.1, 0.3)
+NON_RAPPORTE = (math.nan, math.nan)
+
+
+@pytest.mark.parametrize(
+    ("fiabilite", "ic_q", "ic_ecart", "ecartes", "attendu"),
+    [
+        # 0,49 < 0,5 : la mesure ne tranche pas, même avec des intervalles qui confirmeraient.
+        (
+            config.SEUIL_FIABILITE_IVAL - 0.01,
+            AU_DESSUS,
+            AU_DESSUS,
+            0,
+            "non testable avec cette mesure",
+        ),
+        # « au moins 0,5 » : 0,5 pile est testable.
+        (config.SEUIL_FIABILITE_IVAL, AU_DESSUS, AU_DESSUS, 0, "confirmée"),
+        (0.8, AU_DESSUS, AU_DESSUS, 0, "confirmée"),
+        (0.8, SOUS_ZERO, AU_DESSUS, 0, "infirmée"),
+        (0.8, AVEC_ZERO, SOUS_ZERO, 0, "infirmée"),
+        # β_q − β_n sous zéro ne « contient » pas zéro : « infirmée », pas « nuancée ».
+        (0.8, AU_DESSUS, SOUS_ZERO, 0, "infirmée"),
+        (0.8, AU_DESSUS, AVEC_ZERO, 0, "nuancée"),
+        (0.8, AVEC_ZERO, AVEC_ZERO, 0, "non concluante"),
+        # β_q − β_n au-dessus ne suffit pas : β_q doit l'être aussi.
+        (0.8, AVEC_ZERO, AU_DESSUS, 0, "non concluante"),
+        # 51 tirages écartés sur 1 000 : intervalles non rapportés, estimations positives.
+        (0.8, NON_RAPPORTE, NON_RAPPORTE, config.MAX_TIRAGES_ECARTES + 1, "non concluante"),
+    ],
+)
+def test_verdict_h3_seuil_et_regles(
+    fiabilite: float, ic_q: tuple, ic_ecart: tuple, ecartes: int, attendu: str
+) -> None:
+    """Verdict de H3 sur la seule portée « ensemble » (§5.5) : « non testable avec cette mesure »
+    sous le seuil de fiabilité de l'IVAL (§3.2), puis la première règle vérifiée parmi
+    « infirmée », « confirmée », « nuancée », « non concluante ».
+
+    L'aire, descriptive, a β_q et β_q − β_n sous zéro : la lire, ou combiner toutes les portées,
+    donnerait « infirmée » là où l'ensemble ne l'est pas.
+    """
+    estimation = pd.DataFrame(
+        lignes_h3("ensemble", ic_q, ic_ecart, ecartes)
+        + lignes_h3("Strasbourg", SOUS_ZERO, SOUS_ZERO)
+    ).set_index(["portee", "coefficient"])
+
+    verdicts = h3.verdict_h3(estimation, fiabilite)
+
+    assert list(verdicts.index) == ["ensemble"]
+    assert verdicts.loc["ensemble", "verdict"] == attendu
+    assert verdicts.loc["ensemble", "fiabilite"] == pytest.approx(fiabilite)
