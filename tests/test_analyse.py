@@ -1,8 +1,8 @@
 """Tests des calculs d'analyse du PLAN §7, sur des données jouets calculables à la main.
 
-Fusion des anneaux (`analyse.cellules_anneaux`, §5.2, A6), poids du bootstrap par commune
-(`analyse.poids_bootstrap`, §5.3), invariance de la pente des paires au sens i − j
-(`analyse.pente_paires`, §5.3) et verdict de H1 (`analyse.verdict_h1`, §5.3, A4, A13).
+Fusion des anneaux (`h1.cellules_anneaux`, §5.2, A6), poids du bootstrap par commune
+(`h1.poids_bootstrap`, §5.3), invariance de la pente des paires au sens i − j
+(`h1.pente_paires`, §5.3) et verdict de H1 (`h1.verdict_h1`, §5.3, A4, A13).
 
 Fusion des anneaux : attendus calculés à la main avec les règles fixées par A6 : anneaux de départ
 `config.ANNEAUX_KM` (0, 5, 10, 20, 30 km), au moins `config.EFFECTIF_MIN_GROUPE` (15) communes
@@ -15,7 +15,7 @@ import math
 import pandas as pd
 import pytest
 
-from cadres_lycees import analyse, config
+from cadres_lycees import config, h1
 
 # Le rayon de 10 km et non 5 : une fonction qui lirait toujours la colonne à 5 km échouerait.
 RAYON = 10
@@ -77,7 +77,7 @@ def test_fusion_des_anneaux_puis_equilibre() -> None:
         ignore_index=True,
     )
 
-    cellules = analyse.cellules_anneaux(communes, RAYON)
+    cellules = h1.cellules_anneaux(communes, RAYON)
 
     obtenu = cellules[COLONNES].sort_values(["aire", "bas_km"]).reset_index(drop=True)
     attendu = pd.DataFrame(
@@ -114,7 +114,7 @@ def test_poids_bootstrap_produit_des_tirages() -> None:
     # Pas dans l'ordre des paires : le tirage se lit par code, pas par position.
     tirage = pd.Series({"44004": 3, "44002": 0, "44001": 2, "44003": 1})
 
-    poids = analyse.poids_bootstrap(paires, tirage)
+    poids = h1.poids_bootstrap(paires, tirage)
 
     attendu = pd.Series(
         [
@@ -129,7 +129,7 @@ def test_poids_bootstrap_produit_des_tirages() -> None:
 
     # Une commune oubliée du tirage ne doit pas compter pour 0 sans erreur.
     with pytest.raises(AssertionError):
-        analyse.poids_bootstrap(paires, tirage.drop("44002"))
+        h1.poids_bootstrap(paires, tirage.drop("44002"))
 
 
 def test_pente_paires_invariante_au_sens_i_j() -> None:
@@ -171,17 +171,17 @@ def test_pente_paires_invariante_au_sens_i_j() -> None:
     retournees.loc[inversees, colonnes_d] = -paires.loc[inversees, colonnes_d]
     retournees = retournees.loc[[3, 0, 5, 1, 4, 2]]
 
-    assert analyse.pente_paires(paires, acces) == pytest.approx(2)
-    assert analyse.pente_paires(retournees, acces) == pytest.approx(2)
+    assert h1.pente_paires(paires, acces) == pytest.approx(2)
+    assert h1.pente_paires(retournees, acces) == pytest.approx(2)
 
     # Poids comme des produits de tirages : un poids k compte la paire k fois (§5.3), 0 la retire.
     # Pente des paires dupliquées : 5,77. Des poids ignorés donneraient 2, des poids élevés au
     # carré 6,85, des poids lus par position et non par index dans `retournees` 2,67.
     poids = pd.Series([2, 0, 1, 3, 1, 2], index=paires.index)
     dupliquees = paires.loc[paires.index.repeat(poids.to_numpy())].reset_index(drop=True)
-    attendu = analyse.pente_paires(dupliquees, acces)
-    assert analyse.pente_paires(paires, acces, poids) == pytest.approx(attendu)
-    assert analyse.pente_paires(retournees, acces, poids) == pytest.approx(attendu)
+    attendu = h1.pente_paires(dupliquees, acces)
+    assert h1.pente_paires(paires, acces, poids) == pytest.approx(attendu)
+    assert h1.pente_paires(retournees, acces, poids) == pytest.approx(attendu)
 
 
 def cellule(
@@ -281,7 +281,7 @@ def test_verdict_h1_anneaux_compares_et_contradictions() -> None:
         ]
     )
 
-    verdicts = analyse.verdict_h1(principale, secondaire, anneaux)
+    verdicts = h1.verdict_h1(principale, secondaire, anneaux)
 
     obtenu = verdicts[["verdict", "mention", "anneaux_compares"]].sort_index()
     attendu = pd.DataFrame(

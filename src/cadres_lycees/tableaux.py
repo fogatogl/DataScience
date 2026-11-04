@@ -1,8 +1,8 @@
 """Mise en forme des tableaux affichés dans le rapport : libellés en clair, unités, virgule.
 
-Les calculs sont dans `analyse.py` ; ces fonctions ne font que présenter leurs résultats, et
-`document_markdown` met en forme les documents du dépôt affichés tels quels (tableau de support,
-dictionnaire, journal).
+Les calculs sont dans `analyse.py`, `h1.py`, `h3.py` et `robustesse.py` ; ces fonctions ne font
+que présenter leurs résultats. `document_markdown` met en forme les documents du dépôt affichés
+tels quels (tableau de support, dictionnaire, journal).
 """
 
 from pathlib import Path
@@ -39,7 +39,7 @@ def tableau_robustesse(robustesse: pd.DataFrame) -> pd.DataFrame:
     Chaque case donne la pente en points, par km (ou par lycée pour les pentes secondaires), et
     son intervalle à 95 %, avec le nombre de tirages écartés s'il y en a. « — » : la variante ne
     concerne pas l'aire ; intervalle non rapporté au-delà de `config.MAX_TIRAGES_ECARTES`
-    tirages écartés. `robustesse` vient de `analyse.robustesse_h1`.
+    tirages écartés. `robustesse` vient de `robustesse.robustesse_h1`.
     """
     cases = robustesse.apply(_estimation, axis=1, valeur="pente", facteur=100).unstack("aire")
     aires = figures.aires_ordonnees(cases.columns)
@@ -53,8 +53,8 @@ def tableau_robustesse(robustesse: pd.DataFrame) -> pd.DataFrame:
 def tableau_h3(estimation: pd.DataFrame) -> Styler:
     """Met en forme les coefficients de H3 : une ligne par coefficient, une colonne par portée.
 
-    `estimation` vient de `analyse.estimation_h3` (index portée, coefficient) ou de
-    `analyse.robustesse_h3` (index variante, coefficient) : la colonne est le premier niveau.
+    `estimation` vient de `h3.estimation_h3` (index portée, coefficient) ou de
+    `robustesse.robustesse_h3` (index variante, coefficient) : la colonne est le premier niveau.
     Points de part de cadres, 2011-2022, pour un écart-type ; intervalle à 95 %. Renvoie un
     `Styler` : son HTML garde les indices des β (β<sub>q</sub>), qu'un DataFrame échapperait.
     """
@@ -107,7 +107,7 @@ def tableau_acces(resume: pd.DataFrame) -> pd.DataFrame:
 
 
 def tableau_fiabilite(fiabilite: pd.DataFrame) -> pd.DataFrame:
-    """Met en forme `analyse.fiabilite_ival` : libellés en clair ; seule « ensemble » tranche H3."""
+    """Met en forme `h3.fiabilite_ival` : libellés en clair ; seule « ensemble » tranche H3."""
     libelles = {
         "r": "Corrélation des deux moitiés (r)",
         "r_spearman_brown": "Fiabilité (Spearman-Brown)",
@@ -122,7 +122,7 @@ def tableau_fiabilite(fiabilite: pd.DataFrame) -> pd.DataFrame:
 
 
 def tableau_moran(moran: pd.DataFrame) -> pd.DataFrame:
-    """Met en forme `analyse.moran_part_cadres` : une ligne par aire, I et p-valeur par variable."""
+    """Met en forme `robustesse.moran_part_cadres` : une ligne par aire, I et p-valeur."""
     variables = {
         "part_cadres_2022": "part de cadres",
         "ecart_anneau": "écart à la moyenne de l'anneau",
@@ -169,7 +169,7 @@ def tableau_gradient(parts: pd.DataFrame) -> pd.DataFrame:
 def tableau_hypotheses(verdict_h1: pd.DataFrame, verdict_h3: pd.DataFrame) -> Styler:
     """Renvoie le tableau des hypothèses du §6 : verdicts de H1 et H3, H2 et H4 descriptives.
 
-    `verdict_h1` et `verdict_h3` viennent de `analyse.verdict_h1` et `analyse.verdict_h3`. Les
+    `verdict_h1` et `verdict_h3` viennent de `h1.verdict_h1` et `h3.verdict_h3`. Les
     verdicts suivent les règles écrites avant les résultats (§5.3, §5.5) ; H2 et H4 n'en ont
     pas (§5.4, §5.7, A20).
     """

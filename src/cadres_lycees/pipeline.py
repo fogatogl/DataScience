@@ -4,7 +4,7 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 
-from cadres_lycees import accessibilite, analyse, collecte, config, geo, nettoyage, stockage
+from cadres_lycees import accessibilite, analyse, collecte, config, geo, h1, nettoyage, stockage
 
 
 def lycees_avec_aire(referentiel: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
@@ -189,7 +189,7 @@ def ecrire_tableau_support() -> None:
 
     cellules = pd.concat(
         [
-            analyse.cellules_anneaux(base, rayon).assign(rayon_km=rayon)
+            h1.cellules_anneaux(base, rayon).assign(rayon_km=rayon)
             for rayon in config.RAYONS_SUPPORT_KM
         ]
     )

@@ -16,7 +16,7 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch, Rectangle
 from matplotlib.ticker import FuncFormatter, ScalarFormatter
 
-from cadres_lycees import analyse, config
+from cadres_lycees import config, h1
 
 
 def fig_aires(
@@ -277,8 +277,8 @@ def fig_h1(
     """`fig_h1` : estimations de H1 par aire, en points avec leurs intervalles à 95 % (§5.2).
 
     Trois panneaux à axes propres, les aires sur la même ligne de l'un à l'autre (H2, §5.4) :
-    pente principale et pente secondaire des paires (`analyse.pentes_paires_par_aire`), écarts
-    des cellules estimables à 5 et à 10 km (`analyse.ecarts_anneaux`), chacune nommée par ses
+    pente principale et pente secondaire des paires (`h1.pentes_paires_par_aire`), écarts
+    des cellules estimables à 5 et à 10 km (`h1.ecarts_anneaux`), chacune nommée par ses
     bornes. Les cellules non estimables sont nommées en note. `titre` est le message de la
     figure, écrit par le groupe (PLAN §6).
     """
@@ -366,9 +366,9 @@ def fig_h1(
 def fig_paires(paires: pd.DataFrame, pentes: pd.DataFrame, titre: str) -> Figure:
     """`fig_paires` : écart de part de cadres et écart de distance au lycée privé dans les paires.
 
-    Un panneau par aire : le nuage par classes de `analyse.nuage_paires` et la droite de pente
+    Un panneau par aire : le nuage par classes de `h1.nuage_paires` et la droite de pente
     principale de H1, sans constante, avec son intervalle à 95 % (§5.3). `paires` vient de
-    `pipeline.construire_base`, `pentes` de `analyse.pentes_paires_par_aire(paires,
+    `pipeline.construire_base`, `pentes` de `h1.pentes_paires_par_aire(paires,
     "d_dist_lyc_prive_min")` ; `titre` est le message de la figure, écrit par le groupe (PLAN §6).
     """
     acces = "d_dist_lyc_prive_min"
@@ -379,7 +379,7 @@ def fig_paires(paires: pd.DataFrame, pentes: pd.DataFrame, titre: str) -> Figure
     fig, axes = plt.subplots(1, len(aires), figsize=(14, 5.4), sharey=True, squeeze=False)
     for ax, aire in zip(axes[0], aires, strict=True):
         couleur = config.COULEURS_AIRES[aire]
-        nuage = analyse.nuage_paires(paires[paires["aire"] == aire], acces)
+        nuage = h1.nuage_paires(paires[paires["aire"] == aire], acces)
         ligne = pentes.loc[aire]
         ax.axhline(0, color=config.COULEUR_LIAISON, linewidth=0.8, zorder=0)
         ax.axvline(0, color=config.COULEUR_LIAISON, linewidth=0.8, zorder=0)
@@ -457,7 +457,7 @@ def fig_h3(terciles: pd.DataFrame, titre: str) -> Figure:
 
     Un point par aire et par catégorie (`config.CATEGORIES_TIERS_IVAL`), avec son intervalle à 95 %
     par bootstrap des grappes ; la catégorie « sans IVAL » est à part. `terciles` vient de
-    `analyse.terciles_h3`, dont les tirages écartés sont nommés en note ; `titre` est le message
+    `h3.terciles_h3`, dont les tirages écartés sont nommés en note ; `titre` est le message
     de la figure, écrit par le groupe (PLAN §6). Elle décrit : le verdict de H3 se lit sur β_q
     et β_n.
     """
@@ -528,7 +528,7 @@ def fig_robustesse(robustesse: pd.DataFrame, titre: str) -> Figure:
 
     Une ligne par variante en points par km (les pentes secondaires, en points par lycée, restent
     dans le tableau), un point par aire avec son intervalle à 95 % ; la spécification principale
-    en haut, sur fond gris, sert de repère. `robustesse` vient de `analyse.robustesse_h1` ;
+    en haut, sur fond gris, sert de repère. `robustesse` vient de `robustesse.robustesse_h1` ;
     `titre` est le message de la figure (PLAN §6).
     """
     en_km = robustesse[~robustesse.index.get_level_values("variante").str.contains("secondaire")]
@@ -587,7 +587,7 @@ def fig_h4(pentes: pd.DataFrame, titre: str) -> Figure:
 
     Une ligne par mesure d'accès, de la plus forte à la plus faible association (moyenne des
     pentes des aires), un point par aire avec son intervalle à 95 %. `pentes` vient de
-    `analyse.pentes_h4` ; `titre` est le message de la figure, écrit par le groupe (PLAN §6).
+    `h1.pentes_h4` ; `titre` est le message de la figure, écrit par le groupe (PLAN §6).
     """
     aires = aires_ordonnees(pentes.index.get_level_values("aire"))
     ordre = pentes["pente"].groupby(level="mesure").mean().sort_values().index
