@@ -15,3 +15,6 @@ __pycache__/
 
 /.quarto/
 **/*.quarto_ipynb
+
+# Copie exécutée du rapport, pour la lire avec ses sorties dans Jupyter
+rapport_execute.ipynb
