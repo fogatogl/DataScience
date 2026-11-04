@@ -89,7 +89,7 @@ Les données ne sont pas dans Git. `stockage.py` les lit et les écrit :
 
 ### Copies gelées des données
 
-Les sources qui changent sans prévenir sont lues dans une copie datée, jamais directement à leur API. Chaque copie est cherchée dans la release GitHub [`donnees-20261020`](https://github.com/gabrielwenger1-coder/DataScience/releases/tag/donnees-20261020) du dépôt, puis dans le dossier public `https://minio.lab.sspcloud.fr/gfogato/projet-cadres-lycees/raw/` du SSPCloud, avec un avertissement. Ce second hébergement n'est pas lisible publiquement aujourd'hui : la release est la seule source des copies gelées. Le code échoue si aucune des deux ne fournit un fichier au `sha256` attendu, et il recontrôle le `sha256` à chaque lecture d'une copie déjà téléchargée.
+Les sources qui changent sans prévenir sont lues dans une copie datée, jamais directement à leur API. Chaque copie est cherchée dans la release GitHub [`donnees-20261020`](https://github.com/fogatogl/DataScience/releases/tag/donnees-20261020) de ce dépôt, puis, en secours, dans la même release du [dépôt du groupe](https://github.com/gabrielwenger1-coder/DataScience/releases/tag/donnees-20261020), dont ce dépôt est une fork. Le code échoue si aucune des deux ne fournit un fichier au `sha256` attendu, et il recontrôle le `sha256` à chaque lecture d'une copie déjà téléchargée.
 
 | Copie | Date | Origine | `sha256` |
 |---|---|---|---|
@@ -140,7 +140,7 @@ collecte.geler_contours(
 )
 ```
 
-Ces fonctions refusent d'écraser un chemin existant. Il faut ensuite reporter le chemin et le `sha256` dans `config.py`, publier le fichier aux deux adresses ci-dessus et mettre à jour ce tableau.
+Ces fonctions refusent d'écraser un chemin existant. Il faut ensuite reporter le chemin et le `sha256` dans `config.py`, publier le fichier sur les deux releases ci-dessus et mettre à jour ce tableau.
 
 ## Usage de l'IA générative
 

@@ -14,12 +14,13 @@ from cadres_lycees import config, stockage
 
 
 def _copies_publiques(chemin: str) -> list[str]:
-    """Renvoie les URL publiques d'une copie gelée : la release GitHub, puis le bucket du projet.
+    """Renvoie les URL publiques d'une copie gelée : la release du dépôt, puis celle du groupe.
 
-    La release d'abord : le dossier public du bucket refuse la lecture anonyme (403), et chaque
-    repli imprimerait un avertissement dans le rapport.
+    Les deux releases portent les mêmes fichiers ; le `sha256` est contrôlé quelle que soit
+    l'origine.
     """
-    return [config.URL_COPIES_RELEASE + chemin.removeprefix("raw/"), config.URL_COPIES_S3 + chemin]
+    nom = chemin.removeprefix("raw/")
+    return [config.URL_COPIES_RELEASE + nom, config.URL_COPIES_RELEASE_SECOURS + nom]
 
 
 def geler_annuaire(chemin: str) -> str:

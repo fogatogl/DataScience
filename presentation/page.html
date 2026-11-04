@@ -483,7 +483,7 @@ footer p{margin:.3em 0;max-width:110ch}
 <pre>uv sync --locked        # dépendances figées dans uv.lock
 uv run pytest           # tests des calculs critiques
 uv run quarto render    # exécute rapport.ipynb et construit le site</pre>
-      <p class="note">Dépôt&nbsp;: <a href="https://github.com/gabrielwenger1-coder/DataScience">github.com/gabrielwenger1-coder/DataScience</a>. Le rapport lit les copies gelées et échoue si un fichier n'a pas le sha256 attendu.</p>
+      <p class="note">Dépôt&nbsp;: <a id="lien-depot"></a>. Le rapport lit les copies gelées et échoue si un fichier n'a pas le sha256 attendu.</p>
     </details>
   </div>
 </section>
@@ -517,6 +517,9 @@ uv run quarto render    # exécute rapport.ipynb et construit le site</pre>
 "use strict";
 const lire = id => JSON.parse(document.getElementById(id).textContent);
 const COMMUNES = lire("d-communes"), PARTS = lire("d-parts"), R = lire("d-resultats"), FONDS = lire("d-fonds");
+const lienDepot = document.getElementById("lien-depot");
+lienDepot.href = R.url_depot;
+lienDepot.textContent = R.url_depot.replace("https://", "");
 const AIRES = R.aires;
 const COUL = {Nantes:"#009e73", Lyon:"#a2559c", Strasbourg:"#9c6b1f"};
 const SECT = {public:"#3a7bd5", prive:"#e8663d"};
