@@ -60,13 +60,13 @@ small,.note{color:var(--discret);font-size:.84rem;line-height:1.5}
 .nav-in{max-width:1160px;margin:0 auto;display:flex;align-items:center;gap:18px;height:44px;overflow-x:auto;scrollbar-width:none;white-space:nowrap}
 .nav-in::-webkit-scrollbar{display:none}
 .nav-marque{font-family:var(--f-titre);font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:15px;text-decoration:none}
-.nav ol{display:flex;gap:14px;list-style:none;margin:0;padding:0;font-size:13.5px}
+.nav ol{display:flex;gap:12px;list-style:none;margin:0;padding:0;font-size:13px}
 .nav ol a{text-decoration:none;color:var(--discret)}
 .nav ol a:hover,.nav ol a.actif{color:var(--encre)}
 .nav ol b{font-family:var(--f-titre);font-weight:600;color:var(--encre);margin-right:4px}
 
 /* Ouverture */
-.ouverture{padding:36px 0 6px}
+.ouverture{padding:36px 0 24px}
 .surtitre{font-family:var(--f-titre);text-transform:uppercase;letter-spacing:.14em;font-size:14px;color:var(--discret);font-weight:600}
 .grand-titre{font-size:clamp(2.6rem, 7vw, 5.6rem);font-weight:700;text-transform:uppercase;letter-spacing:-.01em;line-height:.9;margin:.12em 0 .12em}
 .sous-titre{font-family:var(--f-titre);font-size:clamp(1.2rem,2.4vw,1.6rem);font-weight:500;color:var(--encre-2);max-width:46ch;line-height:1.15}
@@ -85,10 +85,10 @@ small,.note{color:var(--discret);font-size:.84rem;line-height:1.5}
 @media (max-width:720px){.chiffres{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 /* Sections */
-section.bloc{padding:40px 0 4px;border-top:1px solid var(--filet);margin-top:34px}
+section.bloc{padding:26px 0 4px;border-top:1px solid var(--filet);margin-top:24px}
 .entete{display:grid;grid-template-columns:66px minmax(0,1fr);gap:2px 16px;align-items:baseline;margin-bottom:10px}
 .entete .no{font-family:var(--f-titre);font-weight:700;font-size:2.8rem;line-height:.8;color:var(--encre)}
-.entete h2{font-size:clamp(1.8rem,3.6vw,2.5rem);font-weight:600}
+.entete h2{font-size:clamp(1.6rem,3vw,2.15rem);font-weight:600}
 .corps{margin-left:82px}
 @media (max-width:720px){.entete{grid-template-columns:46px minmax(0,1fr)}.entete .no{font-size:2.1rem}.corps{margin-left:0}}
 
@@ -124,7 +124,7 @@ figure{margin:16px 0 8px}
    repeating-linear-gradient(90deg,var(--encre) 0 36px,transparent 36px 72px) bottom/100% 5px no-repeat,
    repeating-linear-gradient(180deg,var(--encre) 0 36px,transparent 36px 72px) left/5px 100% no-repeat,
    repeating-linear-gradient(180deg,var(--encre) 0 36px,transparent 36px 72px) right/5px 100% no-repeat}
-.carte{isolation:isolate;height:min(62vh,560px);min-height:360px;background:var(--surface-2);position:relative}
+.carte{isolation:isolate;height:min(56vh,520px);min-height:340px;background:var(--surface-2);position:relative}
 .carte-simple{border:1px solid var(--filet);height:min(52vh,460px)}
 .millesime{position:absolute;left:22px;top:18px;z-index:3;pointer-events:none;font-family:var(--f-titre);font-weight:700;font-size:clamp(3rem,7vw,5rem);line-height:.9;color:var(--encre);
   text-shadow:0 0 6px var(--surface),0 0 14px var(--surface)}
@@ -181,8 +181,9 @@ path.lycee{stroke:#fff;stroke-width:2px}
 .trait-schema{stroke:var(--encre);fill:none}
 .multiples{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
 @media (max-width:820px){.multiples{grid-template-columns:minmax(0,1fr)}}
-.panneau-fig h4{font-size:1.1rem;margin-bottom:2px}
-.panneau-fig .unite{font-size:.8rem;color:var(--discret);margin-bottom:4px;min-height:2.4em}
+.panneau-fig h4{font-size:1.1rem;margin-bottom:2px;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px}
+.panneau-fig h4 small{font:400 .8rem var(--f-texte);color:var(--discret)}
+.panneau-fig .unite{font-size:.8rem;color:var(--discret);margin-bottom:2px}
 .duo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start}
 @media (max-width:820px){.duo{grid-template-columns:minmax(0,1fr)}}
 .schema{max-width:400px}
@@ -200,6 +201,7 @@ table.tab td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:no
 .verdict.plein{background:var(--encre);color:var(--fond)}
 .regle{border-left:4px solid var(--encre);padding:4px 0 4px 14px;margin:14px 0;font-size:.95rem}
 .regle p{max-width:80ch}
+#texte-h1-lyon p{max-width:none}
 .regle .kick{font-family:var(--f-titre);text-transform:uppercase;letter-spacing:.1em;font-size:13px;font-weight:600;color:var(--discret);display:block}
 
 /* Robustesse */
@@ -233,7 +235,7 @@ pre{background:var(--surface-2);padding:12px 14px;overflow-x:auto;font-size:13px
 .messages{list-style:none;margin:6px 0 0;padding:0;counter-reset:msg}
 .messages li{counter-increment:msg;display:grid;grid-template-columns:56px minmax(0,1fr);gap:4px 16px;padding:16px 0;border-top:1px solid var(--filet)}
 .messages li::before{content:counter(msg);font-family:var(--f-titre);font-weight:700;font-size:2.6rem;line-height:.85}
-.messages h3{font-size:clamp(1.35rem,2.6vw,1.8rem);font-weight:600;line-height:1.12;max-width:46ch}
+.messages h3{font-size:clamp(1.35rem,2.6vw,1.8rem);font-weight:600;line-height:1.12;max-width:62ch}
 .messages p{grid-column:2;margin:.4em 0 0;max-width:80ch;color:var(--encre-2)}
 .cloture{border-left:4px solid var(--encre);padding:4px 0 4px 14px;margin:18px 0 0;font-size:1rem;max-width:80ch}
 footer{border-top:3px solid var(--encre);margin-top:48px;padding:16px 0 36px;font-size:.82rem;color:var(--discret)}
@@ -245,14 +247,16 @@ footer p{margin:.3em 0;max-width:110ch}
     <a class="nav-marque" href="#haut">À quelques km près</a>
     <ol>
       <li><a href="#question"><b>01</b>Question</a></li>
-      <li><a href="#donnees"><b>02</b>Données</a></li>
-      <li><a href="#methode"><b>03</b>Méthode</a></li>
-      <li><a href="#h1"><b>04</b>H1 · H2</a></li>
-      <li><a href="#h3"><b>05</b>H3</a></li>
-      <li><a href="#h4"><b>06</b>H4</a></li>
-      <li><a href="#robustesse"><b>07</b>Robustesse</a></li>
-      <li><a href="#limites"><b>08</b>Limites</a></li>
-      <li><a href="#conclusion"><b>09</b>Conclusion</a></li>
+      <li><a href="#cadres"><b>02</b>Cadres</a></li>
+      <li><a href="#donnees"><b>03</b>Données</a></li>
+      <li><a href="#acces"><b>04</b>Accès</a></li>
+      <li><a href="#methode"><b>05</b>Méthode</a></li>
+      <li><a href="#h1"><b>06</b>H1 · H2</a></li>
+      <li><a href="#h3"><b>07</b>H3</a></li>
+      <li><a href="#h4"><b>08</b>H4</a></li>
+      <li><a href="#robustesse"><b>09</b>Robustesse</a></li>
+      <li><a href="#limites"><b>10</b>Limites</a></li>
+      <li><a href="#conclusion"><b>11</b>Conclusion</a></li>
     </ol>
   </div>
 </div>
@@ -283,9 +287,11 @@ footer p{margin:.3em 0;max-width:110ch}
     </div>
   </div>
 </header>
+</section>
 
-<figure aria-labelledby="titre-planche">
-  <div class="fig-titre" id="titre-planche">La part de cadres baisse du centre vers la périphérie à chaque recensement depuis 1999</div>
+<section class="bloc" id="cadres">
+  <div class="entete"><span class="no">02</span><h2 id="titre-planche">La part de cadres baisse du centre vers la périphérie, à chaque recensement</h2></div>
+<figure aria-labelledby="titre-planche" style="margin-top:0">
   <div class="fig-sous">Cadres et professions intellectuelles supérieures parmi les actifs de 25 à 54 ans, par commune</div>
   <div class="controles">
     <div class="segments" role="group" aria-label="Aire affichée" id="carte-aires"></div>
@@ -320,16 +326,23 @@ footer p{margin:.3em 0;max-width:110ch}
 </section>
 
 <section class="bloc" id="donnees">
-  <div class="entete"><span class="no">02</span><h2>Une ligne par commune, trois aires</h2></div>
+  <div class="entete"><span class="no">03</span><h2>Une ligne par commune, trois aires aux profils de privé contrastés</h2></div>
   <div class="corps">
-    <div class="texte">
-      <p>Recensement 2022 (cadres parmi les actifs de 25 à 54 ans), annuaire de l'éducation (lycées généraux, technologiques et polyvalents), IPS et valeur ajoutée (IVAL) des lycées, gares, médecins, équipements&nbsp;; sources mutables lues dans des copies gelées. Trois aires choisies parmi huit candidates, sans donnée sur les cadres&nbsp;: une aire de l'Ouest, un contraste dans le poids du privé, assez de communes exposées pour comparer.</p>
-    </div>
     <div class="chiffres" id="chiffres-cles"></div>
     <div class="defile"><table class="tab empile" id="tab-profil"></table></div>
     <p class="lecture" id="texte-profil"></p>
-    <figure>
-      <div class="fig-titre">Hors des villes-centres, le lycée privé le plus proche est souvent à plus de 10&nbsp;km</div>
+    <details>
+      <summary>Détail&nbsp;: sources et choix des aires</summary>
+      <p class="texte">Recensement 2022 (cadres parmi les actifs de 25 à 54 ans), annuaire de l'éducation (lycées généraux, technologiques et polyvalents), IPS et valeur ajoutée (IVAL) des lycées, gares, médecins, équipements&nbsp;; sources mutables lues dans des copies gelées.</p>
+      <p class="texte">Trois aires choisies parmi huit candidates, sans donnée sur les cadres&nbsp;: une aire de l'Ouest, un contraste dans le poids du privé, assez de communes exposées pour comparer.</p>
+    </details>
+  </div>
+</section>
+
+<section class="bloc" id="acces">
+  <div class="entete"><span class="no">04</span><h2 id="titre-acces">Hors des villes-centres, le lycée privé le plus proche est souvent à plus de 10&nbsp;km</h2></div>
+  <div class="corps">
+    <figure aria-labelledby="titre-acces" style="margin-top:0">
       <div class="controles">
         <div class="segments" role="group" aria-label="Aire affichée" id="acces-aires"></div>
         <div class="segments" role="group" aria-label="Couleur des communes" id="acces-mode">
@@ -341,16 +354,16 @@ footer p{margin:.3em 0;max-width:110ch}
       </div>
       <div class="carte carte-simple" id="carte-acces" role="region" aria-label="Carte de l'accès aux lycées"></div>
       <div class="legende" id="acces-legende"></div>
-      <p class="lecture"><b>Lecture&nbsp;:</b> distance à vol d'oiseau du centroïde de la commune au lycée privé sous contrat le plus proche, ou, en mode «&nbsp;Anneaux&nbsp;», distance au centre de l'aire. Une commune est <em>exposée</em> si elle a un lycée privé à 5&nbsp;km.</p>
+      <p class="lecture"><b>Lecture&nbsp;:</b> distance à vol d'oiseau du centroïde de la commune au lycée privé sous contrat le plus proche (en mode «&nbsp;Anneaux&nbsp;», au centre de l'aire)&nbsp;; une commune est <em>exposée</em> si elle a un lycée privé à 5&nbsp;km.</p>
       <p class="source">Annuaire de l'éducation (copie du 13/10/2026), IPS et IVAL (DEPP), zonage en aires d'attraction des villes 2020 (Insee)&nbsp;; contours IGN. Fond&nbsp;: Plan IGN.</p>
     </figure>
   </div>
 </section>
 
 <section class="bloc" id="methode">
-  <div class="entete"><span class="no">03</span><h2>Comparer des voisines</h2></div>
+  <div class="entete"><span class="no">05</span><h2>Comparer des voisines, à position égale dans l'aire</h2></div>
   <div class="corps">
-    <p class="texte">La part de cadres baisse avec la distance au centre, et la distance au lycée le plus proche aussi&nbsp;: une comparaison naïve mêlerait les deux. On compare donc des communes à position égale dans l'aire.</p>
+    <p class="texte">La part de cadres et l'accès aux lycées varient tous deux avec la distance au centre&nbsp;: une comparaison naïve mêlerait les deux.</p>
     <div class="duo">
       <figure>
         <div class="fig-titre">Le gradient centre-périphérie</div>
@@ -363,36 +376,38 @@ footer p{margin:.3em 0;max-width:110ch}
         <div class="fig-titre">Les paires de communes contiguës</div>
         <div class="fig-sous">Estimation principale de H1</div>
         <div class="graphe schema" id="schema-paires"></div>
-        <p class="lecture">Ce que deux voisines partagent (marché de l'emploi, prix régionaux) disparaît dans la différence. Pente sans constante, sur toutes les paires de l'aire&nbsp;; intervalles à 95&nbsp;% par bootstrap par commune (1&nbsp;000 tirages), car une commune entre dans plusieurs paires. <span id="note-paires"></span></p>
+        <p class="lecture"><b>Lecture&nbsp;:</b> ce que deux voisines partagent (marché de l'emploi, prix régionaux) disparaît dans la différence.</p>
       </figure>
     </div>
-    <p class="texte"><strong>En complément, les anneaux.</strong> Dans chaque anneau de distance au centre, on compare les communes avec et sans lycée privé à 5&nbsp;km (puis à 10&nbsp;km), si chaque groupe compte au moins 15 communes et si leurs distances moyennes au centre diffèrent de 2&nbsp;km au plus. Ils servent au verdict&nbsp;: un résultat nul n'est «&nbsp;établi&nbsp;» qu'avec un anneau estimable aux deux rayons.</p>
+    <details>
+      <summary>Détail&nbsp;: estimation et anneaux</summary>
+      <p class="texte"><span id="note-gradient"></span> Pente des paires sans constante, sur toutes les paires de l'aire&nbsp;; intervalles à 95&nbsp;% par bootstrap par commune (1&nbsp;000 tirages), car une commune entre dans plusieurs paires. <span id="note-paires"></span></p>
+      <p class="texte"><strong>En complément, les anneaux.</strong> Dans chaque anneau de distance au centre, on compare les communes avec et sans lycée privé à 5&nbsp;km (puis à 10&nbsp;km), si chaque groupe compte au moins 15 communes et si leurs distances moyennes au centre diffèrent de 2&nbsp;km au plus. Ils servent au verdict&nbsp;: un résultat nul n'est «&nbsp;établi&nbsp;» qu'avec un anneau estimable aux deux rayons.</p>
+    </details>
   </div>
 </section>
 
 <section class="bloc" id="h1">
-  <div class="entete"><span class="no">04</span><h2>À position égale, un meilleur accès aux lycées va-t-il de pair avec plus de cadres&nbsp;?</h2></div>
+  <div class="entete"><span class="no">06</span><h2>Près d'un lycée privé, un écart de cadres entre voisines qu'on ne distingue pas de zéro</h2></div>
   <div class="corps">
-    <figure>
-      <div class="fig-titre">Entre voisines, pas d'écart net de cadres</div>
-      <div class="fig-sous">Paires contiguës regroupées en 20 classes, écarts résiduels après les contrôles (distance au centre, densité)</div>
-      <div class="controles"><label class="case"><input type="checkbox" id="nuage-ic" checked> intervalle à 95&nbsp;% de la pente</label></div>
+    <figure style="margin-top:0">
+      <div class="controles" style="margin-top:0"><span class="fig-sous" style="margin:0">Paires contiguës en 20 classes, écarts résiduels après contrôles&nbsp;; verdicts selon les règles fixées avant les résultats</span><label class="case"><input type="checkbox" id="nuage-ic" checked> intervalle à 95&nbsp;%</label></div>
       <div class="multiples" id="fig-nuage"></div>
-      <p class="lecture"><b>Lecture&nbsp;:</b> une pente négative irait dans le sens de H1 (plus proche du lycée privé, plus de cadres). Chaque paire compte dans les deux sens, d'où la symétrie autour de zéro&nbsp;; même échelle verticale pour les trois aires.</p>
+      <p class="lecture"><b>Lecture&nbsp;:</b> une pente négative irait dans le sens de H1 (plus proche du lycée privé, plus de cadres).</p>
     </figure>
-    <div class="regle">
-      <span class="kick">Verdicts selon les règles fixées avant les résultats</span>
+    <div class="regle" id="texte-h1-lyon"></div>
+    <details>
+      <summary>Détail&nbsp;: verdicts de H1, cellules d'anneau et H2</summary>
       <div class="defile"><table class="tab empile" id="tab-h1-verdict"></table></div>
-      <p id="texte-h1-verdict"></p>
-      <p id="texte-h2"></p>
-    </div>
+      <div id="texte-h1-verdict"></div>
+    </details>
   </div>
 </section>
 
 <section class="bloc" id="h3">
-  <div class="entete"><span class="no">05</span><h2>H3 : qualité ou simple présence&nbsp;?</h2></div>
+  <div class="entete"><span class="no">07</span><h2>H3 : qualité ou simple présence&nbsp;?</h2></div>
   <div class="corps">
-    <p class="texte">Évolution de la part de cadres de 2011 à 2022 dans les <span id="h3-pop"></span> communes qui ont un lycée à 5&nbsp;km (<span id="h3-est"></span> dont un lycée proche a une IVAL). <span class="math">β<sub>q</sub></span>&nbsp;: pente de l'IVAL moyenne des lycées à 5&nbsp;km (la qualité)&nbsp;; <span class="math">β<sub>n</sub></span>&nbsp;: pente du logarithme de leur nombre (la présence). Mesures centrées réduites dans chaque aire, comparaison à l'intérieur de chaque aire et de chaque anneau.</p>
+    <p class="texte">Hausse de la part de cadres de 2011 à 2022 selon la qualité des lycées à 5&nbsp;km (<span class="math">β<sub>q</sub></span>, valeur ajoutée IVAL) et selon leur nombre (<span class="math">β<sub>n</sub></span>).</p>
     <div class="duo">
       <figure>
         <div class="fig-titre">La présence plus que la qualité</div>
@@ -401,38 +416,47 @@ footer p{margin:.3em 0;max-width:110ch}
       </figure>
       <div class="regle" id="texte-h3-verdict"></div>
     </div>
-    <p class="texte" id="texte-h3-robu"></p>
+    <details>
+      <summary>Détail&nbsp;: mesures, règle de verdict et autres mesures de la qualité</summary>
+      <p class="texte">Population&nbsp;: les <span id="h3-pop"></span> communes qui ont un lycée à 5&nbsp;km, dont <span id="h3-est"></span> où un lycée proche a une IVAL. <span class="math">β<sub>q</sub></span>&nbsp;: pente de l'IVAL moyenne des lycées à 5&nbsp;km&nbsp;; <span class="math">β<sub>n</sub></span>&nbsp;: pente du logarithme de leur nombre. Mesures centrées réduites dans chaque aire, comparaison à l'intérieur de chaque aire et de chaque anneau.</p>
+      <p class="texte" id="texte-h3-regle"></p>
+      <p class="texte" id="texte-h3-robu"></p>
+    </details>
   </div>
 </section>
 
 <section class="bloc" id="h4">
-  <div class="entete"><span class="no">06</span><h2>H4 : les lycées face aux autres infrastructures</h2></div>
+  <div class="entete"><span class="no">08</span><h2>H4 : les lycées face aux autres infrastructures</h2></div>
   <div class="corps">
-    <figure>
+    <figure style="margin-top:0">
       <div class="fig-titre">Aucune infrastructure ne se détache</div>
       <div class="fig-sous">Pente des paires contiguës, points de part de cadres pour un écart-type d'accès en plus (mesure centrée réduite dans l'aire, orientée «&nbsp;plus d'accès&nbsp;»), intervalles à 95&nbsp;%&nbsp;; point plein si l'intervalle exclut zéro</div>
       <div class="graphe" id="fig-h4"></div>
     </figure>
-    <p class="texte" id="texte-h4"></p>
+    <p class="lecture" id="texte-h4"></p>
+    <details>
+      <summary>Détail&nbsp;: pentes du lycée privé et intervalles qui excluent zéro</summary>
+      <p class="texte" id="texte-h4-detail"></p>
+    </details>
   </div>
 </section>
 
 <section class="bloc" id="robustesse">
-  <div class="entete"><span class="no">07</span><h2>Robustesse</h2></div>
+  <div class="entete"><span class="no">09</span><h2>Robustesse</h2></div>
   <div class="corps">
     <p class="titre-chiffre" id="rob-titre"></p>
     <p class="texte" id="texte-densite"></p>
     <p class="texte" id="texte-moran"></p>
     <details>
-      <summary>Détail&nbsp;: la pente de H1 dans chaque variante (<span id="rob-n"></span> variantes)</summary>
+      <summary>Détail&nbsp;: la pente de H1 dans la spécification principale et les <span id="rob-n"></span> variantes</summary>
       <div class="defile"><table class="tab robu" id="tab-robustesse"></table></div>
-      <p class="lecture">Pente, intervalle à 95&nbsp;% et trait qui le figure (repère&nbsp;: zéro). Lignes «&nbsp;pente secondaire&nbsp;» en points par lycée privé en plus dans le rayon, les autres en points par km. Surligné&nbsp;: intervalle qui exclut zéro.</p>
+      <p class="lecture">Pente, intervalle à 95&nbsp;% et trait qui le figure (repère&nbsp;: zéro). Lignes «&nbsp;pente secondaire&nbsp;» en points par lycée privé en plus dans le rayon, les autres en points par km. Surligné&nbsp;: intervalle qui exclut zéro. <span id="rob-source"></span></p>
     </details>
   </div>
 </section>
 
 <section class="bloc" id="limites">
-  <div class="entete"><span class="no">08</span><h2>Ce que le projet ne peut pas montrer</h2></div>
+  <div class="entete"><span class="no">10</span><h2>Ce que le projet ne peut pas montrer</h2></div>
   <div class="corps">
     <ul class="limites">
       <li><strong>Causalité inverse.</strong> Un lycée privé peut s'implanter ou se maintenir là où vivent déjà des familles aisées.</li>
@@ -465,12 +489,12 @@ uv run quarto render    # exécute rapport.ipynb et construit le site</pre>
 </section>
 
 <section class="bloc" id="conclusion">
-  <div class="entete"><span class="no">09</span><h2>Conclusion</h2></div>
+  <div class="entete"><span class="no">11</span><h2>Conclusion</h2></div>
   <div class="corps">
     <ol class="messages">
       <li><h3 id="msg-h1-titre"></h3><p id="msg-h1"></p></li>
       <li><h3 id="msg-h3-titre"></h3><p id="msg-h3"></p></li>
-      <li><h3>La géographie des cadres est d'abord une affaire de distance au centre.</h3><p id="msg-centre"></p></li>
+      <li><h3>La part de cadres baisse avec la distance au centre, à chaque recensement.</h3><p id="msg-centre"></p></li>
     </ol>
     <p class="cloture">Ce sont des associations&nbsp;: un lycée privé peut aussi s'implanter là où vivent déjà des cadres.</p>
   </div>
@@ -608,7 +632,7 @@ function legendeClasses(el, couleurs, libelles){
   el.innerHTML = couleurs.map((c,i) => `<div class="classe"><i style="background:${c}"></i><span>${libelles[i]}</span></div>`).join("");
 }
 
-/* ---------- 01 : part de cadres 1999-2022 ---------- */
+/* ---------- 02 : part de cadres 1999-2022 ---------- */
 (function(){
   const dernier = ANNEES.length - 1;
   let aire = AIRES[0], rang = dernier, couche = null, fond = null, survolee = null, minuterie = null;
@@ -738,7 +762,7 @@ function legendeClasses(el, couleurs, libelles){
   new ResizeObserver(() => { m.invalidateSize(); panneau(); }).observe(document.getElementById("carte-temps"));
 })();
 
-/* ---------- 02 : données, profil des aires, carte de l'accès ---------- */
+/* ---------- 03 et 04 : données, profil des aires, carte de l'accès ---------- */
 (function(){
   const nPriv = R.lycees.filter(l => l.secteur === "prive").length;
   const nPaires = d3.sum(AIRES, a => R.n_paires[a]);
@@ -753,7 +777,7 @@ function legendeClasses(el, couleurs, libelles){
   ecrire("tab-profil", `<thead><tr><th>Aire</th><th style="text-align:right">Communes</th><th style="text-align:right">Lycées privés / lycées</th><th style="text-align:right">Privé, part des candidats au bac</th><th style="text-align:right">Écart d'IPS privé − public</th><th style="text-align:right">Communes exposées</th></tr></thead><tbody>` +
     AIRES.map(a => { const d = prof(a), e = acc(a); return `<tr><td style="color:${COUL[a]};font-weight:700">${a}</td><td class="n" data-l="Communes">${F.f0(e.communes)}</td><td class="n" data-l="Lycées privés / lycées">${d.n_prive} / ${d.n_lycees} (${F.f0(d.part_prive*100)} %)</td><td class="n" data-l="Privé, part des candidats au bac">${pct(d.part_prive_candidats)}</td><td class="n" data-l="Écart d'IPS privé − public">${F.s1(d.ecart_ips)} points</td><td class="n" data-l="Communes exposées">${pct(e.part_exposees)}</td></tr>`; }).join("") + "</tbody>");
   const [n, l, s] = ["Nantes","Lyon","Strasbourg"].map(prof);
-  ecrire("texte-profil", `<b>Lecture&nbsp;:</b> le privé est aussi répandu à Nantes qu'à Lyon (${F.f0(n.part_prive*100)}&nbsp;% et ${F.f0(l.part_prive*100)}&nbsp;% des lycées), mais l'écart d'IPS entre privé et public y est plus faible (${F.s1(n.ecart_ips)} contre ${F.s1(l.ecart_ips)} points). À Strasbourg, le privé est rare (${F.f0(s.part_prive_candidats*100)}&nbsp;% des candidats au bac) et aussi sélectif qu'à Lyon.`);
+  ecrire("texte-profil", `<b>Lecture&nbsp;:</b> le privé est aussi répandu à Nantes qu'à Lyon (${F.f0(n.part_prive*100)}&nbsp;% et ${F.f0(l.part_prive*100)}&nbsp;% des lycées) mais moins sélectif (écart d'IPS de ${F.s1(n.ecart_ips)} contre ${F.s1(l.ecart_ips)} points)&nbsp;; à Strasbourg, il est rare (${F.f0(s.part_prive_candidats*100)}&nbsp;% des candidats au bac) et aussi sélectif qu'à Lyon.`);
 
   let aire = AIRES[0], mode = "distance", couche = null, fond = null;
   const m = nouvelleCarte("carte-acces");
@@ -806,7 +830,7 @@ function legendeClasses(el, couleurs, libelles){
   new ResizeObserver(() => m.invalidateSize()).observe(document.getElementById("carte-acces"));
 })();
 
-/* ---------- 03 : gradient et schéma des paires ---------- */
+/* ---------- 05 : gradient et schéma des paires ---------- */
 const GRADIENT = AIRES.map(a => {
   const g = R.gradient.filter(d => d.aire === a);
   return {aire:a, centre:g[0], loin:g[g.length-1]};
@@ -835,8 +859,8 @@ const GRADIENT = AIRES.map(a => {
   });
   const r = GRADIENT.map(d => d.centre.part_cadres_2022 / d.loin.part_cadres_2022);
   const petits = GRADIENT.filter(d => d.centre.communes <= 2).map(d => d.aire);
-  ecrire("texte-gradient", `<b>Lecture&nbsp;:</b> ${F.f1(d3.min(r))} à ${F.f1(d3.max(r))} fois plus de cadres à moins de 5&nbsp;km du centre qu'au-delà de 30&nbsp;km. Point creux&nbsp;: moins de 5 communes` +
-    (petits.length ? ` (à ${listeAires(petits)}, l'anneau 0-5 km ne compte que la commune-centre et une voisine).` : "."));
+  ecrire("texte-gradient", `<b>Lecture&nbsp;:</b> ${F.f1(d3.min(r))} à ${F.f1(d3.max(r))} fois plus de cadres à moins de 5&nbsp;km du centre qu'au-delà de 30&nbsp;km (point creux&nbsp;: moins de 5 communes).`);
+  ecrire("note-gradient", petits.length ? `Gradient&nbsp;: à ${listeAires(petits)}, l'anneau 0-5 km ne compte que la commune-centre et une voisine.` : "");
 
   ecrire("note-paires", "Paires par aire&nbsp;: " + AIRES.map(a => `${a} ${F.f0(R.n_paires[a])}`).join(", ") + ".");
   const el2 = document.getElementById("schema-paires");
@@ -893,10 +917,16 @@ function intervalles(el, W, lignes, opts){
   survol(g, d => `<div class="bulle-titre">${formule(d.etiq)}</div>${o.fmt(d.v)} ${o.unite}<br>IC à 95 % : ${ic(d.b,d.h,o.fmt)}${d.info ? "<br>"+d.info : ""}`);
 }
 
-/* ---------- 04 : H1 et H2 ---------- */
+/* ---------- 06 : H1 et H2 ---------- */
 const principale = a => R.h1_principale.find(d => d.aire === a);
 const verdictH1 = a => R.h1_verdict.find(d => d.aire === a);
 const libAnneau = d => d.haut_km >= R.borne_ouverte ? `${d.bas_km} km et plus` : `${d.bas_km}–${d.haut_km} km`;
+// Gradient centre-périphérie, pour situer l'intervalle de H1 : moindres carrés sur les communes, sans pondération
+function penteCentre(a){
+  const c = COMMUNES.features.map(f => f.properties).filter(q => q.aire === a && q.part_cadres_2022 != null);
+  const md = d3.mean(c, q => q.dist_centre_km), mp = d3.mean(c, q => q.part_cadres_2022);
+  return d3.sum(c, q => (q.dist_centre_km - md) * (q.part_cadres_2022 - mp)) / d3.sum(c, q => (q.dist_centre_km - md) ** 2);
+}
 (function(){
   const cont = document.getElementById("fig-nuage");
   const caseIC = document.getElementById("nuage-ic");
@@ -904,14 +934,14 @@ const libAnneau = d => d.haut_km >= R.borne_ouverte ? `${d.bas_km} km et plus` :
   function construire(){
     cont.innerHTML = "";
     AIRES.forEach(a => {
-      const p = principale(a);
+      const p = principale(a), v = verdictH1(a);
       const div = document.createElement("div"); div.className = "panneau-fig";
-      div.innerHTML = `<h4 style="color:${COUL[a]}">${a}</h4><div class="unite">pente ${F.s2(p.pente*100)} point par km, IC ${ic(p.ic_bas*100,p.ic_haut*100,F.f2)} · ${F.f0(p.n_paires)} paires</div><div class="graphe"></div>`;
+      div.innerHTML = `<h4 style="color:${COUL[a]}">${a}<span class="verdict" style="color:var(--encre)">${v.verdict}</span>${v.mention ? `<small>${v.mention}</small>` : ""}</h4><div class="unite">pente ${F.s2(p.pente*100)} point par km ${ic(p.ic_bas*100,p.ic_haut*100,F.s2)} · ${F.f0(p.n_paires)} paires</div><div class="graphe"></div>`;
       cont.appendChild(div);
       const el = div.querySelector(".graphe");
       const pts = R.h1_nuage[a];
       reactif(el, W => {
-        const H = Math.round(Math.min(290, Math.max(230, W*0.78))), mg = {t:28,r:12,b:46,l:44};
+        const H = Math.round(Math.min(250, Math.max(210, W*0.7))), mg = {t:28,r:12,b:46,l:44};
         const xm = d3.max(pts, d => Math.abs(d.acces_residuel))*1.08;
         const x = d3.scaleLinear().domain([-xm,xm]).nice(4).range([mg.l, W-mg.r]);
         const y = d3.scaleLinear().domain([-ymax,ymax]).nice(4).range([H-mg.b, mg.t]);
@@ -945,10 +975,21 @@ const libAnneau = d => d.haut_km >= R.borne_ouverte ? `${d.bas_km} km et plus` :
       return `<tr><td style="color:${COUL[a]};font-weight:700">${a}</td><td class="n" data-l="Pente principale (point/km)">${F.s2(p.pente*100)} ${ic(p.ic_bas*100,p.ic_haut*100,F.f2)}</td><td class="n" data-l="Pente secondaire (point/lycée)">${F.s2(s.pente*100)} ${ic(s.ic_bas*100,s.ic_haut*100,F.f2)}</td><td class="n" data-l="Anneaux comparés">${v.anneaux_compares}</td><td data-l="Verdict"><span class="verdict">${v.verdict}</span>${v.mention ? `<br><small>${v.mention}</small>` : ""}</td></tr>`;
     }).join("") + "</tbody>");
 
+  const nuls = AIRES.filter(a => verdictH1(a).mention === "résultat nul établi");
+  const pp = AIRES.map(principale);
+  const recouvrent = pp.every(u => pp.every(v => u.ic_bas <= v.ic_haut && v.ic_bas <= u.ic_haut));
+  const lyon = document.getElementById("texte-h1-lyon");
+  lyon.innerHTML = nuls.map(a => {
+    const p = principale(a), g = penteCentre(a);
+    return `<p><b>${a}&nbsp;: au sens de notre règle, le résultat nul est établi, mais l'intervalle n'exclut pas un écart de quelques points.</b> «&nbsp;Établi&nbsp;» dit que les données ne distinguent pas l'association de zéro, pas qu'elle est petite&nbsp;: ` +
+      (p.ic_bas <= g ? `l'intervalle ${ic(p.ic_bas*100,p.ic_haut*100,F.s2)} point par km comprend une pente de l'ordre du gradient centre-périphérie lui-même (environ ${F.f1(-g*100)} point de cadres de moins par km d'éloignement du centre), et ` : "") +
+      `5&nbsp;km plus près d'un lycée privé peuvent aller de pair avec jusqu'à ${F.f1(-5*p.ic_bas*100)} points de cadres de plus.</p>`;
+  }).join("") + `<p><b>H2 (descriptive).</b> ${recouvrent ? "Les intervalles des trois aires se recouvrent&nbsp;: rien ne distingue Nantes." : "Certains intervalles ne se recouvrent pas."}</p>`;
+
   const phrases = [];
-  AIRES.filter(a => verdictH1(a).mention === "résultat nul établi").forEach(a => {
-    const v = verdictH1(a), p = principale(a);
-    phrases.push(`<b>${a}&nbsp;: «&nbsp;infirmée&nbsp;» (résultat nul établi).</b> L'intervalle contient zéro et les ${v.anneaux_compares} anneaux comparés concordent. Pour 5&nbsp;km de moins jusqu'au lycée privé, l'écart va de ${F.s1(-5*p.ic_haut*100)} à ${F.s1(-5*p.ic_bas*100)} points de cadres. «&nbsp;Infirmée&nbsp;» nomme un lien trop faible pour être distingué de zéro, pas un lien de sens contraire.`);
+  nuls.forEach(a => {
+    const v = verdictH1(a), p = principale(a), g = penteCentre(a);
+    phrases.push(`<b>${a}&nbsp;: «&nbsp;infirmée&nbsp;» (résultat nul établi).</b> L'intervalle contient zéro et les ${v.anneaux_compares} anneaux comparés concordent. Pour 5&nbsp;km de moins jusqu'au lycée privé, l'écart va de ${F.s1(-5*p.ic_haut*100)} à ${F.s1(-5*p.ic_bas*100)} points de cadres. «&nbsp;Infirmée&nbsp;» nomme ici un lien qu'on ne distingue pas de zéro, pas un lien de sens contraire. Gradient centre-périphérie&nbsp;: pente simple de la part de cadres des communes de l'aire sur leur distance au centre, ${F.s2(g*100)} point par km.`);
   });
   const sansAnneau = AIRES.filter(a => verdictH1(a).verdict === "non concluante" && verdictH1(a).anneaux_compares === 0);
   if (sansAnneau.length)
@@ -962,15 +1003,12 @@ const libAnneau = d => d.haut_km >= R.borne_ouverte ? `${d.bas_km} km et plus` :
   const libC = d => `${d.aire}, ${libAnneau(d)}, rayon ${d.rayon_km} km&nbsp;: ${F.s1(d.ecart*100)} points ${ic(d.ic_bas*100, d.ic_haut*100, F.s1)}`;
   phrases.push(celEx.length === 0 ? `Aucune des ${enLettres(nCel)} cellules d'anneau estimables n'exclut zéro.` :
     `${celEx.length === 1 ? "Une seule" : celEx.length} des ${enLettres(nCel)} cellules d'anneau estimables ${celEx.length === 1 ? "exclut" : "excluent"} zéro&nbsp;: ${celEx.map(libC).join("&nbsp;; ")}.`);
-  ecrire("texte-h1-verdict", phrases.map(t => `<span style="display:block;margin-bottom:.4em">${t}</span>`).join(""));
-
-  const pp = AIRES.map(principale);
-  const recouvrent = pp.every(u => pp.every(v => u.ic_bas <= v.ic_haut && v.ic_bas <= u.ic_haut));
-  ecrire("texte-h2", `<b>H2 (descriptive).</b> Pentes principales de ${F.f2(d3.min(pp, d => d.pente*100))} à ${F.f2(d3.max(pp, d => d.pente*100))} point par km` +
-    (recouvrent ? ", intervalles qui se recouvrent tous&nbsp;: rien ne distingue Nantes." : "&nbsp;; certains intervalles ne se recouvrent pas."));
+  phrases.push(`<b>H2 (descriptive).</b> Pentes principales de ${F.f2(d3.min(pp, d => d.pente*100))} à ${F.f2(d3.max(pp, d => d.pente*100))} point par km.`);
+  phrases.push("<b>Nuages.</b> Chaque paire compte dans les deux sens, d'où la symétrie autour de zéro&nbsp;; même échelle verticale pour les trois aires.");
+  ecrire("texte-h1-verdict", phrases.map(t => `<p class="texte">${t}</p>`).join(""));
 })();
 
-/* ---------- 05 : H3 ---------- */
+/* ---------- 07 : H3 ---------- */
 const coefH3 = c => R.h3_estimation.find(e => e.portee === "ensemble" && e.coefficient === c);
 const verdictH3 = R.h3_verdict.find(d => d.index === "ensemble");
 (function(){
@@ -990,9 +1028,9 @@ const verdictH3 = R.h3_verdict.find(d => d.index === "ensemble");
     `<span class="kick">Verdict selon les règles fixées avant les résultats</span>
      <p><span class="verdict plein">${verdictH3.verdict}</span> &nbsp;trois aires ensemble</p>
      <table class="valeurs" style="max-width:420px">${ligne("<span class='math'>β<sub>q</sub></span> qualité", q)}${ligne("<span class='math'>β<sub>n</sub></span> nombre", n)}${ligne("<span class='math'>β<sub>q</sub> − β<sub>n</sub></span>", dq)}</table>
-     <p>H3 est «&nbsp;infirmée&nbsp;» si l'intervalle de <span class='math'>β<sub>q</sub></span> ou celui de <span class='math'>β<sub>q</sub> − β<sub>n</sub></span> est entièrement sous zéro.</p>
      <p class="note">Fiabilité de l'IVAL&nbsp;: ${F.f3(verdictH3.fiabilite)}, au-dessus du seuil de 0,5&nbsp;: H3 est testable${sousSeuil.length ? ` (sous 0,5 à ${listeAires(sousSeuil)}, valeurs par aire descriptives)` : ""}.</p>`);
 
+  ecrire("texte-h3-regle", `Règle fixée avant les résultats&nbsp;: H3 est «&nbsp;infirmée&nbsp;» si l'intervalle de <span class='math'>β<sub>q</sub></span> ou celui de <span class='math'>β<sub>q</sub> − β<sub>n</sub></span> est entièrement sous zéro.`);
   const diff = R.h3_robustesse.filter(d => d.coefficient === "β_q − β_n" && !/principale/i.test(d.variante));
   const minus = t => /^[A-Z][a-zé]/.test(t) ? t[0].toLowerCase() + t.slice(1) : t;
   ecrire("texte-h3-robu", (diff.every(d => d.ic_haut < 0) ? `<strong>Le verdict tient</strong> avec d'autres mesures de la qualité` : "Autres mesures de la qualité") + "&nbsp;: " +
@@ -1000,7 +1038,7 @@ const verdictH3 = R.h3_verdict.find(d => d.index === "ensemble");
     `. Mais ce test penche contre H3&nbsp;: l'erreur de mesure de l'IVAL tire <span class="math">β<sub>q</sub></span> vers zéro, pas <span class="math">β<sub>n</sub></span>, et le stock de lycées de 2026 (des ouvertures récentes dans des communes en croissance) gonfle <span class="math">β<sub>n</sub></span>.`);
 })();
 
-/* ---------- 06 : H4 ---------- */
+/* ---------- 08 : H4 ---------- */
 const H4_PRIVE = R.h4.filter(d => /privé/i.test(d.mesure));
 const recoupe = (u, v) => u.ic_bas <= v.ic_haut && v.ic_bas <= u.ic_haut;
 const H4_DETACHE = AIRES.some(a => { const l = H4_PRIVE.find(d => d.aire === a); return R.h4.filter(d => d.aire === a && d !== l).some(d => !recoupe(l, d)); });
@@ -1041,17 +1079,20 @@ const H4_DETACHE = AIRES.some(a => { const l = H4_PRIVE.find(d => d.aire === a);
 
   const nEx = R.h4.filter(d => exclutZero(d.ic_bas, d.ic_haut));
   const nAutres = ordre.length - 1;
-  ecrire("texte-h4", (H4_DETACHE ? "" : `Dans chaque aire, l'intervalle du lycée privé recoupe celui de chacune des ${enLettres(nAutres)} autres infrastructures. `) +
-    `Les pentes du lycée privé vont de ${F.s2(d3.min(H4_PRIVE, d => d.pente)*100)} à ${F.s2(d3.max(H4_PRIVE, d => d.pente)*100)} point par écart-type` +
+  ecrire("texte-h4", `<b>Lecture&nbsp;:</b> ` + (H4_DETACHE ? "" : `dans chaque aire, l'intervalle du lycée privé recoupe celui de chacune des ${enLettres(nAutres)} autres infrastructures&nbsp;; `) +
+    "faute de règle de verdict fixée avant l'estimation, H4 reste descriptive.");
+  ecrire("texte-h4-detail", `Les pentes du lycée privé vont de ${F.s2(d3.min(H4_PRIVE, d => d.pente)*100)} à ${F.s2(d3.max(H4_PRIVE, d => d.pente)*100)} point par écart-type` +
     (H4_PRIVE.every(d => !exclutZero(d.ic_bas,d.ic_haut)) ? ", sans qu'aucun intervalle n'exclue zéro" : "") + ". " +
     `${nEx.length === 1 ? "Une seule" : nEx.length === 0 ? "Aucune" : nEx.length} pente${nEx.length > 1 ? "s" : ""} sur ${R.h4.length} ${nEx.length > 1 ? "excluent" : nEx.length === 0 ? "n’exclut" : "exclut"} zéro` +
-    (nEx.length ? "&nbsp;: " + nEx.map(d => `${d.mesure.toLowerCase()} à ${d.aire}, ${F.s2(d.pente*100)} ${ic(d.ic_bas*100,d.ic_haut*100,F.f2)}`).join("&nbsp;; ") : "") +
-    ". Faute de règle de verdict fixée avant l'estimation, H4 reste descriptive.");
+    (nEx.length ? "&nbsp;: " + nEx.map(d => `${d.mesure.toLowerCase()} à ${d.aire}, ${F.s2(d.pente*100)} ${ic(d.ic_bas*100,d.ic_haut*100,F.f2)}`).join("&nbsp;; ") : "") + ".");
 })();
 
-/* ---------- 07 : robustesse ---------- */
+/* ---------- 09 : robustesse ---------- */
 (function(){
+  const PRINCIPALE = "Spécification principale";
   const variantes = [...new Set(R.robustesse.map(d => d.variante))];
+  const nVar = variantes.filter(v => v !== PRINCIPALE).length;
+  const nFig = R.variantes_figure.filter(v => v !== PRINCIPALE).length;
   let n = 0, nEx = 0;
   const ligne = v => {
     const cel = AIRES.map(a => R.robustesse.find(d => d.variante === v && d.aire === a));
@@ -1063,17 +1104,19 @@ const H4_DETACHE = AIRES.some(a => { const l = H4_PRIVE.find(d => d.aire === a);
         return `<td class="cel"><span class="v">—</span><span class="vide" style="display:block">${raison}</span></td>`;
       }
       const avecIC = d.ic_bas != null, ex = exclutZero(d.ic_bas, d.ic_haut);
-      if (avecIC){ n++; if (ex) nEx++; }
+      if (avecIC && v !== PRINCIPALE){ n++; if (ex) nEx++; }
       const trait = avecIC ? `<line x1="${sx(d.ic_bas)}" x2="${sx(d.ic_haut)}" y1="8" y2="8" style="stroke:${COUL[d.aire]}" stroke-width="3"/>` : "";
       const svg = `<svg viewBox="0 0 160 16" preserveAspectRatio="none" aria-hidden="true"><line x1="${sx(0)}" x2="${sx(0)}" y1="1" y2="15" style="stroke:var(--encre)" stroke-width="1" stroke-dasharray="2 2"/>${trait}<line x1="${sx(d.pente)}" x2="${sx(d.pente)}" y1="2" y2="14" style="stroke:var(--encre)" stroke-width="2.4"/></svg>`;
       const icTxt = avecIC ? ic(d.ic_bas*100, d.ic_haut*100, F.f2) : `IC non rapporté (${d.tirages_ecartes} tirages écartés)`;
       return `<td class="cel${ex ? " exclut" : ""}"><span class="v">${F.s2(d.pente*100)}</span><span class="ic">${icTxt}</span>${svg}</td>`;
     }).join("");
-    return `<tr><th scope="row">${esc(v)}<span class="u">${/secondaire/i.test(v) ? "point par lycée privé en plus" : "point par km"}</span></th>${cases}</tr>`;
+    const fig = v !== PRINCIPALE && R.variantes_figure.includes(v) ? " · dans la figure du rapport" : "";
+    return `<tr><th scope="row">${esc(v)}<span class="u">${/secondaire/i.test(v) ? "point par lycée privé en plus" : "point par km"}${fig}</span></th>${cases}</tr>`;
   };
   ecrire("tab-robustesse", `<thead><tr><th>Variante</th>${AIRES.map(a => `<th style="color:${COUL[a]}">${a}</th>`).join("")}</tr></thead><tbody>` + variantes.map(ligne).join("") + "</tbody>");
-  document.getElementById("rob-n").textContent = variantes.length;
-  document.getElementById("rob-titre").textContent = nEx === 0 ? `Dans les ${variantes.length} variantes, aucun des ${n} intervalles n\u2019exclut zéro` : `${nEx} intervalle${nEx>1?"s":""} sur ${n} ${nEx>1?"excluent":"exclut"} zéro`;
+  document.getElementById("rob-n").textContent = nVar;
+  ecrire("rob-source", `Ce sont les ${nVar} variantes du tableau détaillé du rapport, dont la figure de robustesse reprend ${enLettres(nFig)}.`);
+  document.getElementById("rob-titre").textContent = nEx === 0 ? `Dans les ${nVar} variantes, aucun des ${n} intervalles n\u2019exclut zéro` : `Dans les ${nVar} variantes, ${nEx} intervalle${nEx>1?"s":""} sur ${n} ${nEx>1?"excluent":"exclut"} zéro`;
 
   const rb = (v, a) => R.robustesse.find(d => d.variante === v && d.aire === a);
   const p = a => rb("Spécification principale", a), s = a => rb("Sans contrôle de densité", a);
@@ -1082,27 +1125,27 @@ const H4_DETACHE = AIRES.some(a => { const l = H4_PRIVE.find(d => d.aire === a);
   ecrire("texte-moran", `<strong>Les intervalles sont sans doute trop étroits.</strong> L'indice I de Moran de la part de cadres va de ${F.f2(d3.min(mp, d => d.I))} à ${F.f2(d3.max(mp, d => d.I))} selon l'aire, et encore jusqu'à ${F.f2(d3.max(me, d => d.I))} une fois retirée la moyenne de chaque anneau&nbsp;: deux voisines ne sont pas deux observations indépendantes, et le bootstrap par commune n'en tient compte qu'en partie.`);
 })();
 
-/* ---------- 08 : limites ---------- */
+/* ---------- 10 : limites ---------- */
 (function(){
   const s = R.profil_aires.find(d => d.aire === "Strasbourg"), e = R.acces.find(d => d.aire === "Strasbourg");
   ecrire("limite-strasbourg", `<strong>Strasbourg, aire fragile.</strong> ${s.n_prive} lycées privés sous contrat, ${Math.round(e.part_exposees*e.communes)} communes exposées sur ${e.communes}&nbsp;: une pente secondaire bruitée.`);
 })();
 
-/* ---------- 09 : conclusion ---------- */
+/* ---------- 11 : conclusion ---------- */
 (function(){
   const nul = AIRES.filter(a => verdictH1(a).mention === "résultat nul établi");
   const nc = AIRES.filter(a => verdictH1(a).verdict === "non concluante");
-  ecrire("msg-h1-titre", `${nul.length ? `À ${listeAires(nul)}, le résultat nul est établi entre communes voisines` : "Aucun résultat nul établi entre communes voisines"}${nc.length ? `&nbsp;; ${listeAires(nc).replace(" et à ", " et ")} ${nc.length > 1 ? "sont non concluantes" : "est non concluante"}` : ""}.`);
-  ecrire("msg-h1", "Être plus près d'un lycée privé ne va pas de pair avec un écart net de cadres (H1), sans différence visible pour l'Ouest (H2). " +
-    nul.map(a => { const p = principale(a); return `À ${a}, pour 5&nbsp;km de moins jusqu'au lycée privé, l'écart va de ${F.s1(-5*p.ic_haut*100)} à ${F.s1(-5*p.ic_bas*100)} points de cadres&nbsp;: une borne sans doute optimiste.`; }).join(" "));
-  const q = coefH3("β_q"), n = coefH3("β_n"), dq = coefH3("β_q − β_n");
+  ecrire("msg-h1-titre", `${nul.length ? `À ${listeAires(nul)}, le résultat nul est établi au sens de notre règle, mais l'intervalle n'exclut pas un écart de quelques points` : "Aucun résultat nul établi entre communes voisines"}${nc.length ? `&nbsp;; ${listeAires(nc).replace(" et à ", " et ")} ${nc.length > 1 ? "sont non concluantes" : "est non concluante"}` : ""}.`);
+  ecrire("msg-h1", nul.map(a => { const p = principale(a); return `À ${a}, pour 5&nbsp;km de moins jusqu'au lycée privé, l'écart va de ${F.s1(-5*p.ic_haut*100)} à ${F.s1(-5*p.ic_bas*100)} points de cadres, un intervalle sans doute trop étroit&nbsp;; `; }).join("") +
+    "rien ne distingue l'aire de l'Ouest (H2).");
+  const q = coefH3("β_q"), n = coefH3("β_n");
   ecrire("msg-h3-titre", `H3 ${verdictH3.verdict}&nbsp;: la hausse des cadres va davantage de pair avec le nombre de lycées proches qu'avec leur valeur ajoutée.`);
-  ecrire("msg-h3", `Un écart-type d'IVAL en plus va de pair avec ${F.s2(q.estimation)} point de hausse ${ic(q.ic_bas,q.ic_haut,F.f2)}, un écart-type de nombre de lycées avec ${F.s2(n.estimation)} ${ic(n.ic_bas,n.ic_haut,F.f2)}&nbsp;: H3 est «&nbsp;${verdictH3.verdict}&nbsp;» (<span class="math">β<sub>q</sub> − β<sub>n</sub></span> = ${F.s2(dq.estimation)} ${ic(dq.ic_bas,dq.ic_haut,F.f2)}), selon un test qui désavantage la qualité.` +
+  ecrire("msg-h3", `Un écart-type d'IVAL en plus va de pair avec ${F.s2(q.estimation)} point de hausse ${ic(q.ic_bas,q.ic_haut,F.f2)}, un écart-type de nombre de lycées avec ${F.s2(n.estimation)} ${ic(n.ic_bas,n.ic_haut,F.f2)}, selon un test qui désavantage la qualité.` +
     (H4_DETACHE ? "" : " Aucune infrastructure ne se détache non plus (H4)."));
   const r = GRADIENT.map(d => d.centre.part_cadres_2022 / d.loin.part_cadres_2022);
   ecrire("msg-centre", `À moins de 5&nbsp;km du centre, ${F.f1(d3.min(r))} à ${F.f1(d3.max(r))} fois plus de cadres qu'au-delà de 30&nbsp;km (` +
     GRADIENT.map(d => `${F.f0(d.centre.part_cadres_2022*100)}&nbsp;% contre ${F.f0(d.loin.part_cadres_2022*100)}&nbsp;% à ${d.aire}`).join(", ") +
-    `). Cela n'exclut pas que des familles choisissent leur logement selon le lycée&nbsp;: un lycée privé dessert plusieurs communes voisines à la fois, et la commune est sans doute une maille trop large pour voir ce choix.`);
+    `)&nbsp;; la commune est sans doute une maille trop large pour voir un choix de logement selon le lycée.`);
 })();
 
 /* ---------- Sommaire : section courante ---------- */

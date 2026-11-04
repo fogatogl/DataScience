@@ -122,6 +122,34 @@ def lire_tableau_support() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     return tableaux[0], tableaux[1], tableaux[2]
 
 
+def effectifs_base(base: pd.DataFrame, lycees: pd.DataFrame, paires: pd.DataFrame) -> pd.DataFrame:
+    """Renvoie, aire par aire, les effectifs aux étapes clés de la construction de la base.
+
+    Communes (arrondissements à Lyon) et petites communes, sous `config.ACTIFS_MIN_ROBUSTESSE`
+    actifs en 2022 ; lycées retenus situés dans l'aire, par secteur, et ceux qui ont une IVAL ;
+    paires de communes contiguës ; communes qui ont un prix au m² (au moins
+    `config.MIN_VENTES_DVF` ventes). Ce sont des comptes, sans donnée sur les cadres hors du seuil
+    d'actifs.
+    """
+    communes = base.groupby("aire").agg(
+        communes=("code_commune", "size"),
+        petites_communes=(
+            "actifs_2022",
+            lambda actifs: (actifs < config.ACTIFS_MIN_ROBUSTESSE).sum(),
+        ),
+        communes_avec_prix=("prix_m2_med", "count"),
+    )
+    dans_les_aires = lycees[lycees["aire"].notna()]
+    lycees_par_aire = dans_les_aires.groupby("aire").agg(
+        lycees_publics=("secteur", lambda secteur: (secteur == "public").sum()),
+        lycees_prives=("secteur", lambda secteur: (secteur == "prive").sum()),
+        lycees_avec_ival=("ival", "count"),
+    )
+    effectifs = communes.join(lycees_par_aire).join(paires.groupby("aire").size().rename("paires"))
+    assert effectifs.notna().all().all(), "Aire sans lycée ou sans paire."
+    return effectifs
+
+
 def resume_acces(base: pd.DataFrame) -> pd.DataFrame:
     """Résume, aire par aire, l'accès des communes aux lycées et aux autres infrastructures.
 

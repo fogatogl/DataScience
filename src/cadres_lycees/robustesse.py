@@ -60,15 +60,6 @@ def _ecart_paires(paires: pd.DataFrame, base: pd.DataFrame, variable: str) -> pd
     return paires["code_commune_i"].map(valeurs) - paires["code_commune_j"].map(valeurs)
 
 
-def _communes_centres(base: pd.DataFrame) -> pd.Series:
-    """Renvoie les codes des communes-centres : la plus proche du centre de chaque aire.
-
-    À Lyon, la commune-centre est Lyon entière : tous les arrondissements de même `code_parent`.
-    """
-    plus_proches = base.loc[base.groupby("aire")["dist_centre_km"].idxmin(), "code_parent"]
-    return base.loc[base["code_parent"].isin(plus_proches), "code_commune"]
-
-
 def _paires_sans(paires: pd.DataFrame, communes: pd.Series) -> pd.DataFrame:
     """Renvoie les paires qui ne touchent aucune des `communes` (codes communes).
 
@@ -142,8 +133,10 @@ def robustesse_h1(
         paires.assign(d_dist_lyc_prive_min=ecart_mairie), principale
     )
 
+    # À Lyon, tous les arrondissements partent avec la commune-centre
+    centres = base.loc[base["code_parent"].isin(geo.communes_centres(base)), "code_commune"]
     variantes["Sans la commune-centre"] = h1.pentes_paires_par_aire(
-        _paires_sans(paires, _communes_centres(base)), principale
+        _paires_sans(paires, centres), principale
     )
 
     petites = base.loc[base["actifs_2022"] < config.ACTIFS_MIN_ROBUSTESSE, "code_commune"]

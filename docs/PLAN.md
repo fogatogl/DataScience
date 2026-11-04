@@ -289,7 +289,7 @@ Les anneaux complètent l'estimation par paires (5.3) là où les cellules sont 
     - 1.2 Question et hypothèses H1 à H4 (tableau de la section 1.2).
     - 1.3 Ce que le projet peut et ne peut pas montrer.
 2.  **Construire la base : une ligne par commune, quatre familles de variables**
-    - 2.1 Schéma du pipeline et tableau des sources.
+    - 2.1 Schéma du pipeline et tableau des sources ; tableau des effectifs par aire (communes, petites communes, communes avec un prix, lycées retenus par secteur et avec IVAL, paires).
     - 2.2 Variable à expliquer.
     - 2.3 Variable d'intérêt : l'accessibilité aux lycées (définition, rayon, effet de bord).
     - 2.4 Contrôles et mauvais contrôles.
@@ -299,8 +299,8 @@ Les anneaux complètent l'estimation par paires (5.3) là où les cellules sont 
     - 3.2 Le gradient centre-périphérie des cadres (Fig. 2, carte à curseur de 1999 à 2022).
     - 3.3 La géographie de l'accès aux lycées (Fig. 3).
 4.  **À position égale, un meilleur accès aux lycées va-t-il de pair avec plus de cadres ?**
-    - 4.1 Comparaison par anneaux (Fig. 4).
-    - 4.2 Comparaison entre communes contiguës (Fig. 5).
+    - 4.1 Comparaison entre communes contiguës (Fig. 5).
+    - 4.2 Comparaison par anneaux et verdict de H1 (Fig. 4).
     - 4.3 L'Ouest est-il différent ?
     - 4.4 Qualité ou présence ? (Fig. 6 ; fiabilité de l'IVAL)
     - 4.5 Robustesse : figure de H1 (tableau détaillé replié), tableau de H3 et indice de Moran.
@@ -331,10 +331,12 @@ Les anneaux complètent l'estimation par paires (5.3) là où les cellules sont 
 ```         
 projet-cadres-lycees/
 ├── README.md                  # question, résultats clés, reproduire sur un compte neuf (uv sync, sans BUCKET_S3), date, URL et sha256 des copies gelées, usage de l'IA générative, lien du site
-├── PLAN.md                    # ce document
-├── CLAUDE.md                  # consignes pour Claude Code (importe PLAN.md)
+├── CLAUDE.md                  # consignes pour Claude Code (importe docs/PLAN.md)
+├── .claude/                   # harness de Claude Code : agents, hooks, scripts, skills, settings.json, lecons.md, pilotage.md
 ├── pyproject.toml             # dépendances (gérées avec uv)
 ├── uv.lock
+├── .python-version            # Python 3.13 pour uv
+├── ruff.toml                  # règles de ruff
 ├── .gitignore                 # data/, .env, __pycache__, _site/, .ipynb_checkpoints
 ├── .pre-commit-config.yaml    # nb-clean : retire les sorties des notebooks
 ├── _quarto.yml                # rendu du rapport en site web (GitHub Pages), avec un lien vers la présentation
@@ -363,8 +365,10 @@ projet-cadres-lycees/
 │   ├── test_accessibilite.py
 │   ├── test_analyse.py        # fonctions de `h1.py`, 4 tests au plus : fusion des anneaux, poids du bootstrap par commune, invariance au sens i − j, verdict de H1
 │   └── test_geo.py
-├── notebooks/exploration/     # brouillons individuels, jamais rendus (prefixe_initiales_sujet.ipynb)
+├── notebooks/exploration/     # brouillons individuels, jamais rendus (prefixe_initiales_sujet.ipynb) ; aucun n'est versionné à ce jour
 └── docs/
+    ├── PLAN.md                # ce document
+    ├── exploration_sources.md # URL, colonnes et pièges des sources (exploration du 13/10, tenue à jour)
     ├── dictionnaire_variables.md
     └── tableau_support.md     # support de l'exposition des 8 candidates (§2.2, §5.2), commité avant le choix des aires
 ```
@@ -449,7 +453,7 @@ projet-cadres-lycees/
 
 **Ordre de sacrifice en cas de retard :** 1. abandonner les bonus P3 ; 2. réduire H4 à deux infrastructures ; 3. abandonner l'indice de Moran (le mentionner dans les limites) ; 4. passer à deux aires au lieu de trois.
 
-**À ne jamais sacrifier** : la section 4.2 (paires contiguës), qui fait l'originalité du projet, et l'exécution complète du notebook.
+**À ne jamais sacrifier** : la section 4.1 (paires contiguës), qui fait l'originalité du projet, et l'exécution complète du notebook.
 
 ------------------------------------------------------------------------
 
@@ -583,3 +587,4 @@ Tu assistes un groupe de trois étudiants sur un projet noté. Le cours interdit
 | 04/11/2026 | Présentation interactive de soutenance entrée dans le dépôt (`presentation/`, commit `3e74e08`) et publiée avec le site Quarto (lien dans `_quarto.yml`) ; remplace sur ce point, sans l'effacer, la ligne du 03/11 « Livrable : … la présentation interactive, hors dépôt … ». Elle reste un support de soutenance, non noté comme rapport, déclaré dans la section IA du README ; `presentation/construire.py` la recalcule depuis les copies gelées avec les modules du projet (aucun chiffre écrit à la main) ; `pillow` ajouté pour assembler les fonds IGN (§7, §8.2, §8.3, §9) | Demande de Giulio : les co-équipiers doivent la voir sans compte Claude ni fichier HTML envoyé à part. Aucune donnée nouvelle ni changement de méthode | pilote, validé par Giulio (délégation du 03/11) |
 | 04/11/2026 | Complète A19, sans l'effacer (§9, jalon S4) : les 6 copies gelées du 03/11 (gares, APL, Data ES, BPE, DVF, chefs-lieux) publiées le 04/11, et non le 03/11, sur la release `donnees-20261020`, vérifiées par un téléchargement anonyme et leur `sha256` ; pas de PR séparée de `feat/rapport` : la branche est poussée en avance rapide sur celle de la PR n° 6 (`feat/h1-paires`), dont le titre et la description couvrent tout le travail ; site (rapport et présentation) publié sur la branche `gh-pages` de la fork `fogatogl/DataScience` (https://fogatogl.github.io/DataScience/), comme le disent le README et `_quarto.yml` ; tag `plan-fige` jamais posé : le rapport le dit dans l'encadré « choix et biais » et donne pour trace d'antériorité la PR n° 2, dont la tête `b782378` (plan du 21/10) est datée par GitHub | A19 comptait 5 copies et une publication le 03/11 ; les chefs-lieux s'y sont ajoutés le 03/11. Une PR de plus, demandée par Giulio, n'ajouterait rien à relire que la PR n° 6 n'ait déjà. Seul le propriétaire d'un dépôt peut y activer GitHub Pages, et le dépôt du groupe appartient à un autre membre. Pour le tag, une date de commit se modifie côté client, celle de la PR non. Sans changement de méthode ni de règle de verdict | pilote, validé par Giulio (délégation du 03/11) |
 | 04/11/2026 | Rapport et présentation (§4 D, §6) : l'annexe ne montre plus le journal complet, mais la liste courte des décisions prises après les premiers résultats (03/11), avec un renvoi au §13 (commit `7a10fc7`) ; contrôle du tableau de support de l'étape D codé (`pipeline._verifier_tableau_support`, appelé par `construire_base`, commit `04642dc`) : la base des aires retenues doit retrouver les comptes commités de `docs/tableau_support.md` (communes, exposées, cellules estimables, paires de statut différent, corrélation non centrée), sinon échec ; tableau de support affiché sous une forme lisible, relu depuis le fichier commité (`analyse.lire_tableau_support`, `tableaux.tableau_support`, commit `3583799`) ; présentation resserrée (moins d'écrans, écran de conclusion, palette de la carte alignée sur la Fig. 2) | Relecture du correcteur du 04/11 : le journal était plus long que le rapport ; il reste intact dans le dépôt. Le contrôle était prévu au §4 depuis A3 et manquait au code. Présentation : même relecture, pour la lisibilité. Mise en forme et contrôle, sans changement de méthode ni de règle de verdict | pilote, validé par Giulio (délégation du 03/11) |
+| 04/11/2026 | Plan aligné sur le rapport et le dépôt, sans changement de méthode ni de règle de verdict : section 4 du rapport réordonnée (commit `352d16a`), 4.1 « Comparaison entre communes contiguës » (Fig. 5), 4.2 « Comparaison par anneaux et verdict de H1 » (Fig. 4) (§6), section à ne jamais sacrifier renumérotée 4.1 (§10) ; tableau des effectifs par aire en 2.1 (`analyse.effectifs_base`, `tableaux.tableau_effectifs`, commit `feaa4a4`) (§6) ; arborescence du §7 alignée : `PLAN.md` dans `docs/`, avec `exploration_sources.md`, `CLAUDE.md` à la racine, `.claude/`, `.python-version` et `ruff.toml` ajoutés, `notebooks/exploration/` gardé comme emplacement des brouillons (les hooks l'autorisent) mais dit non versionné ; branche `main` de la fork `fogatogl/DataScience` portant tout le projet (commit de fusion `4e04732`, qui garde l'historique de `main` du dépôt du groupe avec l'arbre de `feat/rapport`), les PR n° 2, 5 et 6 du dépôt du groupe restant ouvertes pour relecture | Relecture du correcteur du 04/11 : la Fig. 4 montrait les pentes des paires avant que leur méthode soit expliquée ; les paires restent le résultat principal (§5.3). Le tableau des effectifs documente le nettoyage, à la demande du même correcteur ; ce n'est pas une analyse nouvelle. Le §7 décrivait un dépôt différent du dépôt réel (`git ls-files` du 04/11 : aucun fichier sous `notebooks/`, jamais dans l'historique). Fork : demande de Giulio, pour que le site publié et le code soient au même endroit | pilote, validé par Giulio (délégation du 03/11) |
