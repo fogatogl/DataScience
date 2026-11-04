@@ -75,6 +75,16 @@ def referentiel_communes(aires: dict[str, str]) -> gpd.GeoDataFrame:
     return referentiel
 
 
+def communes_centres(base: pd.DataFrame) -> pd.Series:
+    """Renvoie le `code_parent` de la commune-centre de chaque aire (index : `aire`).
+
+    La commune-centre est la plus proche du centre de l'aire ; à Lyon, c'est Lyon entière
+    (69123), dont les arrondissements partagent le `code_parent`.
+    """
+    plus_proches = base.loc[base.groupby("aire")["dist_centre_km"].idxmin()]
+    return plus_proches.set_index("aire")["code_parent"]
+
+
 def paires_contigues(communes: gpd.GeoDataFrame, variables: list[str]) -> pd.DataFrame:
     """Renvoie une ligne par paire de communes contiguës d'une même aire, avec leurs écarts.
 

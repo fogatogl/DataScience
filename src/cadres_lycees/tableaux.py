@@ -106,6 +106,21 @@ def tableau_acces(resume: pd.DataFrame) -> pd.DataFrame:
     return texte[charte.aires_ordonnees(texte.columns)].rename_axis(index=None, columns=None)
 
 
+def tableau_effectifs(effectifs: pd.DataFrame) -> pd.DataFrame:
+    """Met en forme `analyse.effectifs_base` : une ligne par étape, une aire par colonne."""
+    libelles = {
+        "communes": "Communes (arrondissements à Lyon)",
+        "petites_communes": f"dont moins de {config.ACTIFS_MIN_ROBUSTESSE} actifs de 25 à 54 ans",
+        "communes_avec_prix": f"dont un prix au m² (au moins {config.MIN_VENTES_DVF} ventes)",
+        "lycees_publics": "Lycées retenus dans l'aire : publics",
+        "lycees_prives": "Lycées retenus dans l'aire : privés sous contrat",
+        "lycees_avec_ival": "Lycées retenus dans l'aire avec une IVAL (au moins 5 sessions)",
+        "paires": "Paires de communes contiguës",
+    }
+    tableau = effectifs[list(libelles)].rename(columns=libelles).T
+    return tableau[charte.aires_ordonnees(tableau.columns)].rename_axis(index=None, columns=None)
+
+
 def tableau_fiabilite(fiabilite: pd.DataFrame) -> pd.DataFrame:
     """Met en forme `h3.fiabilite_ival` : libellés en clair ; seule « ensemble » tranche H3."""
     libelles = {

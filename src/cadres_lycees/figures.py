@@ -187,10 +187,14 @@ def _panneau_ips(ax: plt.Axes, profil: pd.DataFrame, lycees: gpd.GeoDataFrame) -
 
 
 def _libelle_cellule(bas_km: float, haut_km: float, rayon_km: int) -> str:
-    """Nomme une cellule d'anneaux par ses bornes et son rayon : « 20-30 km, rayon 5 km »."""
-    bornes = (
-        f"{bas_km:.0f} km et plus" if haut_km == float("inf") else f"{bas_km:.0f}-{haut_km:.0f} km"
-    )
+    """Nomme une cellule d'anneaux par ses bornes et son rayon : « 20-30 km, rayon 5 km ».
+
+    Une cellule de 0 km à l'infini est l'aire entière, après fusion de tous ses anneaux.
+    """
+    if haut_km == float("inf"):
+        bornes = "toute l'aire" if bas_km == 0 else f"{bas_km:.0f} km et plus"
+    else:
+        bornes = f"{bas_km:.0f}-{haut_km:.0f} km"
     return f"{bornes}, rayon {rayon_km} km"
 
 
