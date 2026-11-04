@@ -10,7 +10,7 @@ from pathlib import Path
 import pandas as pd
 from pandas.io.formats.style import Styler
 
-from cadres_lycees import config, figures
+from cadres_lycees import charte, config
 
 
 def _nombre(valeur: float, facteur: float = 1, signe: bool = True, decimales: int = 2) -> str:
@@ -42,7 +42,7 @@ def tableau_robustesse(robustesse: pd.DataFrame) -> pd.DataFrame:
     tirages écartés. `robustesse` vient de `robustesse.robustesse_h1`.
     """
     cases = robustesse.apply(_estimation, axis=1, valeur="pente", facteur=100).unstack("aire")
-    aires = figures.aires_ordonnees(cases.columns)
+    aires = charte.aires_ordonnees(cases.columns)
     variantes = robustesse.index.unique("variante")
     tableau = cases.reindex(index=variantes, columns=aires).fillna("—")
     unites = ["points par lycée" if "secondaire" in nom else "points par km" for nom in variantes]
@@ -62,7 +62,7 @@ def tableau_h3(estimation: pd.DataFrame) -> Styler:
     premier = estimation.index.names[0]
     # « Ensemble » d'abord, puis les aires dans l'ordre de la charte
     portees = [p for p in estimation.index.unique(premier) if p not in config.COULEURS_AIRES]
-    colonnes = portees + figures.aires_ordonnees(
+    colonnes = portees + charte.aires_ordonnees(
         [p for p in estimation.index.unique(premier) if p in config.COULEURS_AIRES]
     )
     tableau = cases.unstack(premier).reindex(
@@ -103,7 +103,7 @@ def tableau_acces(resume: pd.DataFrame) -> pd.DataFrame:
         ),
         axis=1,
     )
-    return texte[figures.aires_ordonnees(texte.columns)].rename_axis(index=None, columns=None)
+    return texte[charte.aires_ordonnees(texte.columns)].rename_axis(index=None, columns=None)
 
 
 def tableau_fiabilite(fiabilite: pd.DataFrame) -> pd.DataFrame:
@@ -115,7 +115,7 @@ def tableau_fiabilite(fiabilite: pd.DataFrame) -> pd.DataFrame:
         "n_communes": "Communes renseignées dans les deux moitiés",
         "n_lycees": "Lycées distincts à 5 km",
     }
-    ordre = ["ensemble", *figures.aires_ordonnees(fiabilite.index.drop("ensemble"))]
+    ordre = ["ensemble", *charte.aires_ordonnees(fiabilite.index.drop("ensemble"))]
     tableau = fiabilite.loc[ordre, list(libelles)].rename(columns=libelles)
     texte = tableau.map(lambda valeur: f"{valeur:.3f}".replace(".", ",").removesuffix(",000"))
     return texte.rename(index={"ensemble": "Ensemble (tranche H3)"}).rename_axis(index=None)
@@ -144,7 +144,7 @@ def tableau_moran(moran: pd.DataFrame) -> pd.DataFrame:
         return f"{valeur:.3f}".replace(".", ",")
 
     texte = tableau.apply(lambda colonne: colonne.map(lambda v: case(colonne.name, v)))
-    return texte.loc[figures.aires_ordonnees(texte.index)].rename_axis(index=None)
+    return texte.loc[charte.aires_ordonnees(texte.index)].rename_axis(index=None)
 
 
 def tableau_gradient(parts: pd.DataFrame) -> pd.DataFrame:
@@ -160,7 +160,7 @@ def tableau_gradient(parts: pd.DataFrame) -> pd.DataFrame:
         axis=1,
     ).unstack("aire")
     return (
-        cases[figures.aires_ordonnees(cases.columns)]
+        cases[charte.aires_ordonnees(cases.columns)]
         .fillna("—")
         .rename_axis(index=None, columns=None)
     )
@@ -180,7 +180,7 @@ def tableau_hypotheses(verdict_h1: pd.DataFrame, verdict_h3: pd.DataFrame) -> St
             "Verdict": ligne["verdict"],
             "Mention": ligne["mention"],
         }
-        for aire, ligne in verdict_h1.loc[figures.aires_ordonnees(verdict_h1.index)].iterrows()
+        for aire, ligne in verdict_h1.loc[charte.aires_ordonnees(verdict_h1.index)].iterrows()
     ]
     lignes.append(
         {

@@ -1,6 +1,6 @@
-"""Figures statiques du rapport (matplotlib) : une fonction par figure, avec une charte commune.
+"""Figures statiques du rapport (matplotlib) : une fonction par figure.
 
-Les cartes interactives sont dans `cartes.py`, la mise en forme des tableaux dans `tableaux.py`.
+La charte commune est dans `charte.py`, les cartes interactives dans `cartes.py`.
 """
 
 import itertools
@@ -14,9 +14,8 @@ import pandas as pd
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch, Rectangle
-from matplotlib.ticker import FuncFormatter, ScalarFormatter
 
-from cadres_lycees import config, h1
+from cadres_lycees import charte, config, h1
 
 
 def fig_aires(
@@ -34,21 +33,15 @@ def fig_aires(
     inconnues = sorted(set(aires_retenues) - set(profil.index))
     assert not inconnues, f"Aires retenues absentes du profil : {inconnues}."
     profil = profil.sort_values("ecart_ips")
-    texte = config.COULEUR_TEXTE
     fig, (ax_part, ax_ips) = plt.subplots(
-        1, 2, figsize=(14, 6.2), sharey=True, gridspec_kw={"width_ratios": [1, 1.5]}
+        1, 2, figsize=(14, 5.6), sharey=True, gridspec_kw={"width_ratios": [1, 1.5]}
     )
     _panneau_prevalence(ax_part, profil)
     _panneau_ips(ax_ips, profil, lycees)
     for ax in (ax_part, ax_ips):
-        ax.spines[["top", "right"]].set_visible(False)
-        ax.tick_params(colors=texte)
-        ax.grid(axis="x", color=config.COULEUR_GRILLE, linewidth=0.8)
-        ax.set_axisbelow(True)
-    # Les aires occupent les positions 0, 1, 2... dans l'ordre du profil trié, sur les deux
-    # panneaux. Une demi-hauteur un peu sous 0,5 laisse un liseré blanc entre deux aires retenues
-    # voisines. La bande passe sous tout le reste (zorder 0) : tracée après les points, elle les
-    # cacherait
+        charte.styler_axes(ax, "x")
+    # Une demi-hauteur sous 0,5 laisse un liseré blanc entre deux aires retenues voisines ; la
+    # bande passe sous les points (zorder 0)
     demi_hauteur_bande = 0.45
     for position, aire in enumerate(profil.index):
         if aire in aires_retenues:
@@ -61,21 +54,14 @@ def fig_aires(
                 )
             ax_part.get_yticklabels()[position].set_fontweight("bold")
 
-    fig.suptitle(titre, fontsize=13, x=0.01, ha="left")
-    n_lycees = profil["n_lycees"].sum()
-    n_sans_ips = n_lycees - profil[["n_ips_public", "n_ips_prive"]].sum().sum()
-    _habiller(
+    charte.habiller(
         fig,
-        None,
-        "Lycées généraux, technologiques et polyvalents, publics et privés sous contrat, des "
-        f"communes de l'aire (annuaire du {config.DATE_ANNUAIRE}). Part en lycées : tous les "
-        f"lycées ; part en candidats : présents au bac général et technologique, moyenne "
-        f"2012-2022,\npour les {profil['n_avec_candidats'].sum()} lycées sur {n_lycees} qui ont "
-        "une IVAL (ce n'est pas une part d'élèves au sens de la DEPP). IPS : voie générale et "
-        f"technologique, rentrée {config.RENTREE_IPS}, moyenne simple des lycées, "
-        f"{n_sans_ips} lycées sans IPS. En gras sur fond gris : les aires retenues.\n"
-        "Sources : annuaire de l'éducation, DEPP (IPS, IVAL), Insee (aires d'attraction des "
-        "villes 2020), IGN.",
+        titre,
+        "Lycées généraux, technologiques et polyvalents des communes de l'aire (annuaire du "
+        f"{config.DATE_ANNUAIRE}). Candidats : présents au bac 2012-2022 des "
+        f"{profil['n_avec_candidats'].sum()} lycées sur {profil['n_lycees'].sum()} qui ont une "
+        f"IVAL. IPS : voie générale et technologique, rentrée {config.RENTREE_IPS}. Sources : "
+        "annuaire de l'éducation, DEPP, Insee, IGN.",
     )
     return fig
 
@@ -111,15 +97,8 @@ def _panneau_prevalence(ax: plt.Axes, profil: pd.DataFrame) -> None:
     ax.set_xlabel("Part du privé sous contrat (%)", color=config.COULEUR_TEXTE)
     ax.set_title("Prévalence du privé", loc="left", fontsize=11)
     ax.set_yticks(positions)
-    ax.set_yticklabels(
-        [
-            f"{aire}\n{ligne.n_lycees} lycées, {ligne.n_avec_candidats} avec IVAL"
-            for aire, ligne in zip(profil.index, profil.itertuples(), strict=True)
-        ],
-        color=config.COULEUR_TEXTE,
-        fontsize=9,
-    )
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=1, frameon=False)
+    ax.set_yticklabels(profil.index, color=config.COULEUR_TEXTE, fontsize=11)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.17), ncol=1, frameon=False)
 
 
 def _panneau_ips(ax: plt.Axes, profil: pd.DataFrame, lycees: gpd.GeoDataFrame) -> None:
@@ -163,29 +142,21 @@ def _panneau_ips(ax: plt.Axes, profil: pd.DataFrame, lycees: gpd.GeoDataFrame) -
     for aire, ligne in zip(profil.index, profil.itertuples(), strict=True):
         ax.text(
             bord,
-            rang[aire] + 0.1,
-            f"{ligne.ecart_ips:+.0f}",
+            rang[aire],
+            f"{ligne.ecart_ips:+.0f}".replace("-", "−"),
             ha="right",
-            fontsize=10,
+            va="center",
+            fontsize=11,
             color=config.COULEUR_TEXTE,
             fontweight="bold",
         )
-        ax.text(
-            bord,
-            rang[aire] - 0.1,
-            f"{ligne.n_ips_prive} / {ligne.n_ips_public}",
-            ha="right",
-            va="top",
-            fontsize=7,
-            color=config.COULEUR_TEXTE,
-        )
     ax.text(
         bord,
-        len(profil) - 0.45,
-        "écart privé − public\nlycées privés / publics",
+        len(profil) - 0.5,
+        "écart privé − public",
         ha="right",
         va="bottom",
-        fontsize=8,
+        fontsize=8.5,
         color=config.COULEUR_TEXTE,
     )
     ax.set_xlim(avec_ips["ips"].min() - 3, bord + 1)
@@ -209,58 +180,10 @@ def _panneau_ips(ax: plt.Axes, profil: pd.DataFrame, lycees: gpd.GeoDataFrame) -
         [*points, trait_moyenne],
         [*libelles, trait_moyenne.get_label()],
         loc="upper center",
-        bbox_to_anchor=(0.5, -0.12),
+        bbox_to_anchor=(0.5, -0.17),
         ncol=2,
         frameon=False,
     )
-
-
-def _habiller(
-    fig: Figure, titre: str | None, note: str, droite: float = 1, haut: float = 0.95
-) -> None:
-    """Pose le titre-message et la note de la figure, ajuste la mise en page, puis la ferme.
-
-    La note est recoupée à la largeur de la figure en `config.TAILLE_NOTE_FIGURES` points, pour
-    rester lisible une fois la figure réduite à la colonne du rapport ; la marge du bas suit sa
-    longueur. Les graduations passent à la française. Fermée, la figure n'est affichée qu'une
-    fois par un notebook, avec sa valeur de retour. `titre` vaut None quand la figure le pose
-    elle-même.
-    """
-    taille = config.TAILLE_NOTE_FIGURES
-    # Environ 0,62 cadratin par caractère (police par défaut de matplotlib) : caractères par ligne
-    largeur = int(fig.get_figwidth() * 72 / (taille * 0.62))
-    lignes = textwrap.wrap(" ".join(note.split()), largeur)
-    if titre is not None:
-        fig.suptitle(titre, fontsize=13, x=0.01, ha="left")
-    fig.text(0.01, 0.01, "\n".join(lignes), fontsize=taille, color=config.COULEUR_TEXTE)
-    hauteur_note = (len(lignes) * taille * 1.35 / 72 + 0.25) / fig.get_figheight()
-    fig.tight_layout(rect=(0, hauteur_note, droite, haut))
-    _axes_a_la_francaise(fig)
-    plt.close(fig)
-
-
-def _axes_a_la_francaise(fig: Figure) -> None:
-    """Écrit les graduations numériques avec une virgule décimale et un vrai signe moins.
-
-    Seuls les axes à graduations calculées (`ScalarFormatter`) changent : les axes à libellés
-    (aires, variantes) gardent leurs noms.
-    """
-    francais = FuncFormatter(lambda valeur, _: f"{valeur:g}".replace(".", ",").replace("-", "−"))
-    for ax in fig.axes:
-        for axe in (ax.xaxis, ax.yaxis):
-            if isinstance(axe.get_major_formatter(), ScalarFormatter):
-                axe.set_major_formatter(francais)
-
-
-def aires_ordonnees(aires: Collection[str]) -> list[str]:
-    """Renvoie les aires présentes dans l'ordre de `config.COULEURS_AIRES`.
-
-    Échoue si une aire n'a pas de couleur : sinon elle disparaîtrait de la figure sans signal.
-    """
-    presentes = set(aires)
-    inconnues = sorted(presentes - set(config.COULEURS_AIRES))
-    assert not inconnues, f"Aires sans couleur dans config.COULEURS_AIRES : {inconnues}."
-    return [aire for aire in config.COULEURS_AIRES if aire in presentes]
 
 
 def _libelle_cellule(bas_km: float, haut_km: float, rayon_km: int) -> str:
@@ -282,7 +205,7 @@ def fig_h1(
     bornes. Les cellules non estimables sont nommées en note. `titre` est le message de la
     figure, écrit par le groupe.
     """
-    aires = aires_ordonnees(principale.index)
+    aires = charte.aires_ordonnees(principale.index)
     assert set(secondaire.index) == set(aires), "Les deux pentes n'ont pas les mêmes aires."
     texte = config.COULEUR_TEXTE
     # La première aire en haut
@@ -331,11 +254,7 @@ def fig_h1(
         ax.axvline(0, color=config.COULEUR_LIAISON, linewidth=1, zorder=0)
         ax.set_title(nom, loc="left", fontsize=11, color=texte)
         ax.set_xlabel(unite, color=texte, fontsize=9)
-        ax.spines[["top", "right", "left"]].set_visible(False)
-        ax.tick_params(colors=texte)
-        ax.tick_params(axis="y", length=0)
-        ax.grid(axis="x", color=config.COULEUR_GRILLE, linewidth=0.8)
-        ax.set_axisbelow(True)
+        charte.styler_axes(ax, "x", axe_y=False)
     axes[0].set_yticks([rang[aire] for aire in aires])
     axes[0].set_yticklabels(aires, color=texte)
     axes[0].set_ylim(-0.6, len(aires) - 0.4)
@@ -348,7 +267,7 @@ def fig_h1(
         f"{ligne.aire} ({_libelle_cellule(ligne.bas_km, ligne.haut_km, ligne.rayon_km)})"
         for ligne in non_estimables.itertuples()
     ]
-    _habiller(
+    charte.habiller(
         fig,
         titre,
         "Sens de H1 : pente principale négative, pente secondaire et écarts positifs. Pentes des "
@@ -372,7 +291,7 @@ def fig_paires(paires: pd.DataFrame, pentes: pd.DataFrame, titre: str) -> Figure
     "d_dist_lyc_prive_min")` ; `titre` est le message de la figure, écrit par le groupe.
     """
     acces = "d_dist_lyc_prive_min"
-    aires = aires_ordonnees(paires["aire"])
+    aires = charte.aires_ordonnees(paires["aire"])
     assert set(pentes.index) == set(aires), "Les pentes et les paires n'ont pas les mêmes aires."
     texte = config.COULEUR_TEXTE
 
@@ -414,40 +333,39 @@ def fig_paires(paires: pd.DataFrame, pentes: pd.DataFrame, titre: str) -> Figure
             f"{ligne[cle] * 100:+.2f}".replace(".", ",").replace("-", "−")
             for cle in ("pente", "ic_bas", "ic_haut")
         )
-        # Les statistiques vont au-dessus du panneau : dedans, elles pourraient cacher des points
-        ax.set_title(aire, loc="left", fontsize=11, color=couleur, fontweight="bold", pad=34)
+        # La pente va au-dessus du panneau : dedans, elle pourrait cacher des points
+        ax.set_title(aire, loc="left", fontsize=12, color=couleur, fontweight="bold", pad=22)
         ax.text(
             0,
             1.02,
-            f"pente : {pente} point par km, intervalle à 95 % : [{bas} ; {haut}]\n"
-            f"{int(ligne['n_paires'])} paires, {int(ligne['n_communes'])} communes",
+            f"pente {pente} point par km [{bas} ; {haut}]",
             transform=ax.transAxes,
             va="bottom",
-            fontsize=8.5,
+            fontsize=10,
             color=texte,
         )
         ax.set_xlabel(
             "Écart de distance au lycée privé le plus proche,\nà position égale (km)", color=texte
         )
-        ax.spines[["top", "right"]].set_visible(False)
-        ax.tick_params(colors=texte)
-        ax.grid(color=config.COULEUR_GRILLE, linewidth=0.8)
-        ax.set_axisbelow(True)
+        charte.styler_axes(ax, "both")
     axes[0][0].set_ylabel(
         "Écart de part de cadres en 2022,\nà position égale (points)", color=texte
     )
 
-    _habiller(
+    effectifs = ", ".join(
+        f"{aire} {pentes.loc[aire, 'n_paires']:.0f} ({pentes.loc[aire, 'n_communes']:.0f} communes)"
+        for aire in aires
+    )
+    charte.habiller(
         fig,
         titre,
-        "Paires de communes contiguës d'une même aire, chacune comptée dans les deux sens. Les "
-        "deux écarts sont pris à écarts de distance au centre et de log-densité donnés (résidus "
-        "des régressions sur ces\ncontrôles, sans constante) ; chaque point est la moyenne d'une "
-        f"des {config.NB_CLASSES_NUAGE_PAIRES} classes d'effectifs égaux de l'écart de distance. "
-        "Droite : pente principale de H1 ; intervalle par bootstrap des communes "
-        f"({config.NB_TIRAGES_BOOTSTRAP} tirages).\nSources : Insee, recensement 2022, "
-        f"« Évolution et structure de la population » ; annuaire de l'éducation "
-        f"({config.DATE_ANNUAIRE}) ; IGN.",
+        f"Paires de communes contiguës d'une même aire : {effectifs}, chacune comptée dans les "
+        "deux sens. Les deux écarts sont pris à écarts de distance au centre et de log-densité "
+        "donnés (résidus des régressions sur ces contrôles, sans constante) ; chaque point est la "
+        f"moyenne d'une des {config.NB_CLASSES_NUAGE_PAIRES} classes d'effectifs égaux de l'écart "
+        "de distance. Droite : pente principale de H1 ; intervalle à 95\u00a0% par bootstrap des "
+        f"communes ({config.NB_TIRAGES_BOOTSTRAP} tirages). Sources : Insee, recensement 2022 ; "
+        f"annuaire de l'éducation ({config.DATE_ANNUAIRE}) ; IGN.",
     )
     return fig
 
@@ -461,7 +379,7 @@ def fig_h3(terciles: pd.DataFrame, titre: str) -> Figure:
     de la figure, écrit par le groupe. Elle décrit : le verdict de H3 se lit sur β_q
     et β_n.
     """
-    aires = aires_ordonnees(terciles.index.get_level_values("aire"))
+    aires = charte.aires_ordonnees(terciles.index.get_level_values("aire"))
     texte = config.COULEUR_TEXTE
     decalages = {aire: 0.22 * (k - (len(aires) - 1) / 2) for k, aire in enumerate(aires)}
     # La catégorie « sans IVAL » est séparée des tiers par un intervalle plus large
@@ -497,10 +415,7 @@ def fig_h3(terciles: pd.DataFrame, titre: str) -> Figure:
     ax.set_xticklabels(list(positions), color=texte)
     ax.set_xlabel("IVAL moyenne des lycées à 5 km, en tiers calculés dans chaque aire", color=texte)
     ax.set_ylabel("Évolution de la part de cadres, 2011-2022 (points)", color=texte)
-    ax.spines[["top", "right"]].set_visible(False)
-    ax.tick_params(colors=texte)
-    ax.grid(axis="y", color=config.COULEUR_GRILLE, linewidth=0.8)
-    ax.set_axisbelow(True)
+    charte.styler_axes(ax, "y")
     ax.legend(frameon=False, loc="upper left", bbox_to_anchor=(1.0, 1.0))
 
     ecartes = terciles[terciles["tirages_ecartes"] > 0]
@@ -508,7 +423,7 @@ def fig_h3(terciles: pd.DataFrame, titre: str) -> Figure:
         f"{aire} {categorie} {int(ligne['tirages_ecartes'])}"
         for (aire, categorie), ligne in ecartes.iterrows()
     )
-    _habiller(
+    charte.habiller(
         fig,
         titre,
         "Communes ayant au moins un lycée retenu à 5 km ; « sans IVAL » : aucun de ces lycées n'a "
@@ -524,60 +439,58 @@ def fig_h3(terciles: pd.DataFrame, titre: str) -> Figure:
 
 
 def fig_robustesse(robustesse: pd.DataFrame, titre: str) -> Figure:
-    """Pente principale de H1 dans chaque variante de robustesse, par aire.
+    """Pente principale de H1 dans les variantes de robustesse principales, par aire.
 
-    Une ligne par variante en points par km (les pentes secondaires, en points par lycée, restent
-    dans le tableau), un point par aire avec son intervalle à 95 % ; la spécification principale
-    en haut, sur fond gris, sert de repère. `robustesse` vient de `robustesse.robustesse_h1` ;
-    `titre` est le message de la figure.
+    Une ligne par variante de `config.VARIANTES_FIGURE_ROBUSTESSE`, un point par aire avec son
+    intervalle à 95 % ; la spécification principale, en haut sur fond gris, sert de repère. Les
+    autres variantes restent dans le tableau détaillé. `robustesse` vient de
+    `robustesse.robustesse_h1` ; `titre` est le message de la figure.
     """
-    en_km = robustesse[~robustesse.index.get_level_values("variante").str.contains("secondaire")]
-    variantes = list(en_km.index.unique("variante"))
-    aires = aires_ordonnees(en_km.index.get_level_values("aire"))
+    variantes = list(config.VARIANTES_FIGURE_ROBUSTESSE)
+    absentes = sorted(set(variantes) - set(robustesse.index.unique("variante")))
+    assert not absentes, f"Variantes absentes de la robustesse : {absentes}."
+    choisies = robustesse.loc[variantes]
+    aires = charte.aires_ordonnees(choisies.index.get_level_values("aire"))
     texte = config.COULEUR_TEXTE
-    decalages = {aire: 0.22 * (k - (len(aires) - 1) / 2) for k, aire in enumerate(aires)}
+    decalages = {aire: 0.2 * (k - (len(aires) - 1) / 2) for k, aire in enumerate(aires)}
 
-    fig, ax = plt.subplots(figsize=(10, 1.2 + 0.62 * len(variantes)))
+    fig, ax = plt.subplots(figsize=(10, 1.8 + 1.0 * len(variantes)))
     ax.axhspan(-0.45, 0.45, color=config.COULEUR_FOND_RETENUES, zorder=0)
-    ax.axvline(0, color=config.COULEUR_LIAISON, linewidth=1, zorder=0)
+    ax.axvline(0, color=config.COULEUR_LIAISON, linewidth=1.2, zorder=0)
     for rang, variante in enumerate(variantes):
         for aire in aires:
-            if (variante, aire) not in en_km.index:
+            if (variante, aire) not in choisies.index:
                 continue
-            ligne = en_km.loc[(variante, aire)]
+            ligne = choisies.loc[(variante, aire)]
             y = rang + decalages[aire]
             couleur = config.COULEURS_AIRES[aire]
             if pd.notna(ligne["ic_bas"]):
-                ax.hlines(y, ligne["ic_bas"] * 100, ligne["ic_haut"] * 100, color=couleur, lw=2)
+                ax.hlines(y, ligne["ic_bas"] * 100, ligne["ic_haut"] * 100, color=couleur, lw=3)
             ax.scatter(
                 ligne["pente"] * 100,
                 y,
-                s=36,
+                s=70,
                 color=couleur,
                 edgecolor="white",
                 zorder=3,
                 label=aire if rang == 0 else None,
             )
     ax.set_yticks(range(len(variantes)))
-    ax.set_yticklabels(variantes, color=texte)
+    ax.set_yticklabels([textwrap.fill(nom, 31) for nom in variantes], color=texte, fontsize=13)
     ax.invert_yaxis()
     ax.set_xlabel(
-        "Pente principale : points de part de cadres par km de distance au lycée privé", color=texte
+        "Points de part de cadres par km de distance au lycée privé", color=texte, fontsize=13
     )
-    ax.spines[["top", "right", "left"]].set_visible(False)
-    ax.tick_params(colors=texte)
-    ax.tick_params(axis="y", length=0)
-    ax.grid(axis="x", color=config.COULEUR_GRILLE, linewidth=0.8)
-    ax.set_axisbelow(True)
-    ax.legend(frameon=False, loc="upper left", bbox_to_anchor=(1.0, 1.0))
-    _habiller(
+    charte.styler_axes(ax, "x", axe_y=False)
+    ax.tick_params(labelsize=12)
+    ax.legend(frameon=False, loc="upper left", bbox_to_anchor=(1.0, 1.0), fontsize=13)
+    charte.habiller(
         fig,
         titre,
         "Sens de H1 : pente négative. Même estimation et même bootstrap que la spécification "
-        f"principale ({config.NB_TIRAGES_BOOTSTRAP} tirages par commune).\nUne variante sans objet "
-        "dans une aire n'a pas de point : prix au m² à Lyon et Nantes (Alsace-Moselle hors DVF),\n"
-        "frontière à Strasbourg. Sources : Insee, recensement 2022 ; annuaire de l'éducation ; "
-        "DVF (Etalab) ; IGN.",
+        f"principale ({config.NB_TIRAGES_BOOTSTRAP} tirages par commune). Prix au m² : Lyon et "
+        "Nantes seulement (Alsace-Moselle hors DVF). Toutes les variantes sont dans le tableau "
+        "détaillé. Sources : Insee, recensement 2022 ; annuaire de l'éducation ; DVF ; IGN.",
     )
     return fig
 
@@ -589,7 +502,7 @@ def fig_h4(pentes: pd.DataFrame, titre: str) -> Figure:
     pentes des aires), un point par aire avec son intervalle à 95 %. `pentes` vient de
     `h1.pentes_h4` ; `titre` est le message de la figure, écrit par le groupe.
     """
-    aires = aires_ordonnees(pentes.index.get_level_values("aire"))
+    aires = charte.aires_ordonnees(pentes.index.get_level_values("aire"))
     ordre = pentes["pente"].groupby(level="mesure").mean().sort_values().index
     texte = config.COULEUR_TEXTE
     # Les aires sont décalées verticalement dans chaque ligne, pour que leurs intervalles ne se
@@ -620,15 +533,11 @@ def fig_h4(pentes: pd.DataFrame, titre: str) -> Figure:
         "en plus (points)",
         color=texte,
     )
-    ax.spines[["top", "right", "left"]].set_visible(False)
-    ax.tick_params(colors=texte)
-    ax.tick_params(axis="y", length=0)
-    ax.grid(axis="x", color=config.COULEUR_GRILLE, linewidth=0.8)
-    ax.set_axisbelow(True)
+    charte.styler_axes(ax, "x", axe_y=False)
     # Légende dans l'ordre des aires de la charte, en dehors des points
     ax.legend(frameon=False, loc="upper left", bbox_to_anchor=(1.0, 1.0))
 
-    _habiller(
+    charte.habiller(
         fig,
         titre,
         "Pente des paires de communes contiguës, sans constante, à écarts de distance au centre "
@@ -675,7 +584,8 @@ def carte_iris(
     bornes = [0, *config.BORNES_PART_CADRES_IRIS, 100]
     demi_cote = config.ZOOM_IRIS_KM * 1000
     ouest, sud = centre.x - demi_cote, centre.y - demi_cote
-    fig, axes = plt.subplots(2, 2, figsize=(9, 9))
+    # La légende a sa propre rangée sous les cartes : à côté, elle chevaucherait les titres
+    fig, axes = plt.subplots(3, 2, figsize=(9, 10), gridspec_kw={"height_ratios": [1, 1, 0.16]})
     for colonne, annee in enumerate((2011, 2022)):
         # Borne basse incluse, comme dans la légende
         classe = pd.cut(
@@ -708,11 +618,7 @@ def carte_iris(
         ax_zoom.set_xlim(ouest, ouest + 2 * demi_cote)
         ax_zoom.set_ylim(sud, sud + 2 * demi_cote)
         ax_aire.set_title(f"{annee}, aire entière", loc="left", fontsize=11)
-        ax_zoom.set_title(
-            f"{annee}, autour de la commune-centre ({2 * config.ZOOM_IRIS_KM} km de côté)",
-            loc="left",
-            fontsize=11,
-        )
+        ax_zoom.set_title(f"{annee}, zoom sur le centre", loc="left", fontsize=11)
 
     libelles = [f"moins de {bornes[1]} %"]
     libelles += [f"{bas} à {haut} %" for bas, haut in itertools.pairwise(bornes[1:-1])]
@@ -729,21 +635,20 @@ def carte_iris(
             label="IRIS non comparable",
         )
     )
-    fig.legend(handles=poignees, loc="center right", frameon=False, fontsize=9)
-    fig.suptitle(titre, fontsize=13, x=0.01, ha="left")
-    _habiller(
+    grille = axes[0, 0].get_gridspec()
+    for ax in axes[2]:
+        ax.remove()
+    ax_legende = fig.add_subplot(grille[2, :])
+    ax_legende.set_axis_off()
+    ax_legende.legend(handles=poignees, loc="center", ncol=4, frameon=False, fontsize=10)
+    charte.habiller(
         fig,
-        None,
-        "Part des cadres et professions intellectuelles supérieures parmi les actifs de 15 à 64 "
-        "ans (occupés et chômeurs ayant déjà travaillé), et non de 25 à 54 ans comme dans le reste "
-        "du rapport : les bases IRIS ne croisent pas\ncette tranche avec la catégorie "
-        "socioprofessionnelle. Non comparable : code IRIS absent en 2011, aucun actif à une "
-        "date, ou commune non découpée qui en a absorbé une autre depuis 2013. Exploitation "
-        "complémentaire : la part\nd'un IRIS de moins de 200 actifs est peu précise "
-        "(échantillon). Sources : Insee, recensements 2011 et 2022, bases infracommunales "
-        "« Activité des résidents » ; contours IRIS de l'IGN (cartiflette, "
-        f"COG {config.ANNEE_COG}).",
-        droite=0.85,
+        titre,
+        "Part des cadres parmi les actifs de 15 à 64 ans (les bases IRIS ne croisent pas les "
+        f"25-54 ans avec la catégorie socioprofessionnelle). Zoom : carré de "
+        f"{2 * config.ZOOM_IRIS_KM} km de côté autour de la commune-centre. Non comparable : "
+        "code absent en 2011, aucun actif ou territoire agrandi depuis. Part peu précise sous 200 "
+        "actifs. Sources : Insee, recensements 2011 et 2022 ; IGN.",
         haut=0.97,
     )
     return fig

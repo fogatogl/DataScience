@@ -406,6 +406,15 @@ LIBELLES_SECTEURS = {"public": "public", "prive": "privé sous contrat"}
 TAILLE_NOTE_FIGURES = 10.5
 # Une couleur par aire (palette d'Okabe et Ito), distincte des couleurs des secteurs
 COULEURS_AIRES = {"Nantes": "#009e73", "Lyon": "#a2559c", "Strasbourg": "#9c6b1f"}
+# Variantes de robustesse montrées dans `fig_robustesse` ; le tableau replié les garde toutes
+VARIANTES_FIGURE_ROBUSTESSE = (
+    "Spécification principale",
+    "Sans contrôle de densité",
+    "Avec contrôle du prix au m²",
+    "Cadres parmi les 15 ans ou plus",
+    "Lycées professionnels et privé hors contrat inclus",
+    "Sans la commune-centre",
+)
 
 
 # `carte_acces` : bornes supérieures (incluses) des classes de distance ; « 5 km ou moins »
