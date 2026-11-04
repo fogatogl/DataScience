@@ -347,8 +347,12 @@ projet-cadres-lycees/
 │   ├── nettoyage.py           # harmonisation COG, filtres, variables dérivées
 │   ├── geo.py                 # référentiel communes, centroïdes, distances, paires contiguës
 │   ├── accessibilite.py       # fonction générique d'accessibilité
-│   ├── analyse.py             # anneaux, bootstrap, comparaisons, indice de Moran
-│   ├── figures.py             # figures matplotlib : une fonction par figure, avec une charte graphique commune
+│   ├── analyse.py             # statistiques descriptives des aires et tableau de support
+│   ├── h1.py                  # H1 : anneaux, pentes des paires et bootstrap, verdict ; pentes de H4
+│   ├── h3.py                  # H3 : fiabilité de l'IVAL, estimation par grappes, verdict
+│   ├── robustesse.py          # robustesse de H1 et de H3, indice de Moran
+│   ├── charte.py              # charte graphique commune des figures
+│   ├── figures.py             # figures matplotlib : une fonction par figure
 │   ├── cartes.py              # cartes folium : une fonction par carte (accès aux lycées, carte à curseur de la part de cadres)
 │   ├── tableaux.py            # mise en forme des tableaux du rapport et des documents Markdown affichés en annexe
 │   └── pipeline.py            # construire_base() enchaîne les étapes A à G

@@ -141,7 +141,7 @@ Le projet a été mené avec un assistant de code, Claude Code (Anthropic). Voic
 
 **Soutenance.** La présentation interactive a été générée par l'assistant à partir des sorties du projet. [À compléter par le groupe : ce que le groupe y a modifié.]
 
-**Ce que nous garantissons.** Chaque membre peut expliquer le code du dépôt, en particulier `accessibilite.py` et `analyse.py`, et chaque chiffre du rapport vient d'une sortie du notebook. [À confirmer par le groupe.]
+**Ce que nous garantissons.** Chaque membre peut expliquer le code du dépôt, en particulier `accessibilite.py` et les modules d'analyse (`analyse.py`, `h1.py`, `h3.py`, `robustesse.py`), et chaque chiffre du rapport vient d'une sortie du notebook. [À confirmer par le groupe.]
 
 ## Organisation
 
