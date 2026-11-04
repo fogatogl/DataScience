@@ -41,6 +41,21 @@ Le plan complet et le journal des décisions sont dans [`docs/PLAN.md`](docs/PLA
 - **H4, autres infrastructures** : lycées, gares, médecins, équipements sportifs et culturels ont tous des pentes proches de zéro ; aucune ne se détache (descriptif).
 - **Ce sont des associations**, non des relations causales ; l'autocorrélation spatiale qui demeure à position égale rend les intervalles probablement trop étroits.
 
+## Voir les résultats
+
+- **Le rapport** : https://gabrielwenger1-coder.github.io/DataScience/ (site Quarto construit depuis `rapport.ipynb`).
+- **La présentation interactive** de soutenance : https://gabrielwenger1-coder.github.io/DataScience/presentation.html (cartes 1999-2022, accès aux lycées, résultats de H1 à H4).
+
+Les deux pages sont recalculées depuis les données et publiées sur la branche `gh-pages` du dépôt ; aucun fichier HTML n'est commité sur les autres branches. Pour les mettre à jour, depuis `main` :
+
+```bash
+uv run quarto render                       # exécute le rapport et écrit le site dans _site/
+uv run python presentation/construire.py   # ajoute _site/presentation.html
+uv run quarto publish gh-pages --no-render # publie _site/ tel quel sur GitHub Pages
+```
+
+La première publication crée la branche `gh-pages` et active GitHub Pages (onglet *Settings > Pages* du dépôt : source « Deploy from a branch », branche `gh-pages`, si ce n'est pas fait automatiquement). Pour regarder le site sans le publier : `uv run quarto preview`.
+
 ## Reproduire le projet
 
 Python 3.13 et [uv](https://docs.astral.sh/uv/) sont nécessaires.
@@ -139,12 +154,13 @@ Le projet a été mené avec un assistant de code, Claude Code (Anthropic). Voic
 
 **Texte du rapport.** L'assistant a rédigé un premier jet du texte, à la demande de Giulio et à partir des sorties du notebook ; le groupe doit le relire et le reprendre section par section (journal du 03/11). C'est un écart à notre règle de départ (`docs/PLAN.md`, §8.3), qui réservait le texte au groupe. [À compléter par le groupe : ce qui a été réécrit, par qui, et la ligne du journal qui consigne cet écart.]
 
-**Soutenance.** La présentation interactive a été générée par l'assistant à partir des sorties du projet. [À compléter par le groupe : ce que le groupe y a modifié.]
+**Soutenance.** La présentation interactive (`presentation/`) a été générée par l'assistant ; ses données sont recalculées par `presentation/construire.py` avec les fonctions du projet. [À compléter par le groupe : ce que le groupe y a modifié.]
 
 **Ce que nous garantissons.** Chaque membre peut expliquer le code du dépôt, en particulier `accessibilite.py` et les modules d'analyse (`analyse.py`, `h1.py`, `h3.py`, `robustesse.py`), et chaque chiffre du rapport vient d'une sortie du notebook. [À confirmer par le groupe.]
 
 ## Organisation
 
 - `src/cadres_lycees/` : le code du pipeline, un module par étape (voir PLAN §7).
+- `presentation/` : la présentation interactive de soutenance, un gabarit HTML et JavaScript (`page.html`) et le script qui y insère les données et les résultats (`construire.py`).
 - `tests/` : les tests des calculs critiques (accessibilité, paires de communes contiguës, fusion des anneaux, bootstrap par commune, sens des paires et verdict de H1).
 - `docs/` : le plan, les notes sur les sources de données et le [dictionnaire des variables](docs/dictionnaire_variables.md) de la base communale (`pipeline.construire_base`).

@@ -6,7 +6,7 @@ project:
     - rapport.ipynb
 
 # nb-clean retire les sorties des notebooks à chaque commit : le rendu doit donc exécuter le
-# rapport, depuis les copies gelées (PLAN §4, étape G)
+# rapport, depuis les copies gelées
 execute:
   enabled: true
 
@@ -19,7 +19,13 @@ crossref:
 
 website:
   title: "Lycées et géographie des cadres"
+  # Publié sur GitHub Pages par `quarto publish gh-pages` (README, « Voir les résultats »)
+  site-url: https://gabrielwenger1-coder.github.io/DataScience/
   navbar:
+    left:
+      # Page écrite dans _site/ par presentation/construire.py, après le rendu
+      - text: Présentation interactive
+        href: presentation.html
     right:
       - icon: github
         href: https://github.com/gabrielwenger1-coder/DataScience
