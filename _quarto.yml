@@ -36,13 +36,15 @@ format:
     # Les lettres grecques (β des coefficients de H3) dans une police mathématique, classe `.grec`.
     # Quarto donne aux figures matplotlib leur largeur en pixels : sans cette règle, une figure
     # plus large que la colonne (les cartes IRIS, affichées dans des onglets) déborde au lieu d'être
-    # réduite
+    # réduite. Un tableau d'encadré plus large que la colonne (tableau de support) défile
+    # horizontalement au lieu de sortir de la page
     include-in-header:
       text: |
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital@0;1&display=swap">
         <style>
         main img { max-width: 100%; height: auto; }
         .grec { font-family: "STIX Two Text", "Times New Roman", serif; font-size: 1.08em; }
+        .callout table { display: block; max-width: 100%; overflow-x: auto; font-size: 0.85em; }
         </style>
     # Une carte folium créée dans un onglet caché est cadrée sur une surface nulle et montre le
     # monde entier : elle est recréée la première fois que son onglet s'affiche
