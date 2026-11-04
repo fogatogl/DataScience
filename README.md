@@ -162,6 +162,6 @@ Le projet a été mené avec un assistant de code, Claude Code (Anthropic). Voic
 
 - `src/cadres_lycees/` : le code du pipeline, un module par étape (voir PLAN §7).
 - `presentation/` : la présentation interactive de soutenance, un gabarit HTML et JavaScript (`page.html`) et le script qui y insère les données et les résultats (`construire.py`).
-- `tests/` : les tests des calculs critiques (accessibilité, paires de communes contiguës, fusion des anneaux, bootstrap par commune, sens des paires et verdict de H1).
+- `tests/` : les tests des calculs critiques (accessibilité, paires de communes contiguës, fusion des anneaux, bootstrap par commune, sens des paires, verdicts de H1 et de H3).
 - `docs/` : le plan, les notes sur les sources de données et le [dictionnaire des variables](docs/dictionnaire_variables.md) de la base communale (`pipeline.construire_base`).
 - `CLAUDE.md` et `.claude/` : les règles écrites pour l'assistant de code (conventions, ce qu'il ne doit pas modifier), la définition de ses agents (explorateur de données, testeur, relecteur, auditeur méthodologique, pilote, correcteur) et les contrôles automatiques qui encadraient son travail (section « Usage de l'IA générative »).
