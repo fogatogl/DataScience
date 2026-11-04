@@ -529,6 +529,8 @@ LIBELLES_SECTEURS = {"public": "public", "prive": "privé sous contrat"}
 # Une couleur par aire retenue, la même dans toutes les figures (PLAN §6) : vert, violet et brun
 # de la palette d'Okabe et Ito, lisibles en cas de daltonisme et distincts du bleu et de l'orange
 # des secteurs
+# Taille des notes sous les figures, en points : lisible une fois la figure réduite à la colonne
+TAILLE_NOTE_FIGURES = 10.5
 COULEURS_AIRES = {"Nantes": "#009e73", "Lyon": "#a2559c", "Strasbourg": "#9c6b1f"}
 
 

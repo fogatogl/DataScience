@@ -6,12 +6,29 @@ figures matplotlib.
 
 import html
 import itertools
+from collections.abc import Iterator
 
 import folium
 import geopandas as gpd
 import pandas as pd
 
 from cadres_lycees import config
+
+
+def onglets_par_aire(
+    id_figure: str, cartes_par_aire: dict[str, object], legende: str
+) -> Iterator[object]:
+    """Renvoie, dans l'ordre, le balisage Quarto et les cartes d'une figure à onglets.
+
+    Les textes (lignes « ::: » et « #### ») sont à imprimer dans une cellule `output: asis`,
+    les cartes à afficher : la figure numérotée `id_figure` contient un onglet par aire, et
+    `legende` (Markdown) va sous les onglets. Les cartes peuvent être folium ou matplotlib.
+    """
+    yield f"::: {{#{id_figure}}}\n::: {{.panel-tabset}}"
+    for aire, carte in cartes_par_aire.items():
+        yield f"\n#### {aire}\n"
+        yield carte
+    yield f":::\n\n{legende}\n:::"
 
 
 def _carte_cadree(affichage: gpd.GeoDataFrame) -> folium.Map:
@@ -306,13 +323,10 @@ def carte_acces(communes: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame, titre: str
         f"Lycée, secteur {config.LIBELLES_SECTEURS[secteur]}</div>"
         for secteur in ("prive", "public")
     )
+    # Courte : la légende est posée sur la carte ; la définition complète est dans le rapport
     note = (
         f"{config.RAYON_PRINCIPAL_KM} km ou moins : au moins un lycée privé sous contrat dans "
-        "le rayon principal. Distance à vol d'oiseau depuis le centroïde de la commune, "
-        "calculée sur les lycées de France métropolitaine (les lycées étrangers sont absents). "
-        "Points : lycées généraux, technologiques et polyvalents à "
-        f"{max(config.RAYONS_KM)} km ou moins d'une commune, y compris hors des aires, et "
-        "lycée privé le plus proche de chaque commune."
+        "le rayon principal. Distance à vol d'oiseau depuis le centroïde de la commune."
     )
     source = (
         f"Sources : annuaire de l'éducation ({config.DATE_ANNUAIRE}), DEPP (IPS, rentrée "

@@ -15,6 +15,7 @@ lang: fr
 # Légendes « Tableau 1 » plutôt que « Table 1 »
 crossref:
   tbl-title: Tableau
+  tbl-prefix: Tableau
 
 website:
   title: "Lycées et géographie des cadres"

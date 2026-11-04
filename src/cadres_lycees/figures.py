@@ -4,6 +4,7 @@ Les cartes interactives sont dans `cartes.py`, la mise en forme des tableaux dan
 """
 
 import itertools
+import textwrap
 from collections.abc import Collection
 
 import geopandas as gpd
@@ -63,9 +64,9 @@ def fig_aires(
     fig.suptitle(titre, fontsize=13, x=0.01, ha="left")
     n_lycees = profil["n_lycees"].sum()
     n_sans_ips = n_lycees - profil[["n_ips_public", "n_ips_prive"]].sum().sum()
-    fig.text(
-        0.01,
-        0.01,
+    _habiller(
+        fig,
+        None,
         "Lycées généraux, technologiques et polyvalents, publics et privés sous contrat, des "
         f"communes de l'aire (annuaire du {config.DATE_ANNUAIRE}). Part en lycées : tous les "
         f"lycées ; part en candidats : présents au bac général et technologique, moyenne "
@@ -75,13 +76,7 @@ def fig_aires(
         f"{n_sans_ips} lycées sans IPS. En gras sur fond gris : les aires retenues.\n"
         "Sources : annuaire de l'éducation, DEPP (IPS, IVAL), Insee (aires d'attraction des "
         "villes 2020), IGN.",
-        fontsize=9,
-        color=texte,
     )
-    fig.tight_layout(rect=(0, 0.07, 1, 0.95))
-    # Fermée, la figure n'est affichée qu'une fois par un notebook, avec sa valeur de retour
-    _axes_a_la_francaise(fig)
-    plt.close(fig)
     return fig
 
 
@@ -220,6 +215,30 @@ def _panneau_ips(ax: plt.Axes, profil: pd.DataFrame, lycees: gpd.GeoDataFrame) -
     )
 
 
+def _habiller(
+    fig: Figure, titre: str | None, note: str, droite: float = 1, haut: float = 0.95
+) -> None:
+    """Pose le titre-message et la note de la figure, ajuste la mise en page, puis la ferme.
+
+    La note est recoupée à la largeur de la figure en `config.TAILLE_NOTE_FIGURES` points, pour
+    rester lisible une fois la figure réduite à la colonne du rapport ; la marge du bas suit sa
+    longueur. Les graduations passent à la française. Fermée, la figure n'est affichée qu'une
+    fois par un notebook, avec sa valeur de retour. `titre` vaut None quand la figure le pose
+    elle-même.
+    """
+    taille = config.TAILLE_NOTE_FIGURES
+    # Environ 0,62 cadratin par caractère (police par défaut de matplotlib) : caractères par ligne
+    largeur = int(fig.get_figwidth() * 72 / (taille * 0.62))
+    lignes = textwrap.wrap(" ".join(note.split()), largeur)
+    if titre is not None:
+        fig.suptitle(titre, fontsize=13, x=0.01, ha="left")
+    fig.text(0.01, 0.01, "\n".join(lignes), fontsize=taille, color=config.COULEUR_TEXTE)
+    hauteur_note = (len(lignes) * taille * 1.35 / 72 + 0.25) / fig.get_figheight()
+    fig.tight_layout(rect=(0, hauteur_note, droite, haut))
+    _axes_a_la_francaise(fig)
+    plt.close(fig)
+
+
 def _axes_a_la_francaise(fig: Figure) -> None:
     """Écrit les graduations numériques avec une virgule décimale et un vrai signe moins.
 
@@ -329,10 +348,9 @@ def fig_h1(
         f"{ligne.aire} ({_libelle_cellule(ligne.bas_km, ligne.haut_km, ligne.rayon_km)})"
         for ligne in non_estimables.itertuples()
     ]
-    fig.suptitle(titre, fontsize=13, x=0.01, ha="left")
-    fig.text(
-        0.01,
-        0.01,
+    _habiller(
+        fig,
+        titre,
         "Sens de H1 : pente principale négative, pente secondaire et écarts positifs. Pentes des "
         "paires de communes contiguës sans constante, à écarts de distance au centre et de "
         "log-densité donnés ;\nécarts des cellules : régression pondérée par les actifs, à "
@@ -341,12 +359,7 @@ def fig_h1(
         f"Cellules non estimables : {', '.join(noms)}.\nSources : Insee, recensement 2022, "
         f"« Évolution et structure de la population » ; annuaire de l'éducation "
         f"({config.DATE_ANNUAIRE}) ; IGN.",
-        fontsize=9,
-        color=texte,
     )
-    fig.tight_layout(rect=(0, 0.16, 1, 0.95))
-    _axes_a_la_francaise(fig)
-    plt.close(fig)
     return fig
 
 
@@ -424,10 +437,9 @@ def fig_paires(paires: pd.DataFrame, pentes: pd.DataFrame, titre: str) -> Figure
         "Écart de part de cadres en 2022,\nà position égale (points)", color=texte
     )
 
-    fig.suptitle(titre, fontsize=13, x=0.01, ha="left")
-    fig.text(
-        0.01,
-        0.01,
+    _habiller(
+        fig,
+        titre,
         "Paires de communes contiguës d'une même aire, chacune comptée dans les deux sens. Les "
         "deux écarts sont pris à écarts de distance au centre et de log-densité donnés (résidus "
         "des régressions sur ces\ncontrôles, sans constante) ; chaque point est la moyenne d'une "
@@ -436,12 +448,7 @@ def fig_paires(paires: pd.DataFrame, pentes: pd.DataFrame, titre: str) -> Figure
         f"({config.NB_TIRAGES_BOOTSTRAP} tirages).\nSources : Insee, recensement 2022, "
         f"« Évolution et structure de la population » ; annuaire de l'éducation "
         f"({config.DATE_ANNUAIRE}) ; IGN.",
-        fontsize=9,
-        color=texte,
     )
-    fig.tight_layout(rect=(0, 0.1, 1, 0.94))
-    _axes_a_la_francaise(fig)
-    plt.close(fig)
     return fig
 
 
@@ -501,10 +508,9 @@ def fig_h3(terciles: pd.DataFrame, titre: str) -> Figure:
         f"{aire} {categorie} {int(ligne['tirages_ecartes'])}"
         for (aire, categorie), ligne in ecartes.iterrows()
     )
-    fig.suptitle(titre, fontsize=13, x=0.01, ha="left")
-    fig.text(
-        0.01,
-        0.01,
+    _habiller(
+        fig,
+        titre,
         "Communes ayant au moins un lycée retenu à 5 km ; « sans IVAL » : aucun de ces lycées n'a "
         "d'IVAL. Moyennes simples ; sous chaque point, le nombre de communes.\nIntervalles à 95 % "
         "par bootstrap des grappes « lycée avec IVAL le plus proche », tirées dans chaque aire "
@@ -513,12 +519,7 @@ def fig_h3(terciles: pd.DataFrame, titre: str) -> Figure:
         "seconde au bac, moyenne des sessions 2012 à 2022, lycées d'au moins 5 sessions.\n"
         "Sources : Insee, recensements 2011 et 2022, « Évolution et structure de la population » ; "
         f"DEPP, IVAL ; annuaire de l'éducation ({config.DATE_ANNUAIRE}) ; IGN.",
-        fontsize=9,
-        color=texte,
     )
-    fig.tight_layout(rect=(0, 0.17, 1, 0.95))
-    _axes_a_la_francaise(fig)
-    plt.close(fig)
     return fig
 
 
@@ -569,21 +570,15 @@ def fig_robustesse(robustesse: pd.DataFrame, titre: str) -> Figure:
     ax.grid(axis="x", color=config.COULEUR_GRILLE, linewidth=0.8)
     ax.set_axisbelow(True)
     ax.legend(frameon=False, loc="upper left", bbox_to_anchor=(1.0, 1.0))
-    fig.suptitle(titre, fontsize=13, x=0.01, ha="left")
-    fig.text(
-        0.01,
-        0.01,
+    _habiller(
+        fig,
+        titre,
         "Sens de H1 : pente négative. Même estimation et même bootstrap que la spécification "
         f"principale ({config.NB_TIRAGES_BOOTSTRAP} tirages par commune).\nUne variante sans objet "
         "dans une aire n'a pas de point : prix au m² à Lyon et Nantes (Alsace-Moselle hors DVF),\n"
         "frontière à Strasbourg. Sources : Insee, recensement 2022 ; annuaire de l'éducation ; "
         "DVF (Etalab) ; IGN.",
-        fontsize=9,
-        color=texte,
     )
-    fig.tight_layout(rect=(0, 0.12, 1, 0.95))
-    _axes_a_la_francaise(fig)
-    plt.close(fig)
     return fig
 
 
@@ -633,10 +628,9 @@ def fig_h4(pentes: pd.DataFrame, titre: str) -> Figure:
     # Légende dans l'ordre des aires de la charte, en dehors des points
     ax.legend(frameon=False, loc="upper left", bbox_to_anchor=(1.0, 1.0))
 
-    fig.suptitle(titre, fontsize=13, x=0.01, ha="left")
-    fig.text(
-        0.01,
-        0.01,
+    _habiller(
+        fig,
+        titre,
         "Pente des paires de communes contiguës, sans constante, à écarts de distance au centre "
         "et de log-densité donnés.\nMesures d'accès centrées réduites dans chaque aire et "
         "orientées pour qu'une valeur positive dise « plus d'accès, plus de cadres » (distances "
@@ -645,12 +639,7 @@ def fig_h4(pentes: pd.DataFrame, titre: str) -> Figure:
         "Sources : Insee, recensement 2022 et BPE 2025 ; annuaire de l'éducation "
         f"({config.DATE_ANNUAIRE}) ; SNCF Gares & Connexions ; ministère des Sports (Data ES) ;\n"
         "copies du 03/11/2026 pour la BPE, les gares et Data ES ; DREES, APL 2024 ; IGN.",
-        fontsize=9,
-        color=texte,
     )
-    fig.tight_layout(rect=(0, 0.13, 1, 0.95))
-    _axes_a_la_francaise(fig)
-    plt.close(fig)
     return fig
 
 
@@ -686,7 +675,7 @@ def carte_iris(
     bornes = [0, *config.BORNES_PART_CADRES_IRIS, 100]
     demi_cote = config.ZOOM_IRIS_KM * 1000
     ouest, sud = centre.x - demi_cote, centre.y - demi_cote
-    fig, axes = plt.subplots(2, 2, figsize=(13, 13))
+    fig, axes = plt.subplots(2, 2, figsize=(9, 9))
     for colonne, annee in enumerate((2011, 2022)):
         # Borne basse incluse, comme dans la légende
         classe = pd.cut(
@@ -742,9 +731,9 @@ def carte_iris(
     )
     fig.legend(handles=poignees, loc="center right", frameon=False, fontsize=9)
     fig.suptitle(titre, fontsize=13, x=0.01, ha="left")
-    fig.text(
-        0.01,
-        0.01,
+    _habiller(
+        fig,
+        None,
         "Part des cadres et professions intellectuelles supérieures parmi les actifs de 15 à 64 "
         "ans (occupés et chômeurs ayant déjà travaillé), et non de 25 à 54 ans comme dans le reste "
         "du rapport : les bases IRIS ne croisent pas\ncette tranche avec la catégorie "
@@ -754,11 +743,7 @@ def carte_iris(
         "(échantillon). Sources : Insee, recensements 2011 et 2022, bases infracommunales "
         "« Activité des résidents » ; contours IRIS de l'IGN (cartiflette, "
         f"COG {config.ANNEE_COG}).",
-        fontsize=9,
-        color=config.COULEUR_TEXTE,
+        droite=0.85,
+        haut=0.97,
     )
-    fig.tight_layout(rect=(0, 0.05, 0.85, 0.97))
-    # Fermée, la figure n'est affichée qu'une fois par un notebook, avec sa valeur de retour
-    _axes_a_la_francaise(fig)
-    plt.close(fig)
     return fig

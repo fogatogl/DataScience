@@ -166,7 +166,7 @@ def tableau_gradient(parts: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def tableau_hypotheses(verdict_h1: pd.DataFrame, verdict_h3: pd.DataFrame) -> pd.DataFrame:
+def tableau_hypotheses(verdict_h1: pd.DataFrame, verdict_h3: pd.DataFrame) -> Styler:
     """Renvoie le tableau des hypothèses du §6 : verdicts de H1 et H3, H2 et H4 descriptives.
 
     `verdict_h1` et `verdict_h3` viennent de `analyse.verdict_h1` et `analyse.verdict_h3`. Les
@@ -207,7 +207,16 @@ def tableau_hypotheses(verdict_h1: pd.DataFrame, verdict_h3: pd.DataFrame) -> pd
             "Mention": "aucune règle de verdict fixée avant l'estimation",
         }
     )
-    return pd.DataFrame(lignes).set_index(["Hypothèse", "Portée"])
+    # Sans index affiché : un en-tête à plat, une ligne par hypothèse et par portée
+    return pd.DataFrame(lignes).style.hide(axis="index")
+
+
+def encadre_replie(titre: str, contenu: str) -> str:
+    """Renvoie `contenu` (Markdown) dans un encadré Quarto replié, titré `titre`.
+
+    À imprimer dans une cellule `output: asis` : le lecteur l'ouvre d'un clic.
+    """
+    return f'::: {{.callout-note collapse="true" title="{titre}"}}\n{contenu}\n:::'
 
 
 def document_markdown(chemin: Path, apres: str | None = None) -> str:
