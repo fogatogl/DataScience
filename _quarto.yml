@@ -28,7 +28,7 @@ website:
         href: presentation.html
     right:
       - icon: github
-        href: https://github.com/gabrielwenger1-coder/DataScience
+        href: https://github.com/fogatogl/DataScience
         aria-label: Dépôt du projet
 
 format:

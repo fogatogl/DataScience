@@ -92,9 +92,11 @@ VARIABLES_AWS = ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY")
 VARIABLE_BUCKET_S3 = "BUCKET_S3"
 PREFIXE_S3 = "projet-cadres-lycees"
 DOSSIER_LOCAL = Path(__file__).parents[2] / "data"
-# Lecture publique des copies gelées : le bucket du projet, puis une release GitHub
-URL_COPIES_S3 = "https://minio.lab.sspcloud.fr/gfogato/projet-cadres-lycees/"
-URL_COPIES_RELEASE = (
+# Dépôt de référence du projet ; ses releases publient les copies gelées
+URL_DEPOT = "https://github.com/fogatogl/DataScience"
+URL_COPIES_RELEASE = f"{URL_DEPOT}/releases/download/donnees-20261020/"
+# La même release, sur le dépôt du groupe dont le dépôt de référence est une fork, en secours
+URL_COPIES_RELEASE_SECOURS = (
     "https://github.com/gabrielwenger1-coder/DataScience/releases/download/donnees-20261020/"
 )
 

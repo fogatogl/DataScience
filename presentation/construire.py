@@ -162,6 +162,7 @@ def resultats(base: pd.DataFrame, lycees: pd.DataFrame, paires: pd.DataFrame) ->
         "h4": lignes(h1.pentes_h4(base, paires).reset_index()),
         "robustesse": lignes(variantes.reset_index()),
         "variantes_figure": list(config.VARIANTES_FIGURE_ROBUSTESSE),
+        "url_depot": config.URL_DEPOT,
         "moran": lignes(robustesse.moran_part_cadres(base).reset_index()),
         "n_fichiers_bruts": len(pipeline.fichiers_bruts()),
     }
