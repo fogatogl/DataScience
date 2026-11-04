@@ -258,9 +258,12 @@ def fig_h1(
     axes[0].set_yticks([rang[aire] for aire in aires])
     axes[0].set_yticklabels(aires, color=texte)
     axes[0].set_ylim(-0.6, len(aires) - 0.4)
-    # Place à droite pour les noms des cellules
+    # Place à droite pour les noms des cellules, sans graduation ni axe au-delà des intervalles
     gauche, droite = axes[2].get_xlim()
+    graduations = [x for x in axes[2].get_xticks() if gauche <= x <= droite]
     axes[2].set_xlim(gauche, droite + 0.6 * (droite - gauche))
+    axes[2].set_xticks(graduations)
+    axes[2].spines["bottom"].set_bounds(gauche, droite)
 
     non_estimables = anneaux[~anneaux["estimable"]]
     noms = [
@@ -414,7 +417,9 @@ def fig_h3(terciles: pd.DataFrame, titre: str) -> Figure:
     ax.set_xticks(list(positions.values()))
     ax.set_xticklabels(list(positions), color=texte)
     ax.set_xlabel("IVAL moyenne des lycées à 5 km, en tiers calculés dans chaque aire", color=texte)
-    ax.set_ylabel("Évolution de la part de cadres, 2011-2022 (points)", color=texte)
+    ax.set_ylabel("Évolution 2011-2022 (points)", color=texte)
+    # Place sous les intervalles pour le nombre de communes
+    ax.set_ylim(terciles["ic_bas"].min() - 1, None)
     charte.styler_axes(ax, "y")
     ax.legend(frameon=False, loc="upper left", bbox_to_anchor=(1.0, 1.0))
 
@@ -427,7 +432,8 @@ def fig_h3(terciles: pd.DataFrame, titre: str) -> Figure:
         fig,
         titre,
         "Communes ayant au moins un lycée retenu à 5 km ; « sans IVAL » : aucun de ces lycées n'a "
-        "d'IVAL. Moyennes simples ; sous chaque point, le nombre de communes.\nIntervalles à 95 % "
+        "d'IVAL. Moyennes simples ; sous chaque point, le nombre de communes : sous 10 communes, "
+        "l'intervalle est peu informatif.\nIntervalles à 95 % "
         "par bootstrap des grappes « lycée avec IVAL le plus proche », tirées dans chaque aire "
         f"({config.NB_TIRAGES_BOOTSTRAP} tirages) ;\ntirages sans commune de la catégorie, écartés "
         f"pour elle : {noms_ecartes or 'aucun'}.\nIVAL : valeur ajoutée du taux d'accès de la "

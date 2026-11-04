@@ -39,10 +39,22 @@ CHEMIN_TABLEAU_SUPPORT = Path(__file__).parents[2] / "docs" / "tableau_support.m
 # Présentation de soutenance : gabarit versionné et page écrite dans le site Quarto
 CHEMIN_GABARIT_PRESENTATION = Path(__file__).parents[2] / "presentation" / "page.html"
 CHEMIN_PRESENTATION = Path(__file__).parents[2] / "_site" / "presentation.html"
-# Documents affichés en annexe du rapport : le dictionnaire et le journal des décisions du plan
+# Fonds de carte de la présentation : tuiles Plan IGN (WMTS, Web Mercator), assemblées en une
+# image par aire au niveau de zoom choisi, puis réduites à cette largeur en pixels
+URL_TUILES_IGN = (
+    "https://data.geopf.fr/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile&STYLE=normal"
+    "&TILEMATRIXSET=PM&FORMAT=image/png&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2"
+    "&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}"
+)
+ZOOM_FONDS_PRESENTATION = 11
+LARGEUR_FONDS_PRESENTATION = 1600
+# Fonds en JPEG de cette qualité (0 à 100) ; contours des communes simplifiés à cette tolérance
+QUALITE_JPEG_FONDS_PRESENTATION = 65
+SIMPLIFICATION_PRESENTATION_M = 100
+# Borne haute du dernier anneau (infinie) écrite ainsi dans le JSON, que la page lit « et plus »
+BORNE_OUVERTE_PRESENTATION = 999
+# Document affiché en annexe du rapport
 CHEMIN_DICTIONNAIRE = Path(__file__).parents[2] / "docs" / "dictionnaire_variables.md"
-CHEMIN_PLAN = Path(__file__).parents[2] / "docs" / "PLAN.md"
-TITRE_JOURNAL_PLAN = "## 13. Journal des décisions"
 # Rayons du tableau de support : le principal et le 10 km rapporté à côté
 RAYONS_SUPPORT_KM = (5, 10)
 # Aires de l'Ouest, dont au moins une doit être retenue (critère a)
@@ -81,15 +93,6 @@ VARIABLE_BUCKET_S3 = "BUCKET_S3"
 PREFIXE_S3 = "projet-cadres-lycees"
 DOSSIER_LOCAL = Path(__file__).parents[2] / "data"
 # Lecture publique des copies gelées : le bucket du projet, puis une release GitHub
-# Fonds de carte de la présentation : tuiles Plan IGN (WMTS, Web Mercator), assemblées en une
-# image par aire au niveau de zoom choisi, puis réduites à cette largeur en pixels
-URL_TUILES_IGN = (
-    "https://data.geopf.fr/wmts?SERVICE=WMTS&VERSION=1.0.0&REQUEST=GetTile&STYLE=normal"
-    "&TILEMATRIXSET=PM&FORMAT=image/png&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2"
-    "&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}"
-)
-ZOOM_FONDS_PRESENTATION = 11
-LARGEUR_FONDS_PRESENTATION = 1600
 URL_COPIES_S3 = "https://minio.lab.sspcloud.fr/gfogato/projet-cadres-lycees/"
 URL_COPIES_RELEASE = (
     "https://github.com/gabrielwenger1-coder/DataScience/releases/download/donnees-20261020/"

@@ -1,8 +1,8 @@
 """Mise en forme des tableaux affichés dans le rapport : libellés en clair, unités, virgule.
 
 Les calculs sont dans `analyse.py`, `h1.py`, `h3.py` et `robustesse.py` ; ces fonctions ne font
-que présenter leurs résultats. `document_markdown` met en forme les documents du dépôt affichés
-tels quels (tableau de support, dictionnaire, journal).
+que présenter leurs résultats. `document_markdown` met en forme le dictionnaire des variables,
+affiché tel quel en annexe.
 """
 
 from pathlib import Path
@@ -190,7 +190,7 @@ def tableau_hypotheses(verdict_h1: pd.DataFrame, verdict_h3: pd.DataFrame) -> St
             "Mention": "une seule aire de l'Ouest : comparaison sans test",
         }
     )
-    fiabilite = _nombre(verdict_h3.loc["ensemble", "fiabilite"], signe=False)
+    fiabilite = _nombre(verdict_h3.loc["ensemble", "fiabilite"], signe=False, decimales=3)
     lignes.append(
         {
             "Hypothèse": "H3",
@@ -211,6 +211,70 @@ def tableau_hypotheses(verdict_h1: pd.DataFrame, verdict_h3: pd.DataFrame) -> St
     return pd.DataFrame(lignes).style.hide(axis="index")
 
 
+def tableau_support(criteres: pd.DataFrame, support: pd.DataFrame) -> str:
+    """Met en forme les critères et le support de `analyse.lire_tableau_support` en Markdown.
+
+    Libellés en clair et virgule décimale ; les valeurs sont celles du fichier commité.
+    """
+    frontiere = f"communes_a_moins_de_{config.DIST_FRONTIERE_KM}km_frontiere"
+    aires = criteres.set_index("aire")
+    criteres_lisibles = pd.DataFrame(
+        {
+            "Ouest (a)": aires["ouest"].map({"True": "oui", "False": "non"}),
+            "Privé, part des lycées (b)": aires["part_prive_lycees"].map(_pourcentage),
+            "Privé, part des candidats au bac (b)": aires["part_prive_candidats"].map(_pourcentage),
+            "Écart d'IPS privé − public (b)": aires["ecart_ips"].map(
+                lambda valeur: _nombre(valeur, decimales=1)
+            ),
+            "Lycées avec IPS, public / privé": aires["n_ips_public"].astype(str)
+            + " / "
+            + aires["n_ips_prive"].astype(str),
+            "Population 2022 (c)": aires["population_2022"].map(lambda valeur: f"{valeur:,}"),
+            "Lycées privés sous contrat / retenus (d)": aires["lycees_prives"].astype(str)
+            + " / "
+            + aires["lycees"].astype(str),
+            f"Communes à moins de {config.DIST_FRONTIERE_KM} km d'une frontière (f)": aires[
+                frontiere
+            ],
+        }
+    )
+    criteres_lisibles["Population 2022 (c)"] = criteres_lisibles["Population 2022 (c)"].str.replace(
+        ",", "\u202f"
+    )
+    support_lisible = pd.DataFrame(
+        {
+            "Aire": support["aire"],
+            "Rayon": support["rayon_km"].astype(str) + " km",
+            "Communes exposées": support["exposees"].astype(str)
+            + " sur "
+            + support["communes"].astype(str),
+            "Cellules estimables": support["cellules_estimables"],
+            "Paires de statut différent": support["paires_statut_different"],
+            "Corrélation des écarts de distance": support["correlation_non_centree"].map(
+                lambda valeur: _nombre(valeur, signe=False, decimales=3)
+            ),
+        }
+    )
+    return "\n\n".join(
+        [
+            "**Critères (a) à (d) et (f).** Le critère (e) est détaillé dans le second tableau ;"
+            " (f), faisabilité : la source donne les arrondissements de Lyon.",
+            criteres_lisibles.rename_axis("Aire").to_markdown(),
+            "**Support de l'exposition (e).** Une commune est exposée si un lycée privé sous"
+            " contrat est dans le rayon ; la corrélation, non centrée, porte sur les écarts de"
+            " distance au lycée privé et au centre dans les paires contiguës.",
+            support_lisible.to_markdown(index=False),
+            f"Source et détail des cellules : `{config.CHEMIN_TABLEAU_SUPPORT.name}` dans `docs/`,"
+            " commité avant le choix des aires, sans aucune donnée sur les cadres.",
+        ]
+    )
+
+
+def _pourcentage(part: float) -> str:
+    """Écrit une part (fraction) en pourcentage entier, « 47 % »."""
+    return f"{part * 100:.0f}\u202f%"
+
+
 def encadre_replie(titre: str, contenu: str) -> str:
     """Renvoie `contenu` (Markdown) dans un encadré Quarto replié, titré `titre`.
 
@@ -219,20 +283,14 @@ def encadre_replie(titre: str, contenu: str) -> str:
     return f'::: {{.callout-note collapse="true" title="{titre}"}}\n{contenu}\n:::'
 
 
-def document_markdown(chemin: Path, apres: str | None = None) -> str:
-    """Renvoie un document Markdown du dépôt, pour l'afficher dans le rapport.
+def document_markdown(chemin: Path) -> str:
+    """Renvoie un document Markdown du dépôt sans son titre, pour l'afficher dans le rapport.
 
-    Le texte part de la ligne qui suit `apres`, ou de la deuxième ligne (après le titre du
-    document) si `apres` est absent. Les titres sont descendus de deux niveaux (`##` devient
-    `####`) pour rester sous la section du rapport qui affiche le document ; une ligne qui
-    commence par `#` dans un bloc de code est un commentaire et reste telle quelle.
+    Les titres sont descendus de deux niveaux (`##` devient `####`) pour rester sous la section
+    du rapport qui affiche le document ; une ligne qui commence par `#` dans un bloc de code est
+    un commentaire et reste telle quelle.
     """
-    texte = chemin.read_text(encoding="utf-8")
-    if apres is None:
-        corps = texte.split("\n", maxsplit=1)[1]
-    else:
-        assert apres in texte, f"« {apres} » absent de {chemin}."
-        corps = texte.split(apres, maxsplit=1)[1]
+    corps = chemin.read_text(encoding="utf-8").split("\n", maxsplit=1)[1]
     lignes = []
     dans_un_bloc_de_code = False
     for ligne in corps.splitlines():
