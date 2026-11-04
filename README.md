@@ -43,18 +43,18 @@ Le plan complet et le journal des décisions sont dans [`docs/PLAN.md`](docs/PLA
 
 ## Voir les résultats
 
-- **Le rapport** : https://gabrielwenger1-coder.github.io/DataScience/ (site Quarto construit depuis `rapport.ipynb`).
-- **La présentation interactive** de soutenance : https://gabrielwenger1-coder.github.io/DataScience/presentation.html (cartes 1999-2022, accès aux lycées, résultats de H1 à H4).
+- **Le rapport** : https://fogatogl.github.io/DataScience/ (site Quarto construit depuis `rapport.ipynb`).
+- **La présentation interactive** de soutenance : https://fogatogl.github.io/DataScience/presentation.html (cartes 1999-2022, accès aux lycées, résultats de H1 à H4).
 
-Les deux pages sont recalculées depuis les données et publiées sur la branche `gh-pages` du dépôt ; aucun fichier HTML n'est commité sur les autres branches. Pour les mettre à jour, depuis `main` :
+Les deux pages sont recalculées depuis les données et publiées sur la branche `gh-pages` de la fork [fogatogl/DataScience](https://github.com/fogatogl/DataScience) : seul le propriétaire d'un dépôt peut y activer GitHub Pages. Aucun fichier HTML n'est commité sur les autres branches. Pour les mettre à jour, dans un clone de la fork synchronisé avec `main` (bouton *Sync fork* sur GitHub) :
 
 ```bash
 uv run quarto render                       # exécute le rapport et écrit le site dans _site/
 uv run python presentation/construire.py   # ajoute _site/presentation.html
-uv run quarto publish gh-pages --no-render # publie _site/ tel quel sur GitHub Pages
+uv run quarto publish gh-pages --no-render # publie _site/ tel quel sur la branche gh-pages d'origin
 ```
 
-La première publication crée la branche `gh-pages` et active GitHub Pages (onglet *Settings > Pages* du dépôt : source « Deploy from a branch », branche `gh-pages`, si ce n'est pas fait automatiquement). Pour regarder le site sans le publier : `uv run quarto preview`.
+Pour regarder le site sans le publier : `uv run quarto preview`.
 
 ## Reproduire le projet
 

@@ -19,8 +19,8 @@ crossref:
 
 website:
   title: "Lycées et géographie des cadres"
-  # Publié sur GitHub Pages par `quarto publish gh-pages` (README, « Voir les résultats »)
-  site-url: https://gabrielwenger1-coder.github.io/DataScience/
+  # Publié sur la fork fogatogl/DataScience par `quarto publish gh-pages` (README, « Voir les résultats »)
+  site-url: https://fogatogl.github.io/DataScience/
   navbar:
     left:
       # Page écrite dans _site/ par presentation/construire.py, après le rendu
