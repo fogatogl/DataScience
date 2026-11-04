@@ -98,6 +98,30 @@ def tableau_support(
     return resultat
 
 
+def lire_tableau_support() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """Relit les trois tableaux de `config.CHEMIN_TABLEAU_SUPPORT` : critères, support, cellules.
+
+    Le fichier a été commité avant le choix des aires : le rapport affiche et contrôle ces
+    valeurs-là plutôt que de les recalculer. Une colonne entièrement numérique est convertie.
+    """
+    texte = config.CHEMIN_TABLEAU_SUPPORT.read_text(encoding="utf-8")
+    tableaux = []
+    for bloc in texte.split("\n## ")[1:]:
+        lignes = [ligne for ligne in bloc.splitlines() if ligne.startswith("|")]
+        # La deuxième ligne d'un tableau Markdown ne fait que l'aligner
+        entete, _, *corps = [
+            [cellule.strip() for cellule in ligne.strip("|").split("|")] for ligne in lignes
+        ]
+        tableau = pd.DataFrame(corps, columns=entete)
+        for colonne in tableau.columns:
+            nombres = pd.to_numeric(tableau[colonne], errors="coerce")
+            if nombres.notna().all():
+                tableau[colonne] = nombres
+        tableaux.append(tableau)
+    assert len(tableaux) == 3, f"{len(tableaux)} tableaux lus dans {config.CHEMIN_TABLEAU_SUPPORT}."
+    return tableaux[0], tableaux[1], tableaux[2]
+
+
 def resume_acces(base: pd.DataFrame) -> pd.DataFrame:
     """Résume, aire par aire, l'accès des communes aux lycées et aux autres infrastructures.
 

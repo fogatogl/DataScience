@@ -69,9 +69,35 @@ def construire_base(
     assert base[cadres.columns].notna().all().all(), "Part de cadres manquante après la jointure."
 
     paires = geo.paires_contigues(base, list(config.VARIABLES_PAIRES))
+    _verifier_tableau_support(base, paires)
     stockage.ecrire_parquet(base, config.CHEMIN_BASE)
     stockage.ecrire_parquet(paires, config.CHEMIN_PAIRES)
     return base, lycees, paires
+
+
+def _verifier_tableau_support(base: gpd.GeoDataFrame, paires: pd.DataFrame) -> None:
+    """Vérifie que la base retrouve le support de l'exposition commité pour ses aires (§4, D).
+
+    Le choix des aires repose sur `docs/tableau_support.md`, calculé une fois sur les 8
+    candidates : un changement de données ou de code qui en déplacerait un compte échoue ici.
+    """
+    cellules = pd.concat(
+        [
+            h1.cellules_anneaux(base, rayon).assign(rayon_km=rayon)
+            for rayon in config.RAYONS_SUPPORT_KM
+        ]
+    )
+    recalcule = analyse.tableau_support(base, paires, cellules).round(3)
+    _, commite, _ = analyse.lire_tableau_support()
+    comparaison = recalcule.merge(
+        commite, on=["aire", "rayon_km"], how="left", suffixes=("", "_commite"), validate="1:1"
+    )
+    for colonne in recalcule.columns.drop(["aire", "rayon_km"]):
+        differentes = comparaison[colonne] != comparaison[f"{colonne}_commite"]
+        assert not differentes.any(), (
+            f"{colonne} ne reproduit pas le tableau de support : "
+            f"{comparaison.loc[differentes, ['aire', 'rayon_km']].values.tolist()}."
+        )
 
 
 def _base_sans_cadres(referentiel: gpd.GeoDataFrame, lycees: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
