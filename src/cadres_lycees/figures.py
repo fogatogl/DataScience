@@ -398,7 +398,8 @@ def fig_paires(paires: pd.DataFrame, pentes: pd.DataFrame, titre: str) -> Figure
             zorder=1,
         )
         pente, bas, haut = (
-            f"{ligne[cle] * 100:+.2f}".replace(".", ",") for cle in ("pente", "ic_bas", "ic_haut")
+            f"{ligne[cle] * 100:+.2f}".replace(".", ",").replace("-", "−")
+            for cle in ("pente", "ic_bas", "ic_haut")
         )
         # Les statistiques vont au-dessus du panneau : dedans, elles pourraient cacher des points
         ax.set_title(aire, loc="left", fontsize=11, color=couleur, fontweight="bold", pad=34)
